@@ -20,5 +20,15 @@
       "cache": false,
       "persistent": true
     }
+  },
+  "globalDotenv": [".env"],
+  "pipeline": {
+    "build": {
+      "inputs": ["$MIDTRANS_SERVER_KEY", "$DATABASE_URL"],
+      "dependsOn": ["^build"]
+    },
+    "lint": {
+      "outputs": []
+    }
   }
 }

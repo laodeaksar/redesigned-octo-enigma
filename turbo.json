@@ -1,6 +1,21 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
+  "globalDotenv": [".env"],
+  "pipeline": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**"],
+      "inputs": ["$DATABASE_URL", "$MONGODB_URI", "$MIDTRANS_SERVER_KEY"]
+    },
+    "lint": {
+      "dependsOn": ["^build"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  },
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -8,7 +23,8 @@
       "outputs": [".next/**", "!.next/cache/**"]
     },
     "lint": {
-      "dependsOn": ["^lint"]
+      "dependsOn": ["^lint"],
+      "outputs": []
     },
     "format": {
       "dependsOn": ["^format"]
@@ -19,16 +35,6 @@
     "dev": {
       "cache": false,
       "persistent": true
-    }
-  },
-  "globalDotenv": [".env"],
-  "pipeline": {
-    "build": {
-      "inputs": ["$MIDTRANS_SERVER_KEY", "$DATABASE_URL"],
-      "dependsOn": ["^build"]
-    },
-    "lint": {
-      "outputs": []
     }
   }
 }

@@ -1,0 +1,13 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: "20"
+  PNPM_VERSION: "9"
+  TURBO_TOKEN:  ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM:   ${{ secrets.TURBO_TEAM }}

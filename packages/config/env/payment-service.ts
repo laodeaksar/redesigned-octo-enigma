@@ -1,19 +1,15 @@
 import { z } from "zod";
 import { createEnv } from "@t3-oss/env-core";
 
-import {
-  jwtSecretSchema,
-  nodeEnvSchema,
-  portSchema,
-} from "./index";
-
-export const env = createEnv({
+export const envPaymentService = createEnv({
   server: {
-    NODE_ENV: nodeEnvSchema,
-    PORT: portSchema.default(3004),
+    NODE_ENV: z
+      .enum(["development", "production", "test"])
+      .default("development"),
+    PORT: z.coerce.number().int().min(1024).max(65535).default(3004),
 
     // ── Auth (for internal JWT verification) ──────────────────────────────────
-    JWT_SECRET: jwtSecretSchema,
+    JWT_SECRET: z.string().min(32, "JWT secret must be at least 32 characters"),
 
     // ── Midtrans ──────────────────────────────────────────────────────────────
     MIDTRANS_SERVER_KEY: z.string().min(1),

@@ -1,13 +1,3 @@
 {
-  "compilerOptions": {
-    "noEmit": true,
-    "strict": true,
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "skipLibCheck": true
-  },
-  "references": [
-    { "path": "./env" }
-  ],
-  "files": []
+  "extends": "@repo/config/typescript/base"
 }

@@ -1,28 +1,22 @@
 import { z } from "zod";
 import { createEnv } from "@t3-oss/env-core";
 
-import {
-  jwtSecretSchema,
-  nodeEnvSchema,
-  portSchema,
-  postgresUrlSchema,
-  redisUrlSchema,
-} from "./index";
-
-export const env = createEnv({
+export const envProductService = createEnv({
   server: {
-    NODE_ENV: nodeEnvSchema,
-    PORT: portSchema.default(3002),
+    NODE_ENV: z
+      .enum(["development", "production", "test"])
+      .default("development"),
+    PORT: z.coerce.number().int().min(1024).max(65535).default(3002),
 
     // ── Database ──────────────────────────────────────────────────────────────
-    DATABASE_URL: postgresUrlSchema,
+    DATABASE_URL: z.url().startsWith("postgresql://"),
 
     // ── Cache ─────────────────────────────────────────────────────────────────
-    REDIS_URL: redisUrlSchema.optional(),
+    REDIS_URL: z.url().startsWith("redis").optional(),
     CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(300),
 
     // ── Auth (for internal JWT verification) ──────────────────────────────────
-    JWT_SECRET: jwtSecretSchema,
+    JWT_SECRET: z.string().min(32, "JWT secret must be at least 32 characters"),
 
     // ── Storage (product images) ──────────────────────────────────────────────
     S3_ENDPOINT: z.url().optional(),

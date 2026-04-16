@@ -1,23 +1,19 @@
 import { z } from "zod";
 import { createEnv } from "@t3-oss/env-core";
 
-import {
-  jwtSecretSchema,
-  nodeEnvSchema,
-  portSchema,
-} from "./index";
-
-export const env = createEnv({
+export const envOrderService = createEnv({
   server: {
-    NODE_ENV: nodeEnvSchema,
-    PORT: portSchema.default(3003),
+    NODE_ENV: z
+      .enum(["development", "production", "test"])
+      .default("development"),
+    PORT: z.coerce.number().int().min(1024).max(65535).default(3003),
 
     // ── MongoDB ───────────────────────────────────────────────────────────────
     MONGODB_URL: z.url().startsWith("mongodb"),
     MONGODB_DB_NAME: z.string().min(1).default("orders"),
 
     // ── Auth (for internal JWT verification) ──────────────────────────────────
-    JWT_SECRET: jwtSecretSchema,
+    JWT_SECRET: z.string().min(32, "JWT secret must be at least 32 characters"),
 
     // ── Internal service URLs ─────────────────────────────────────────────────
     PRODUCT_SERVICE_URL: z.url(),

@@ -1,11 +1,11 @@
 import { z } from "zod";
 import { createEnv } from "@t3-oss/env-core";
 
-import { nodeEnvSchema } from "./index";
-
-export const env = createEnv({
+export const envEmailWorker = createEnv({
   server: {
-    NODE_ENV: nodeEnvSchema,
+    NODE_ENV: z
+      .enum(["development", "production", "test"])
+      .default("development"),
 
     // ── RabbitMQ ──────────────────────────────────────────────────────────────
     RABBITMQ_URL: z.url().startsWith("amqp"),

@@ -1,7 +1,7 @@
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
 
-export const env = createEnv({
+export const envWeb = createEnv({
   /**
    * Server-side env vars — never exposed to the browser.
    */

@@ -18,7 +18,6 @@
     "declarationMap": true,
     "sourceMap": true,
     "noEmit": false,
-    "baseUrl": ".",
     "skipLibCheck": true
   },
   "exclude": [

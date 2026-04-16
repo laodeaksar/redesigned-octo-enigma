@@ -1,12 +1,12 @@
-import { z } from "zod";
-import { createEnv } from "@t3-oss/env-core";
+import { z } from "zod"
+import { createEnv } from "@t3-oss/env-core"
 
 export const envAPIGateway = createEnv({
   server: {
     NODE_ENV: z
       .enum(["development", "production", "test"])
       .default("development"),
-  PORT: z.coerce.number().int().min(1024).max(65535).default(3000),
+    PORT: z.coerce.number().int().min(1024).max(65535).default(3000),
 
     // ── JWT ───────────────────────────────────────────────────────────────────
     JWT_SECRET: z.string().min(32, "JWT secret must be at least 32 characters"),
@@ -28,4 +28,4 @@ export const envAPIGateway = createEnv({
       .transform((val) => val.split(",").map((s) => s.trim())),
   },
   runtimeEnv: process.env,
-});
+})

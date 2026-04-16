@@ -1,0 +1,23 @@
+{
+  "extends": "@repo/config/typescript/base",
+  "compilerOptions": {
+    "noEmit": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@repo/common/*": ["./*"]
+    }
+  },
+  "include": [
+    "types/**/*.ts",
+    "schemas/**/*.ts",
+    "errors/**/*.ts",
+    "events/**/*.ts",
+    "index.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/*.test.ts"
+  ]
+}

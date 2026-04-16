@@ -1,0 +1,35 @@
+{
+  "name": "@repo/common",
+  "description": "Shared types, Zod schemas, error classes, and RabbitMQ helpers for the monorepo",
+  "module": "index.ts",
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0",
+    "bun": ">=1.1.0"
+  },
+  "exports": {
+    "./types": "./types/index.ts",
+    "./schemas": "./schemas/index.ts",
+    "./errors": "./errors/index.ts",
+    "./events": "./events/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "clean": "rm -rf .turbo node_modules"
+  },
+  "dependencies": {
+    "amqplib": "^0.10.4",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@repo/config": "workspace:*",
+    "@types/amqplib": "^0.10.5",
+    "@types/bun": "latest",
+    "typescript": "^5.4.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0",
+    "zod": "^4"
+  }
+}

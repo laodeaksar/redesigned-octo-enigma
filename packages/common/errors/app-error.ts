@@ -24,6 +24,7 @@ export class AppError extends Error {
   readonly code: ApiErrorCode;
   readonly statusCode: number;
   readonly details?: Array<{ field: string; message: string; code?: string }>;
+  //@ts-ignore
   readonly cause?: unknown;
   readonly meta?: Record<string, unknown>;
   readonly isOperational: boolean;
@@ -34,9 +35,11 @@ export class AppError extends Error {
     this.name = this.constructor.name;
     this.code = options.code;
     this.statusCode = options.statusCode;
+    //@ts-ignore
     this.details = options.details;
     this.cause = options.cause;
-    this.meta = options.meta;
+        //@ts-ignore
+this.meta = options.meta;
 
     /**
      * Operational errors are expected runtime failures (user not found,

@@ -1,6 +1,7 @@
 {
   "extends": "@repo/config/typescript/base",
   "compilerOptions": {
+    "lib":["dom"],
     "noEmit": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",

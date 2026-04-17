@@ -3,13 +3,12 @@
 // Reusable Zod primitives shared across all domain schemas
 // =============================================================================
 
-import { z } from "zod";
+import { z } from "zod/v4";
 
 // ── Identifiers ───────────────────────────────────────────────────────────────
 
 /** Postgres UUID */
 export const uuidSchema = z
-  .string()
   .uuid({ message: "Must be a valid UUID" });
 
 /** MongoDB ObjectId as 24-char hex string */
@@ -52,7 +51,6 @@ export const longStringSchema = z
 // ── Contact ───────────────────────────────────────────────────────────────────
 
 export const emailSchema = z
-  .string()
   .email({ message: "Must be a valid email address" })
   .toLowerCase()
   .trim();
@@ -67,7 +65,6 @@ export const phoneSchema = z
 
 /** URL with http/https */
 export const urlSchema = z
-  .string()
   .url({ message: "Must be a valid URL" })
   .startsWith("http", { message: "URL must start with http or https" });
 
@@ -117,8 +114,7 @@ export const dateSchema = z.coerce.date();
 
 /** ISO 8601 string representation */
 export const isoDateStringSchema = z
-  .string()
-  .datetime({ message: "Must be a valid ISO 8601 datetime string" });
+  .date({ message: "Must be a valid ISO 8601 datetime string" });
 
 // ── Pagination ────────────────────────────────────────────────────────────────
 

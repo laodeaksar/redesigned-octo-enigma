@@ -1,9 +1,8 @@
 // =============================================================================
-// RabbitMQ Consumer — Idempotent message processing with retry + DLQ
+// RabbitMQ Consumer — Idempotent processing with delay-based retry + DLQ
 // =============================================================================
 
 import type { Channel, ConsumeMessage } from "amqplib";
-
 import type { BaseEvent } from "../types/events";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -14,47 +13,62 @@ export type MessageHandler<T = unknown> = (
 ) => Promise<void>;
 
 export interface MessageMeta {
-  /** Raw message — use for manual ack/nack if needed */
   raw: ConsumeMessage;
-  /** Full envelope including eventId, occurredAt, source */
   envelope: BaseEvent<unknown>;
-  /** Number of times this message has been delivered (1 = first delivery) */
-  deliveryCount: number;
-  /** Queue this message was consumed from */
+  /** Attempt count. 1 = first try, 2 = first retry, dst */
+  attempt: number;
   queue: string;
+  /** Sisa retry sebelum masuk DLQ */
+  attemptsLeft: number;
 }
 
 export interface ConsumeOptions {
   /**
-   * Max retry attempts before the message is sent to the DLQ.
-   * Default: 3
+   * Max retry attempts sebelum message masuk DLQ.
+   * Default: 3. Total proses = 1 + maxRetries
    */
   maxRetries?: number;
   /**
-   * Whether to requeue the message on failure (false = send to DLQ).
-   * Default: false — always prefer DLQ over infinite requeue loops
+   * Delay sebelum retry dalam ms. Bisa array buat backoff.
+   * Default: [1000, 5000, 15000] untuk 3 retry
    */
-  requeue?: boolean;
+  retryDelaysMs?: number | number[];
   /**
-   * Prefetch count for this consumer.
-   * Default: inherits the channel-level prefetch set in connection.ts
+   * Prefetch count untuk consumer ini.
+   * Default: inherit dari channel
    */
   prefetch?: number;
+  /**
+   * Nama exchange untuk routing delay. Default: same as main exchange
+   */
+  exchange?: string;
 }
+
+interface InternalRetryHeader {
+  "x-retry-count"?: number;
+  "x-original-queue"?: string;
+  "x-first-failure-at"?: string;
+}
+
+const DEFAULT_RETRY_DELAYS = [1000, 5000, 15000];
 
 // ── Consumer ──────────────────────────────────────────────────────────────────
 
 /**
- * Consume messages from a queue with automatic ack/nack handling.
+ * Consume messages dengan retry ber-delay + DLQ.
  *
- * - On success      → ack
- * - On failure      → nack + optionally requeue (up to maxRetries)
- * - On max retries  → nack without requeue → message goes to DLQ
+ * Flow:
+ * 1. Success → ack
+ * 2. Fail + masih ada retry → publish ke delay queue → ack message asli
+ * 3. Fail + retry habis → nack ke DLQ
+ * 4. Parse error → nack ke DLQ langsung + header reason
+ *
+ * Delay queue dibuat otomatis: {queue}.retry.{delay}
  *
  * Usage:
- *   await consume(channel, QUEUES.EMAIL_WELCOME, async (payload, meta) => {
- *     await sendWelcomeEmail(payload as WelcomeEmailPayload)
- *   })
+ * await consume(channel, QUEUES.EMAIL_WELCOME, async (payload, meta) => {
+ * await sendWelcomeEmail(payload as WelcomeEmailPayload)
+ * }, { maxRetries: 5 })
  */
 export async function consume<T = unknown>(
   channel: Channel,
@@ -62,20 +76,33 @@ export async function consume<T = unknown>(
   handler: MessageHandler<T>,
   options: ConsumeOptions = {}
 ): Promise<string> {
-  const { maxRetries = 3, requeue = false, prefetch } = options;
+  const {
+    maxRetries = 3,
+    retryDelaysMs = DEFAULT_RETRY_DELAYS,
+    prefetch,
+    exchange = "my-ecommerce",
+  } = options;
+
+  const delays = Array.isArray(retryDelaysMs) ? retryDelaysMs : [retryDelaysMs];
+  const actualMaxRetries = Math.min(maxRetries, delays.length);
 
   if (prefetch != null) {
     await channel.prefetch(prefetch);
   }
 
+  // Setup delay queues sekali di awal
+  await setupDelayQueues(channel, queue, delays, exchange);
+
   const { consumerTag } = await channel.consume(queue, async (msg) => {
     if (!msg) {
-      // null message = consumer cancelled by broker
       console.warn(`[Consumer:${queue}] Consumer cancelled by broker`);
       return;
     }
 
-    const deliveryCount = getDeliveryCount(msg);
+    const headers = (msg.properties.headers ?? {}) as InternalRetryHeader;
+    const attempt = (headers["x-retry-count"] ?? 0) + 1;
+    const attemptsLeft = actualMaxRetries + 1 - attempt;
+
     let envelope: BaseEvent<unknown>;
     let payload: T;
 
@@ -90,7 +117,6 @@ export async function consume<T = unknown>(
         envelope = raw as BaseEvent<unknown>;
         payload = raw.payload;
       } else {
-        // Direct queue message (publishToQueue format)
         const wrapper = raw as unknown as {
           messageId: string;
           sentAt: string;
@@ -106,52 +132,121 @@ export async function consume<T = unknown>(
         payload = wrapper.payload;
       }
     } catch (parseError) {
-      // Unparseable message — send straight to DLQ, do not retry
-      console.error(`[Consumer:${queue}] Failed to parse message — sending to DLQ`, {
+      console.error(`[Consumer:${queue}] Parse failed — sending to DLQ`, {
         messageId: msg.properties.messageId,
         error: parseError,
         raw: msg.content.toString().slice(0, 200),
       });
-      channel.nack(msg, false, false);
+
+      channel.nack(msg, false, false); // ke DLQ
       return;
     }
 
+    const meta: MessageMeta = {
+      raw: msg,
+      envelope,
+      attempt,
+      queue,
+      attemptsLeft,
+    };
+
     // ── Process message ──────────────────────────────────────────────────────
     try {
-      await handler(payload, {
-        raw: msg,
-        envelope,
-        deliveryCount,
-        queue,
-      });
-
+      await handler(payload, meta);
       channel.ack(msg);
     } catch (handlerError) {
-      const shouldRetry = requeue && deliveryCount <= maxRetries;
+      const errMsg = handlerError instanceof Error ? handlerError.message : String(handlerError);
 
-      console.error(`[Consumer:${queue}] Handler failed`, {
-        eventId: envelope.eventId,
-        deliveryCount,
-        maxRetries,
-        willRetry: shouldRetry,
-        error:
-          handlerError instanceof Error
-            ? handlerError.message
-            : handlerError,
-      });
+      // Masih bisa retry
+      if (attempt <= actualMaxRetries) {
+        const delayMs = delays[attempt - 1] ?? delays[delays.length - 1];
+        const retryQueue = getRetryQueueName(queue, delayMs);
 
-      if (shouldRetry) {
-        // Requeue — message will be re-delivered
-        channel.nack(msg, false, true);
+        console.warn(`[Consumer:${queue}] Handler failed. Retry ${attempt}/${actualMaxRetries} in ${delayMs}ms`, {
+          eventId: envelope.eventId,
+          error: errMsg,
+        });
+
+        // Publish ke delay queue dengan increment retry count
+        const retryHeaders: InternalRetryHeader = {
+          ...headers,
+          "x-retry-count": attempt,
+          "x-original-queue": queue,
+          "x-first-failure-at": headers["x-first-failure-at"] ?? new Date().toISOString(),
+        };
+
+        channel.publish("", retryQueue, msg.content, {
+          ...msg.properties,
+          headers: {
+            ...msg.properties.headers,
+            ...retryHeaders,
+          },
+        });
+
+        channel.ack(msg); // ack yg asli, karena udah dipindah ke delay queue
       } else {
-        // Exhausted retries — send to DLQ
-        channel.nack(msg, false, false);
+        // Retry habis → DLQ
+        console.error(`[Consumer:${queue}] Max retries exhausted — sending to DLQ`, {
+          eventId: envelope.eventId,
+          attempt,
+          error: errMsg,
+          firstFailureAt: headers["x-first-failure-at"],
+        });
+
+        // Tambah header biar gampang debug di DLQ
+        const dlqHeaders = {
+          ...msg.properties.headers,
+          "x-dlq-reason": errMsg.slice(0, 255),
+          "x-dlq-attempts": attempt,
+          "x-dlq-first-failure-at": headers["x-first-failure-at"],
+        };
+
+        // Republish manual ke DLQ biar bisa inject header
+        const dlq = `dlq.${queue}`;
+        channel.sendToQueue(dlq, msg.content, {
+          ...msg.properties,
+          headers: dlqHeaders,
+        });
+
+        channel.ack(msg); // ack asli, karena udah manual ke DLQ
       }
     }
   });
 
-  console.info(`[Consumer:${queue}] Listening (tag: ${consumerTag})`);
+  console.info(`[Consumer:${queue}] Listening (tag: ${consumerTag}, maxRetries: ${actualMaxRetries})`);
   return consumerTag;
+}
+
+// ── Delay Queue Setup ─────────────────────────────────────────────────────────
+
+/**
+ * Buat delay queue untuk setiap durasi retry.
+ * Delay queue = queue + TTL + DLX balik ke queue asli
+ */
+async function setupDelayQueues(
+  channel: Channel,
+  queue: string,
+  delays: number[],
+  exchange: string
+): Promise<void> {
+  const uniqueDelays = [...new Set(delays)]; // hapus duplikat
+
+  for (const delayMs of uniqueDelays) {
+    const retryQueue = getRetryQueueName(queue, delayMs);
+
+    await channel.assertQueue(retryQueue, {
+      durable: true,
+      arguments: {
+        "x-message-ttl": delayMs, // auto-expire
+        "x-dead-letter-exchange": "", // default exchange
+        "x-dead-letter-routing-key": queue, // balik ke queue asli
+      },
+    });
+  }
+}
+
+function getRetryQueueName(queue: string, delayMs: number | undefined): string {
+  return `${queue}.retry.${delayMs}`;
 }
 
 // ── Multi-queue consumer ──────────────────────────────────────────────────────
@@ -177,17 +272,10 @@ export async function consumeMany(
   bindings: QueueBinding[]
 ): Promise<string[]> {
   const tags: string[] = [];
-
   for (const binding of bindings) {
-    const tag = await consume(
-      channel,
-      binding.queue,
-      binding.handler,
-      binding.options
-    );
+    const tag = await consume(channel, binding.queue, binding.handler, binding.options);
     tags.push(tag);
   }
-
   return tags;
 }
 
@@ -202,19 +290,4 @@ export async function cancelConsumers(
 ): Promise<void> {
   await Promise.all(consumerTags.map((tag) => channel.cancel(tag)));
   console.info("[Consumer] All consumers cancelled.");
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-/**
- * RabbitMQ doesn't expose a built-in delivery count header.
- * This reads the x-death header set by DLX routing.
- */
-function getDeliveryCount(msg: ConsumeMessage): number {
-  const deaths = msg.properties.headers?.["x-death"] as
-    | Array<{ count: number }>
-    | undefined;
-
-  if (!deaths || deaths.length === 0) return 1;
-  return (deaths[0]?.count ?? 0) + 1;
 }

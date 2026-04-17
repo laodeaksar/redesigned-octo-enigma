@@ -3,12 +3,10 @@
 // Converts AppError / ZodError / unknown into structured API responses
 // =============================================================================
 
-import type { Context } from "hono"
+import { ZodError, type ZodType, type infer as ZodInfer } from "zod";
 
-import { ZodError } from "zod"
-
-import { AppError, InternalError } from "./app-error"
-import { ValidationError } from "./http-error"
+import { AppError, InternalError } from "./app-error";
+import { ValidationError, type ErrorDetail } from "./http-error";
 
 // ── Normalise any thrown value → AppError ─────────────────────────────────────
 
@@ -41,6 +39,27 @@ export function normalizeError(error: unknown): AppError {
 
   return new InternalError("An unexpected error occurred", error)
 }
+export function normalizeError(error: unknown): AppError {
+  if (AppError.isAppError(error)) {
+    return error;
+  }
+
+  if (error instanceof ZodError) {
+    const details: ErrorDetail[] = error.issues.map((issue) => ({
+      field: issue.path.join(".") || "root",
+      message: issue.message,
+      code: issue.code, // ZodIssueCode di v4
+    }));
+    return new ValidationError("Validation failed", details);
+  }
+
+  if (error instanceof Error) {
+    return new InternalError(error.message, error);
+  }
+
+  return new InternalError("An unexpected error occurred", error);
+}
+
 
 // ── Elysia error handler ──────────────────────────────────────────────────────
 
@@ -125,78 +144,111 @@ export function safeParse<T extends ZodTypeAny>(
 
 export { AppError } from "./app-error"
 
-// =============================================================================
-// Error Handlers — Framework-specific middleware
-// Converts AppError / ZodError / unknown into structured API responses
-// =============================================================================
-
-import { ZodError, type ZodTypeAny, type z } from "zod"
-import { AppError, InternalError } from "./app-error"
-import { ValidationError } from "./http-error"
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-/**
- * Memetakan ZodError ke dalam format detail yang konsisten untuk client.
- */
-function mapZodErrorToDetails(error: ZodError) {
-  return error.errors.map((e) => ({
-    field: e.path.join("."),
-    message: e.message,
-    code: e.code,
-  }))
-}
-
-/**
- * Melakukan logging untuk error yang bersifat non-operational (bug sistem).
- */
-function logUnexpectedError(error: AppError) {
-  if (!error.isOperational) {
-    console.error("[UNHANDLED ERROR]", {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-      cause: error.cause,
-      meta: error.meta,
-    })
-  }
-}
-
-// ── Normalise any thrown value → AppError ─────────────────────────────────────
-
-export function normalizeError(error: unknown): AppError {
-  if (error instanceof AppError) {
-    return error
-  }
-
-  if (error instanceof ZodError) {
-    return new ValidationError(mapZodErrorToDetails(error))
-  }
-
-  if (error instanceof Error) {
-    // Mempertahankan stack trace asli jika memungkinkan
-    return new InternalError(error.message, error)
-  }
-
-  return new InternalError("An unexpected error occurred", error)
-}
 
 // ── Elysia error handler ──────────────────────────────────────────────────────
 
 /**
- * Drop-in error handler untuk Elysia.js.
- * Elysia secara otomatis menangkap error dan menyediakannya dalam objek context.
+ * Drop-in error handler for Elysia.js apps.
+ *
+ * Usage:
+ *   import { elysiaErrorHandler } from "@my-ecommerce/common/errors"
+ *
+ *   const app = new Elysia()
+ *     .onError(elysiaErrorHandler)
  */
 export function elysiaErrorHandler({
   error,
   set,
+  request, // Elysia >=1.1 kasih ini
+  log,
 }: {
-  error: unknown
-  set: { status: number | string } // Elysia mendukung string status codes
+  error: unknown;
+  set: { status: number };
+  request?: Request;
+  log?: { error: (...args: unknown[]) => void };
 }) {
-  const appError = normalizeError(error)
-  logUnexpectedError(appError)
+  const appError = normalizeError(error);
 
-  set.status = appError.statusCode
-  return appError.toJSON()
+  // Log non-operational errors (programmer mistakes / unexpected failures)
+  if (!appError.isOperational) {
+    const logFn = log?.error ?? console.error;
+    logFn("[UNHANDLED ERROR]", {
+      name: appError.name,
+      message: appError.message,
+      stack: appError.stack,
+      cause: appError.cause,
+      meta: appError.meta,
+      url: request?.url,
+    });
+  }
+
+  set.status = appError.statusCode;
+  return appError.toJSON();
 }
+
+// ── Hono error handler ────────────────────────────────────────────────────────
+
+/**
+ * Drop-in error handler for Hono apps.
+ *
+ * Usage:
+ *   import { honoErrorHandler } from "@my-ecommerce/common/errors"
+ *   import { Hono } from "hono"
+ *
+ *   const app = new Hono()
+ *   app.onError(honoErrorHandler)
+ */
+import type { Context } from "hono";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
+
+export function honoErrorHandler(error: unknown, c: Context): Response {
+  const appError = normalizeError(error);
+
+  if (!appError.isOperational) {
+    console.error("[UNHANDLED ERROR]", {
+      name: appError.name,
+      message: appError.message,
+      stack: appError.stack,
+      cause: appError.cause,
+      meta: appError.meta,
+      path: c.req.path,
+      method: c.req.method,
+    });
+  }
+
+  return c.json(
+    appError.toJSON(),
+    appError.statusCode as ContentfulStatusCode
+  );
+}
+
+// ── Safe Zod parse helper ─────────────────────────────────────────────────────
+
+/**
+ * Parse unknown data with a Zod schema.
+ * Throws a ValidationError (400) on failure instead of a raw ZodError.
+ *
+ * Usage:
+ *   const body = safeParse(bodySchema, await c.req.json())
+ */
+export function safeParse<T extends ZodType>(
+  schema: T,
+  data: unknown
+): ZodInfer<T> {
+  const result = schema.safeParse(data);
+
+  if (!result.success) {
+    const details: ErrorDetail[] = result.error.issues.map((issue) => ({
+      field: issue.path.join(".") || "root",
+      message: issue.message,
+      code: issue.code,
+    }));
+    throw new ValidationError("Validation failed", details);
+  }
+
+  return result.data;
+}
+
+// ── Type guard helpers ────────────────────────────────────────────────────────
+
+export { AppError } from "./app-error";

@@ -1,0 +1,45 @@
+{
+  "name": "@repo/database",
+  "version": "0.0.0",
+    "module": "index.ts",
+  "type": "module",
+"private": true,
+  "description": "Shared Drizzle ORM schemas, PostgreSQL client, MongoDB client, and seed scripts",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0",
+    "bun": ">=1.1.0"
+  },
+  "exports": {
+    "./drizzle": "./drizzle/client.ts",
+    "./drizzle/schema": "./drizzle/schema/index.ts",
+    "./mongo": "./mongo/client.ts",
+    "./mongo/models": "./mongo/models/order.model.ts"
+  },
+  "scripts": {
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "bun run drizzle/migrate.ts",
+    "db:studio": "drizzle-kit studio",
+    "db:push": "drizzle-kit push",
+    "db:seed": "bun run seed/index.ts",
+    "db:seed:users": "bun run seed/users.seed.ts",
+    "db:seed:categories": "bun run seed/categories.seed.ts",
+    "db:seed:products": "bun run seed/products.seed.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "clean": "rm -rf .turbo node_modules drizzle/migrations/*.sql"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.30.10",
+    "mongoose": "^8.4.0",
+    "postgres": "^3.4.4"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.21.4",
+    "typescript": "^5.4.0"
+  },
+  "peerDependencies": {
+    "drizzle-orm": "^0.30.10",
+    "mongoose": "^8.4.0"
+  }
+}

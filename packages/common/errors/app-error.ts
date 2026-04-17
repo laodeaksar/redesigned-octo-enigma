@@ -5,6 +5,12 @@
 
 import type { ApiErrorCode } from "../types/api";
 
+export interface ErrorDetail {
+  field: string;
+  message: string;
+  code?: string;
+}
+
 export interface AppErrorOptions {
   /** Machine-readable code sent to clients */
   code: ApiErrorCode;
@@ -13,33 +19,31 @@ export interface AppErrorOptions {
   /** Human-readable message */
   message: string;
   /** Optional field-level validation details */
-  details?: Array<{ field: string; message: string; code?: string }>;
+  details?: ErrorDetail[] | undefined;
   /** Upstream or wrapped error — NOT sent to clients */
   cause?: unknown;
   /** Extra context for server-side logging — NOT sent to clients */
-  meta?: Record<string, unknown>;
+  meta?: Record<string, unknown> | undefined;
+  /** Whether this is an expected operational error. Defaults to true */
+  isOperational?: boolean;
 }
 
 export class AppError extends Error {
   readonly code: ApiErrorCode;
   readonly statusCode: number;
-  readonly details?: Array<{ field: string; message: string; code?: string }>;
-  //@ts-ignore
-  readonly cause?: unknown;
-  readonly meta?: Record<string, unknown>;
+  readonly details?: ErrorDetail[] | undefined;
+  readonly meta?: Record<string, unknown> | undefined;
   readonly isOperational: boolean;
 
   constructor(options: AppErrorOptions) {
-    super(options.message);
+    // Pass cause to Error so Node/V8 can chain stacks properly
+    super(options.message, { cause: options.cause });
 
     this.name = this.constructor.name;
     this.code = options.code;
     this.statusCode = options.statusCode;
-    //@ts-ignore
     this.details = options.details;
-    this.cause = options.cause;
-        //@ts-ignore
-this.meta = options.meta;
+    this.meta = options.meta;
 
     /**
      * Operational errors are expected runtime failures (user not found,
@@ -47,15 +51,17 @@ this.meta = options.meta;
      * structured API responses.
      *
      * Non-operational errors (programmer mistakes, unexpected failures)
-     * should crash the process or trigger an alert.
+     * should crash the process or trigger an alert. Defaults to true.
      */
-    this.isOperational = true;
+    this.isOperational = options.isOperational ?? true;
 
     // Preserve prototype chain in transpiled environments
     Object.setPrototypeOf(this, new.target.prototype);
 
     // Capture V8 stack trace without this constructor frame
+    //@ts-ignore
     if (Error.captureStackTrace) {
+      //@ts-ignore
       Error.captureStackTrace(this, this.constructor);
     }
   }
@@ -96,8 +102,7 @@ export class InternalError extends AppError {
       statusCode: 500,
       message,
       cause,
+      isOperational: false, // ini yang bener
     });
-    //@ts-ignore
-    this.isOperational = false as unknown as true; // signal: crash/alert worthy
   }
 }

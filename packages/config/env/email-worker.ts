@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { createEnv } from "@t3-oss/env-core"
+import { rabbitmqUrlSchema } from "."
 
 export const envEmailWorker = createEnv({
   server: {
@@ -8,7 +9,7 @@ export const envEmailWorker = createEnv({
       .default("development"),
 
     // ── RabbitMQ ──────────────────────────────────────────────────────────────
-    RABBITMQ_URL: z.url().startsWith("amqp"),
+    RABBITMQ_URL: rabbitmqUrlSchema,
     /** Comma-separated list of queue names this worker consumes */
     RABBITMQ_QUEUES: z
       .string()

@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@repo/env": "workspace:*",
-    "@repo/rate-limiter": "workspace:*",
     "@clerk/backend": "^1.0.0",
     "express": "^4.19.0",
     "http-proxy": "^1.18.1",

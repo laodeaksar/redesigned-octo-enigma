@@ -1,22 +1,29 @@
 import { z } from "zod";
 import { createEnv } from "@t3-oss/env-core";
+import {
+  jwtSecretSchema,
+  portSchema,
+  postgresUrlSchema,
+  rabbitmqUrlSchema,
+  redisUrlSchema,
+} from ".";
 
 export const envProductService = createEnv({
   server: {
     NODE_ENV: z
       .enum(["development", "production", "test"])
       .default("development"),
-    PORT: z.coerce.number().int().min(1024).max(65535).default(3002),
+    PORT: portSchema,
 
     // ── Database ──────────────────────────────────────────────────────────────
-    DATABASE_URL: z.url().startsWith("postgresql://"),
+    DATABASE_URL: postgresUrlSchema,
 
     // ── Cache ─────────────────────────────────────────────────────────────────
-    REDIS_URL: z.url().startsWith("redis").optional(),
+    REDIS_URL: redisUrlSchema,
     CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(300),
 
     // ── Auth (for internal JWT verification) ──────────────────────────────────
-    JWT_SECRET: z.string().min(32, "JWT secret must be at least 32 characters"),
+    JWT_SECRET: jwtSecretSchema,
 
     // ── Storage (product images) ──────────────────────────────────────────────
     S3_ENDPOINT: z.url().optional(),
@@ -27,7 +34,7 @@ export const envProductService = createEnv({
     S3_PUBLIC_URL: z.url().optional(),
 
     // ── RabbitMQ ──────────────────────────────────────────────────────────────
-    RABBITMQ_URL: z.url().startsWith("amqp"),
+    RABBITMQ_URL: rabbitmqUrlSchema,
   },
   runtimeEnv: process.env,
 });

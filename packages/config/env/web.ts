@@ -21,10 +21,10 @@ export const envWeb = createEnv({
 
     // ── Midtrans client key (for Snap.js) ─────────────────────────────────────
     NEXT_PUBLIC_MIDTRANS_CLIENT_KEY: z.string().min(1),
-    NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION: z.coerce.boolean().default(false),
-    /*.string()
+    NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION: z
+      .string()
       .transform((v) => v === "true")
-      .default("false"),*/
+      .default(false),
 
     // ── Analytics (optional) ──────────────────────────────────────────────────
     NEXT_PUBLIC_GA_MEASUREMENT_ID: z.string().optional(),

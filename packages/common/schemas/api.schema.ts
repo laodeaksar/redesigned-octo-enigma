@@ -40,12 +40,12 @@ export type SlugParam = z.infer<typeof slugParamSchema>;
  * Headers injected by api-gateway after JWT validation.
  * Services read these instead of re-verifying the JWT.
  */
-export const internalRequestHeadersSchema = z.object({
+export const internalRequestHeadersSchema = z.looseObject({
   "x-user-id": uuidSchema,
   "x-user-email": z.email(),
   "x-user-role": z.enum(["customer", "admin", "super_admin"]),
   "x-request-id": z.uuid(), // dibikin wajib buat tracing
-}).passthrough(); // biar gak error kalau ada header lain
+});
 
 export type InternalRequestHeaders = z.infer<typeof internalRequestHeadersSchema>;
 

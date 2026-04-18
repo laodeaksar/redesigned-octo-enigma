@@ -1,12 +1,13 @@
 import { z } from "zod";
 import { createEnv } from "@t3-oss/env-core";
+import { portSchema, rabbitmqUrlSchema } from ".";
 
 export const envOrderService = createEnv({
   server: {
     NODE_ENV: z
       .enum(["development", "production", "test"])
       .default("development"),
-    PORT: z.coerce.number().int().min(1024).max(65535).default(3003),
+    PORT: portSchema,
 
     // ── MongoDB ───────────────────────────────────────────────────────────────
     MONGODB_URL: z.url().startsWith("mongodb"),
@@ -20,7 +21,7 @@ export const envOrderService = createEnv({
     PAYMENT_SERVICE_URL: z.url(),
 
     // ── RabbitMQ ──────────────────────────────────────────────────────────────
-    RABBITMQ_URL: z.url().startsWith("amqp"),
+    RABBITMQ_URL: rabbitmqUrlSchema,
 
     // ── Order settings ────────────────────────────────────────────────────────
     /** Duration in minutes before an unpaid order is auto-cancelled */

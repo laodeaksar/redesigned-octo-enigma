@@ -1,7 +1,7 @@
 {
-  "extends": "@repo/tsconfig/react-lib",
+  "extends": "@repo/tsconfig/react-library",
   "compilerOptions": {
-    "baseUrl": ".",
+    "rootDir": ".",
     "paths": {
       "@repo/ui/*": ["./src/*"]
     }

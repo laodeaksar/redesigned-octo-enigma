@@ -24,7 +24,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@repo/config": "workspace:*",
+    "@repo/tsconfig": "workspace:*",
     "@types/amqplib": "^0.10.5",
     "@types/bun": "latest",
     "@types/node": "^25.1.0",

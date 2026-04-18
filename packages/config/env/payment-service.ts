@@ -1,15 +1,16 @@
 import { z } from "zod";
 import { createEnv } from "@t3-oss/env-core";
+import { jwtSecretSchema, portSchema, rabbitmqUrlSchema } from ".";
 
 export const envPaymentService = createEnv({
   server: {
     NODE_ENV: z
       .enum(["development", "production", "test"])
       .default("development"),
-    PORT: z.coerce.number().int().min(1024).max(65535).default(3004),
+    PORT: portSchema,
 
     // ── Auth (for internal JWT verification) ──────────────────────────────────
-    JWT_SECRET: z.string().min(32, "JWT secret must be at least 32 characters"),
+    JWT_SECRET: jwtSecretSchema,
 
     // ── Midtrans ──────────────────────────────────────────────────────────────
     MIDTRANS_SERVER_KEY: z.string().min(1),
@@ -28,7 +29,7 @@ export const envPaymentService = createEnv({
     ORDER_SERVICE_URL: z.url(),
 
     // ── RabbitMQ ──────────────────────────────────────────────────────────────
-    RABBITMQ_URL: z.url().startsWith("amqp"),
+    RABBITMQ_URL: rabbitmqUrlSchema,
   },
   runtimeEnv: process.env,
 });

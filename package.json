@@ -10,13 +10,12 @@
     "typecheck": "turbo typecheck"
   },
   "devDependencies": {
-    "@repo/config": "workspace:*",
     "@repo/eslint-config": "workspace:*",
-    "@repo/typescript-config": "workspace:*",
+    "@repo/tsconfig": "workspace:*",
     "prettier": "^3.8.3",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "turbo": "^2.9.6",
-    "typescript": "5.9.3"
+    "typescript": "^6.0.3"
   },
   "packageManager": "bun@1.3.11",
   "engines": {
@@ -24,6 +23,7 @@
   },
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "packages/config/*"
   ]
 }

@@ -28,7 +28,7 @@
     "@types/amqplib": "^0.10.5",
     "@types/bun": "latest",
     "@types/node": "^25.1.0",
-    "typescript": "^5.4.0"
+    "typescript": "^6.0.3"
   },
   "peerDependencies": {
     "typescript": "^5.0.0",

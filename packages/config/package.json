@@ -1,44 +1,26 @@
 {
   "name": "@repo/config",
-  "version": "0.0.1",
+  "version": "0.0.0",
   "private": true,
   "description": "Shared configuration for the monorepo: TypeScript, ESLint, and environment variables",
+  "license": "MIT",
   "engines": {
     "node": ">=20.0.0",
     "bun": ">=1.1.0"
   },
-  "exports": {
-    "./eslint/base": "./eslint/index.js",
-    "./eslint/next": "./eslint/next.js",
-    "./eslint/react": "./eslint/react-internal.js",
-    "./typescript/base": "./typescript/base.json",
-    "./typescript/bundler": "./typescript/bundler.json",
-    "./typescript/nextjs": "./typescript/nextjs.json",
-    "./typescript/react-lib": "./typescript/react-library.json",
-    "./prettier": "./prettier/index.js",
-    "./env": "./env/index.ts"
-  },
+  "workspaces": [
+    "tsconfig",
+    "eslint-config",
+    "env",
+    "prettier"
+  ],
   "scripts": {
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf .turbo node_modules"
   },
-  "dependencies": {
-    "@t3-oss/env-core": "^0.13.11",
-    "zod": "^4.3.6"
-  },
   "devDependencies": {
-    "@types/bun": "latest",
     "@types/node": "^25.6.0",
-    "@typescript-eslint/eslint-plugin": "^8.0.0",
-    "@typescript-eslint/parser": "^8.0.0",
-    "eslint": "^9.9.0",
-    "eslint-config-next": "^15.0.0",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-import": "^2.29.1",
-    "eslint-plugin-react": "^7.37.0",
-    "eslint-plugin-react-hooks": "^5.0.0",
-    "eslint-plugin-unicorn": "^54.0.0",
-    "typescript": "^5.6.0"
+    "typescript": "^6.0.3"
   }
 }

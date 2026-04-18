@@ -3,7 +3,7 @@
 // Singleton connection + channel with automatic reconnect on failure
 // =============================================================================
 
-import type { Connection, Channel, ChannelModel, Options } from "amqplib";
+import type { Channel, ChannelModel, Options } from "amqplib";
 
 export interface RabbitMQConfig {
   url: string;
@@ -113,29 +113,23 @@ export async function getRabbitMQConnection(
       }, delay + jitter);
     };
 
-    //@ts-ignore
     connection.on("error", (err) => {
       console.error("[RabbitMQ] Connection error:", err.message);
       scheduleReconnect("Connection error");
     });
 
-    //@ts-ignore
     connection.on("close", () => scheduleReconnect("Connection closed"));
 
-    //@ts-ignore
     connection.on("blocked", (reason) =>
       console.warn("[RabbitMQ] Connection blocked:", reason)
     );
-    //@ts-ignore
     connection.on("unblocked", () => console.info("[RabbitMQ] Connection unblocked"));
 
-    //@ts-ignore
     channel.on("error", (err) => {
       console.error("[RabbitMQ] Channel error:", err.message);
       scheduleReconnect("Channel error");
     });
 
-    //@ts-ignore
     channel.on("close", () => scheduleReconnect("Channel closed"));
 
     return { connection, channel, close, isHealthy };

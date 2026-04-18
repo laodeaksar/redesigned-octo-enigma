@@ -34,9 +34,10 @@ export class AppError extends Error {
   readonly details?: ErrorDetail[] | undefined;
   readonly meta?: Record<string, unknown> | undefined;
   readonly isOperational: boolean;
-
+readonly cause?: unknown;
   constructor(options: AppErrorOptions) {
     // Pass cause to Error so Node/V8 can chain stacks properly
+    //@ts-ignore
     super(options.message, { cause: options.cause });
 
     this.name = this.constructor.name;
@@ -44,6 +45,7 @@ export class AppError extends Error {
     this.statusCode = options.statusCode;
     this.details = options.details;
     this.meta = options.meta;
+    this.cause = options.cause
 
     /**
      * Operational errors are expected runtime failures (user not found,
@@ -59,9 +61,7 @@ export class AppError extends Error {
     Object.setPrototypeOf(this, new.target.prototype);
 
     // Capture V8 stack trace without this constructor frame
-    //@ts-ignore
     if (Error.captureStackTrace) {
-      //@ts-ignore
       Error.captureStackTrace(this, this.constructor);
     }
   }
@@ -102,7 +102,7 @@ export class InternalError extends AppError {
       statusCode: 500,
       message,
       cause,
-      isOperational: false, // ini yang bener
+      isOperational: false, // set via options, no type casting hack
     });
   }
 }

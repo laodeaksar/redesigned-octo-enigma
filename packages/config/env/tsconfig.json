@@ -1,0 +1,24 @@
+{
+  "extends": "@repo/tsconfig/base",
+  "compilerOptions": {
+    "types": ["node"],
+    "noEmit": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "paths": {
+      "@repo/env/*": ["./*"]
+    }
+  },
+  "include": [
+    "index.ts",
+    "api-gateway.ts",
+    "auth-service.ts",
+    "product-service.ts",
+    "order-service.ts",
+    "payment-service.ts",
+    "email-worker.ts",
+    "web.ts",
+    "admin.ts"
+  ]
+}

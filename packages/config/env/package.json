@@ -1,0 +1,72 @@
+{
+  "name": "@repo/env",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Zod-validated environment variable configs for every service in the monorepo",
+  "license": "MIT",
+  "exports": {
+    "./index": {
+      "import": "./index.ts",
+      "require": "./index.ts"
+    },
+    "./api-gateway": {
+      "import": "./api-gateway.ts",
+      "require": "./api-gateway.ts"
+    },
+    "./auth-service": {
+      "import": "./auth-service.ts",
+      "require": "./auth-service.ts"
+    },
+    "./product-service": {
+      "import": "./product-service.ts",
+      "require": "./product-service.ts"
+    },
+    "./order-service": {
+      "import": "./order-service.ts",
+      "require": "./order-service.ts"
+    },
+    "./payment-service": {
+      "import": "./payment-service.ts",
+      "require": "./payment-service.ts"
+    },
+    "./email-worker": {
+      "import": "./email-worker.ts",
+      "require": "./email-worker.ts"
+    },
+    "./web": {
+      "import": "./web.ts",
+      "require": "./web.ts"
+    },
+    "./admin": {
+      "import": "./admin.ts",
+      "require": "./admin.ts"
+    }
+  },
+  "files": [
+    "index.ts",
+    "api-gateway.ts",
+    "auth-service.ts",
+    "product-service.ts",
+    "order-service.ts",
+    "payment-service.ts",
+    "email-worker.ts",
+    "web.ts",
+    "admin.ts"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf .turbo node_modules"
+  },
+  "dependencies": {
+    "@t3-oss/env-core": "^0.13.11",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@repo/tsconfig": "workspace:*",
+    "@types/node": "^25.6.0",
+    "typescript": "^6.0.3"
+  },
+  "peerDependencies": {
+    "zod": "^3 || ^4"
+  }
+}

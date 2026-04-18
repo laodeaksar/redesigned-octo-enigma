@@ -4,7 +4,12 @@
 
 import { randomUUID } from "node:crypto";
 import type { Channel, ConfirmChannel } from "amqplib";
-import type { AppEvent, BaseEvent, EventType, ServiceName } from "../types/events";
+import type {
+  AppEvent,
+  BaseEvent,
+  EventType,
+  ServiceName,
+} from "../types/events";
 
 export interface PublishOptions {
   /** Routing key override — defaults to event.type */
@@ -37,7 +42,6 @@ const DEFAULT_PUBLISHER_CONFIG: Required<PublisherConfig> = {
  * Helper: tunggu drain event kalau channel buffer penuh
  */
 function waitForDrain(channel: Channel): Promise<void> {
-  //@ts-ignore
   return new Promise((resolve) => channel.once("drain", resolve));
 }
 
@@ -55,9 +59,12 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  */
 export async function publish<T extends AppEvent>(
   channel: Channel | ConfirmChannel,
-  event: Omit<T, "eventId" | "occurredAt"> & { type: EventType; source: ServiceName },
+  event: Omit<T, "eventId" | "occurredAt"> & {
+    type: EventType;
+    source: ServiceName;
+  },
   options: PublishOptions = {},
-  config: Partial<PublisherConfig> = {}
+  config: Partial<PublisherConfig> = {},
 ): Promise<void> {
   const cfg = { ...DEFAULT_PUBLISHER_CONFIG, ...config };
   const { maxRetries, retryDelayMs, exchange } = cfg;
@@ -69,7 +76,6 @@ export async function publish<T extends AppEvent>(
   };
 
   const routingKey = options.routingKey ?? event.type;
-  //@ts-ignore
   const content = Buffer.from(JSON.stringify(fullEvent));
 
   const msgOptions = {
@@ -112,7 +118,7 @@ export async function publish<T extends AppEvent>(
         throw new Error(
           `[RabbitMQ] Publish failed after ${attempt + 1} attempts: ${(err as Error).message}`,
           //@ts-ignore
-          { cause: err }
+          { cause: err },
         );
       }
 
@@ -121,7 +127,7 @@ export async function publish<T extends AppEvent>(
       const jitter = Math.random() * 200;
       console.warn(
         `[RabbitMQ] Publish to ${routingKey} failed. Retry ${attempt}/${maxRetries} in ${delay}ms`,
-        err
+        err,
       );
       await sleep(delay + jitter);
     }
@@ -140,7 +146,7 @@ export async function publishToQueue<T = unknown>(
   queue: string,
   payload: T,
   options: PublishOptions = {},
-  config: Partial<PublisherConfig> = {}
+  config: Partial<PublisherConfig> = {},
 ): Promise<void> {
   const cfg = { ...DEFAULT_PUBLISHER_CONFIG, ...config };
   const { maxRetries, retryDelayMs } = cfg;
@@ -151,7 +157,6 @@ export async function publishToQueue<T = unknown>(
     payload,
   };
 
-  //@ts-ignore
   const content = Buffer.from(JSON.stringify(message));
 
   const msgOptions = {
@@ -189,7 +194,7 @@ export async function publishToQueue<T = unknown>(
         throw new Error(
           `[RabbitMQ] sendToQueue ${queue} failed after ${attempt + 1} attempts: ${(err as Error).message}`,
           //@ts-ignore
-          { cause: err }
+          { cause: err },
         );
       }
 
@@ -198,7 +203,7 @@ export async function publishToQueue<T = unknown>(
       const jitter = Math.random() * 200;
       console.warn(
         `[RabbitMQ] sendToQueue ${queue} failed. Retry ${attempt}/${maxRetries} in ${delay}ms`,
-        err
+        err,
       );
       await sleep(delay + jitter);
     }
@@ -218,13 +223,13 @@ export async function publishToQueue<T = unknown>(
 export function createPublisher(
   channel: Channel | ConfirmChannel,
   source: ServiceName,
-  config: Partial<PublisherConfig> = {}
+  config: Partial<PublisherConfig> = {},
 ) {
   return {
     emit<T extends AppEvent>(
       type: T["type"],
       payload: T["payload"],
-      options?: PublishOptions
+      options?: PublishOptions,
     ): Promise<void> {
       return publish(
         channel,
@@ -233,14 +238,14 @@ export function createPublisher(
           source: ServiceName;
         },
         options,
-        config
+        config,
       );
     },
 
     toQueue<T = unknown>(
       queue: string,
       payload: T,
-      options?: PublishOptions
+      options?: PublishOptions,
     ): Promise<void> {
       return publishToQueue(channel, queue, payload, options, config);
     },

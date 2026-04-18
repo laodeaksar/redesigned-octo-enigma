@@ -16,14 +16,18 @@ export class BadRequestError extends AppError {
   constructor(
     message = "Bad request",
     code: ApiErrorCode = "INVALID_REQUEST",
-    cause?: unknown
+    cause?: unknown,
   ) {
     super({ code, statusCode: 400, message, cause });
   }
 }
 
 export class ValidationError extends AppError {
-  constructor(details: FieldError[], message = "Validation failed", cause?: unknown) {
+  constructor(
+    details: FieldError[],
+    message = "Validation failed",
+    cause?: unknown,
+  ) {
     super({
       code: "VALIDATION_ERROR",
       statusCode: 400,
@@ -46,7 +50,7 @@ export class UnauthorizedError extends AppError {
   constructor(
     message = "Authentication required",
     code: ApiErrorCode = "UNAUTHORIZED",
-    cause?: unknown
+    cause?: unknown,
   ) {
     super({ code, statusCode: 401, message, cause });
   }
@@ -70,7 +74,7 @@ export class ForbiddenError extends AppError {
   constructor(
     message = "Access denied",
     code: ApiErrorCode = "FORBIDDEN",
-    cause?: unknown
+    cause?: unknown,
   ) {
     super({ code, statusCode: 403, message, cause });
   }
@@ -91,7 +95,10 @@ export class InsufficientRoleError extends AppError {
 }
 
 export class EmailNotVerifiedError extends AppError {
-  constructor(message = "Please verify your email address before continuing", cause?: unknown) {
+  constructor(
+    message = "Please verify your email address before continuing",
+    cause?: unknown,
+  ) {
     super({ code: "EMAIL_NOT_VERIFIED", statusCode: 403, message, cause });
   }
 }
@@ -102,7 +109,7 @@ export class NotFoundError extends AppError {
   constructor(
     resource = "Resource",
     code: ApiErrorCode = "NOT_FOUND",
-    cause?: unknown
+    cause?: unknown,
   ) {
     super({
       code,
@@ -143,7 +150,7 @@ export class ConflictError extends AppError {
   constructor(
     message = "Resource already exists",
     code: ApiErrorCode = "CONFLICT",
-    cause?: unknown
+    cause?: unknown,
   ) {
     super({ code, statusCode: 409, message, cause });
   }
@@ -152,9 +159,11 @@ export class ConflictError extends AppError {
 export class EmailAlreadyExistsError extends ConflictError {
   constructor(email?: string, cause?: unknown) {
     super(
-      email ? `Email '${email}' is already registered` : "Email is already registered",
+      email
+        ? `Email '${email}' is already registered`
+        : "Email is already registered",
       "EMAIL_ALREADY_EXISTS",
-      cause
+      cause,
     );
   }
 }
@@ -164,7 +173,7 @@ export class SlugAlreadyExistsError extends ConflictError {
     super(
       slug ? `Slug '${slug}' is already in use` : "Slug is already in use",
       "SLUG_ALREADY_EXISTS",
-      cause
+      cause,
     );
   }
 }
@@ -176,7 +185,7 @@ export class InsufficientStockError extends AppError {
     variantId: string,
     requested: number,
     available: number,
-    cause?: unknown
+    cause?: unknown,
   ) {
     super({
       code: "INSUFFICIENT_STOCK",
@@ -214,13 +223,14 @@ export class PaymentAlreadyProcessedError extends AppError {
 export class InvalidVoucherError extends AppError {
   constructor(
     reason: "not_found" | "expired" | "usage_limit" | "minimum_not_met",
-    cause?: unknown
+    cause?: unknown,
   ) {
     const messages: Record<typeof reason, string> = {
       not_found: "Voucher code is invalid or does not exist",
       expired: "This voucher has expired",
       usage_limit: "This voucher has reached its usage limit",
-      minimum_not_met: "Your order does not meet the minimum amount for this voucher",
+      minimum_not_met:
+        "Your order does not meet the minimum amount for this voucher",
     };
 
     const codes: Record<typeof reason, ApiErrorCode> = {
@@ -243,7 +253,10 @@ export class InvalidVoucherError extends AppError {
 // ── 429 Too Many Requests ─────────────────────────────────────────────────────
 
 export class RateLimitError extends AppError {
-  constructor(message = "Too many requests — please slow down", cause?: unknown) {
+  constructor(
+    message = "Too many requests — please slow down",
+    cause?: unknown,
+  ) {
     super({ code: "RATE_LIMIT_EXCEEDED", statusCode: 429, message, cause });
   }
 }

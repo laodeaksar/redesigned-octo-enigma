@@ -2,25 +2,31 @@ name: my-ecommerce-dev
 
 # =============================================================================
 # Local development infrastructure
+#
 # Usage:
 #   Start all:      docker compose -f docker-compose.dev.yml up -d
 #   Start specific: docker compose -f docker-compose.dev.yml up -d postgres redis
 #   Stop all:       docker compose -f docker-compose.dev.yml down
 #   Reset volumes:  docker compose -f docker-compose.dev.yml down -v
+#
+# After migrating from RabbitMQ → BullMQ:
+#   Redis now serves THREE roles:
+#     1. Rate limiting         (api-gateway)
+#     2. Response cache        (product-service)
+#     3. Job queues            (all services via BullMQ)
 # =============================================================================
 
 services:
 
   # ── PostgreSQL ──────────────────────────────────────────────────────────────
-  # Used by: auth-service, product-service
-  # Connect: postgresql://postgres:postgres@localhost:5432/<db-name>
+  # Used by: auth-service, product-service, payment-service, order-service (vouchers)
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_MULTIPLE_DATABASES: ecommerce_auth,ecommerce_products
+      POSTGRES_MULTIPLE_DATABASES: ecommerce_auth,ecommerce_products,ecommerce_payments
     ports:
       - "5432:5432"
     volumes:
@@ -34,8 +40,6 @@ services:
 
   # ── MongoDB ─────────────────────────────────────────────────────────────────
   # Used by: order-service
-  # Connect: mongodb://localhost:27017
-  # Compass: Connect via the URL above
   mongo:
     image: mongo:7-jammy
     restart: unless-stopped
@@ -50,12 +54,20 @@ services:
       retries: 5
 
   # ── Redis ────────────────────────────────────────────────────────────────────
-  # Used by: api-gateway (rate limiting), product-service (cache)
+  # Replaces BOTH the old Redis (cache) AND RabbitMQ (messaging).
   # Connect: redis://localhost:6379
+  #
+  # Bull Board (job queue dashboard) is available inside the admin app:
+  #   http://localhost:3011/admin/queues
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    command: redis-server --save 20 1 --loglevel warning
+    command: >
+      redis-server
+      --save 20 1
+      --loglevel warning
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
     ports:
       - "6379:6379"
     volumes:
@@ -64,27 +76,6 @@ services:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
-      retries: 5
-
-  # ── RabbitMQ ─────────────────────────────────────────────────────────────────
-  # Used by: all services for async events
-  # AMQP: amqp://guest:guest@localhost:5672
-  # Management UI: http://localhost:15672 (guest / guest)
-  rabbitmq:
-    image: rabbitmq:3.13-management-alpine
-    restart: unless-stopped
-    ports:
-      - "5672:5672"    # AMQP
-      - "15672:15672"  # Management UI
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
-      interval: 10s
-      timeout: 5s
       retries: 5
 
   # ── MinIO (S3-compatible object storage) ─────────────────────────────────────
@@ -96,8 +87,8 @@ services:
     restart: unless-stopped
     command: server /data --console-address ":9001"
     ports:
-      - "9000:9000"   # S3 API
-      - "9001:9001"   # Console UI
+      - "9000:9000"
+      - "9001:9001"
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
@@ -110,7 +101,6 @@ services:
       retries: 5
 
   # ── MinIO bucket bootstrap ────────────────────────────────────────────────────
-  # Automatically creates the `product-images` bucket on first start
   minio-init:
     image: minio/mc:latest
     depends_on:
@@ -132,8 +122,8 @@ services:
     image: axllent/mailpit:latest
     restart: unless-stopped
     ports:
-      - "1025:1025"  # SMTP
-      - "8025:8025"  # Web UI
+      - "1025:1025"
+      - "8025:8025"
     environment:
       MP_MAX_MESSAGES: 200
       MP_SMTP_AUTH_ACCEPT_ANY: 1
@@ -143,5 +133,4 @@ volumes:
   postgres_data:
   mongo_data:
   redis_data:
-  rabbitmq_data:
   minio_data:

@@ -6,11 +6,13 @@
   "license": "MIT",
   "exports": {
     ".": "./index.js",
+    "./astro": "./astro.js",
     "./next": "./next.js",
     "./react-internal": "./react-internal.js"
   },
   "files": [
     "index.js",
+    "astro.js",
     "next.js",
     "react-internal.js"
   ],
@@ -22,6 +24,7 @@
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
     "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-astro": "^1.2.0",
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-react": "^7.34.3",
     "eslint-plugin-react-hooks": "^4.6.2",

@@ -1,23 +1,78 @@
 {
-  "extends": "@repo/tsconfig/nextjs",
+  "$schema": "https://json.schemastore.org/tsconfig",
+
+  // Astro's built-in strict preset:
+  //   - strict: true (all strict flags)
+  //   - noUnusedLocals: false  (Astro components often have unused imports)
+  //   - noUnusedParameters: false
+  //   - verbatimModuleSyntax: true  (type-only imports must use `import type`)
+  "extends": "astro/tsconfigs/strict",
+
   "compilerOptions": {
+    // ── Module resolution ────────────────────────────────────────────────────
+    "module": "ESNext",
+    "moduleResolution": "Bundler",      // Vite/Astro use bundler resolution
+    "resolveJsonModule": true,
+
+    // ── Target / lib ─────────────────────────────────────────────────────────
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+
+    // ── JSX — React islands use react-jsx transform ───────────────────────────
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+
+    // ── Emit ─────────────────────────────────────────────────────────────────
+    "noEmit": true,                     // Astro/Vite handles compilation
+    "declaration": false,
+    "sourceMap": true,
+
+    // ── Type checking extras ─────────────────────────────────────────────────
+    "exactOptionalPropertyTypes": false, // Astro props are often optional
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "allowJs": true,                    // allow .mjs (astro.config.mjs etc.)
+    "checkJs": false,                   // don't type-check .mjs config files
+
+    // ── Interop ──────────────────────────────────────────────────────────────
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "isolatedModules": true,            // required by Vite
+
+    // ── Paths ────────────────────────────────────────────────────────────────
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"],
-      "@repo/ui/*": ["../../packages/ui/src/*"]
+      "@/*": ["./src/*"]
     },
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ]
+
+    // ── Misc ─────────────────────────────────────────────────────────────────
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
   },
+
   "include": [
-    "next-env.d.ts",
-    "next.config.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts"
+    // Astro-generated types (must be included for Astro.props etc.)
+    ".astro/types.d.ts",
+
+    // All source files
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.astro",
+    "src/**/*.mts",
+
+    // Config files at root
+    "astro.config.mjs",
+    "tailwind.config.ts",
+    "postcss.config.js",
+
+    // Env type declarations
+    "src/env.d.ts"
   ],
-  "exclude": ["node_modules"]
+
+  "exclude": [
+    "node_modules",
+    "dist",
+    ".astro"                            // exclude generated output, not types
+  ]
 }
+

@@ -1,156 +1,176 @@
 ---
 import BaseLayout from "@/components/layout/BaseLayout.astro";
 import ProductCard from "@/components/shared/ProductCard.astro";
+import Pagination from "@/components/shared/Pagination.astro";
 import { api, type Product, type Category } from "@/lib/api";
 
-// Fetch featured products + categories in parallel
+const { searchParams } = Astro.url;
+const page = parseInt(searchParams.get("page") ?? "1", 10);
+const search = searchParams.get("q") ?? "";
+const categoryId = searchParams.get("categoryId") ?? "";
+const sortBy = searchParams.get("sortBy") ?? "createdAt";
+const sortOrder = searchParams.get("sortOrder") ?? "desc";
+
 let products: Product[] = [];
+let totalPages = 1;
+let total = 0;
 let categories: Category[] = [];
 
 try {
   const [productsRes, categoriesRes] = await Promise.all([
-    api.get<{ success: true; data: Product[]; meta: { total: number } }>(
+    api.get<{ success: true; data: Product[]; meta: { total: number; page: number; limit: number; totalPages: number } }>(
       "/products",
-      { params: { page: 1, limit: 8, status: "active", sortBy: "createdAt", sortOrder: "desc" } }
+      {
+        params: {
+          page, limit: 24, status: "active",
+          search: search || undefined,
+          categoryId: categoryId || undefined,
+          sortBy, sortOrder,
+        },
+      }
     ),
     api.get<{ success: true; data: Category[] }>("/categories"),
   ]);
+
   products = productsRes.data;
-  categories = categoriesRes.data.filter((c) => !c.parentId).slice(0, 6);
+  totalPages = productsRes.meta.totalPages;
+  total = productsRes.meta.total;
+  categories = categoriesRes.data.filter((c) => !c.parentId);
 } catch {
-  // Show empty state — don't crash the page
+  // show empty state
 }
+
+const baseUrl = "/products";
+const currentCategory = categories.find((c) => c.id === categoryId);
+const pageTitle = currentCategory ? currentCategory.name : "Semua Produk";
+
+const sortOptions = [
+  { value: "createdAt_desc", label: "Terbaru" },
+  { value: "createdAt_asc", label: "Terlama" },
+  { value: "lowestPrice_asc", label: "Harga Terendah" },
+  { value: "lowestPrice_desc", label: "Harga Tertinggi" },
+];
 ---
 
-<BaseLayout title="Beranda" description="Belanja produk terbaik dengan harga terjangkau">
-  <!-- Hero -->
-  <section class="bg-gradient-to-br from-brand-500 to-brand-700 py-20 text-white">
-    <div class="container mx-auto px-4 text-center">
-      <h1 class="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
-        Belanja Lebih<br />
-        <span class="text-accent">Mudah & Hemat</span>
-      </h1>
-      <p class="mx-auto mt-4 max-w-xl text-lg text-white/80">
-        Temukan ribuan produk pilihan dengan harga terbaik dan pengiriman ke seluruh Indonesia.
-      </p>
-      <div class="mt-8 flex flex-wrap items-center justify-center gap-4">
-        <a
-          href="/products"
-          class="rounded-full bg-accent px-8 py-3.5 text-sm font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl"
-        >
-          Belanja Sekarang
-        </a>
-        <a
-          href="#categories"
-          class="rounded-full border border-white/30 px-8 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/10"
-        >
-          Lihat Kategori
-        </a>
-      </div>
-    </div>
-  </section>
+<BaseLayout title={pageTitle}>
+  <div class="container mx-auto px-4 py-10">
+    <div class="flex flex-col gap-8 lg:flex-row">
 
-  <!-- Trust badges -->
-  <section class="border-b border-gray-100 bg-white py-6">
-    <div class="container mx-auto px-4">
-      <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
-        {[
-          { icon: "🚚", title: "Gratis Ongkir", desc: "Min. pembelian Rp 100k" },
-          { icon: "🔒", title: "Pembayaran Aman", desc: "Dijamin Midtrans" },
-          { icon: "↩️", title: "Mudah Return", desc: "7 hari garansi" },
-          { icon: "⭐", title: "Terpercaya", desc: "10.000+ pelanggan" },
-        ].map((b) => (
-          <div class="flex items-center gap-3">
-            <span class="text-3xl">{b.icon}</span>
-            <div>
-              <p class="text-sm font-semibold text-gray-900">{b.title}</p>
-              <p class="text-xs text-gray-500">{b.desc}</p>
+      <!-- Sidebar filters -->
+      <aside class="w-full lg:w-56 shrink-0">
+        <div class="sticky top-24 space-y-6">
+
+          <!-- Search -->
+          <form method="get" action="/products">
+            <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Cari
+            </label>
+            <div class="flex overflow-hidden rounded-lg border border-gray-200">
+              <input
+                type="search"
+                name="q"
+                value={search}
+                placeholder="Nama produk…"
+                class="flex-1 px-3 py-2 text-sm outline-none"
+              />
+              <button type="submit" class="px-3 text-gray-400 hover:text-gray-700">🔍</button>
             </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  </section>
+            {categoryId && <input type="hidden" name="categoryId" value={categoryId} />}
+          </form>
 
-  <!-- Categories -->
-  {categories.length > 0 && (
-    <section id="categories" class="py-14">
-      <div class="container mx-auto px-4">
-        <div class="mb-8 flex items-end justify-between">
+          <!-- Categories -->
           <div>
-            <h2 class="text-2xl font-bold text-gray-900">Kategori</h2>
-            <p class="mt-1 text-sm text-gray-500">Pilih kategori yang kamu inginkan</p>
+            <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Kategori
+            </p>
+            <ul class="space-y-1">
+              <li>
+                <a
+                  href="/products"
+                  class:list={[
+                    "block rounded-md px-3 py-1.5 text-sm transition-colors",
+                    !categoryId ? "bg-brand-500 font-semibold text-white" : "text-gray-600 hover:bg-gray-100",
+                  ]}
+                >
+                  Semua Produk
+                </a>
+              </li>
+              {categories.map((cat) => (
+                <li>
+                  <a
+                    href={`/products?categoryId=${cat.id}`}
+                    class:list={[
+                      "block rounded-md px-3 py-1.5 text-sm transition-colors",
+                      categoryId === cat.id
+                        ? "bg-brand-500 font-semibold text-white"
+                        : "text-gray-600 hover:bg-gray-100",
+                    ]}
+                  >
+                    {cat.name}
+                  </a>
+                </li>
+              ))}
+            </ul>
           </div>
-          <a href="/products" class="text-sm font-medium text-accent hover:underline">
-            Lihat semua →
-          </a>
         </div>
+      </aside>
 
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {categories.map((cat) => (
-            <a
-              href={`/products?categoryId=${cat.id}`}
-              class="flex flex-col items-center gap-2 rounded-xl border border-gray-100 bg-white p-4 text-center shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-500/20 hover:shadow-md"
+      <!-- Main content -->
+      <div class="flex-1">
+
+        <!-- Header bar -->
+        <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 class="text-xl font-bold text-gray-900">{pageTitle}</h1>
+            <p class="mt-0.5 text-sm text-gray-500">{total} produk ditemukan</p>
+          </div>
+
+          <form method="get" action="/products" class="flex items-center gap-2">
+            {categoryId && <input type="hidden" name="categoryId" value={categoryId} />}
+            {search && <input type="hidden" name="q" value={search} />}
+            <label class="text-sm text-gray-600">Urutkan:</label>
+            <select
+              name="sortBy"
+              onchange="this.form.submit()"
+              class="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-500"
             >
-              <div class="flex h-12 w-12 items-center justify-center rounded-full bg-brand-500/10 text-2xl">
-                {cat.imageUrl
-                  ? <img src={cat.imageUrl} alt={cat.name} class="h-full w-full rounded-full object-cover" />
-                  : "🛍️"
-                }
-              </div>
-              <span class="text-xs font-semibold text-gray-700">{cat.name}</span>
-            </a>
-          ))}
+              {sortOptions.map((opt) => {
+                const [field, order] = opt.value.split("_");
+                const isSelected = sortBy === field && sortOrder === order;
+                return (
+                  <option value={opt.value} selected={isSelected}>{opt.label}</option>
+                );
+              })}
+            </select>
+          </form>
         </div>
+
+        <!-- Products grid -->
+        {products.length === 0 ? (
+          <div class="flex flex-col items-center gap-3 py-24 text-gray-400">
+            <span class="text-6xl">🔍</span>
+            <p class="font-medium">Produk tidak ditemukan</p>
+            <a href="/products" class="text-sm text-accent hover:underline">Lihat semua produk</a>
+          </div>
+        ) : (
+          <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
+            {products.map((p) => (
+              <ProductCard
+                id={p.id}
+                name={p.name}
+                slug={p.slug}
+                primaryImage={p.primaryImage}
+                lowestPrice={p.lowestPrice}
+                highestPrice={p.highestPrice}
+                totalStock={p.totalStock}
+                tags={p.tags}
+              />
+            ))}
+          </div>
+        )}
+
+        <Pagination page={page} totalPages={totalPages} baseUrl={baseUrl} />
       </div>
-    </section>
-  )}
-
-  <!-- Featured products -->
-  <section class="bg-gray-50/50 py-14">
-    <div class="container mx-auto px-4">
-      <div class="mb-8 flex items-end justify-between">
-        <div>
-          <h2 class="text-2xl font-bold text-gray-900">Produk Terbaru</h2>
-          <p class="mt-1 text-sm text-gray-500">Produk pilihan yang baru ditambahkan</p>
-        </div>
-        <a href="/products" class="text-sm font-medium text-accent hover:underline">
-          Lihat semua →
-        </a>
-      </div>
-
-      {products.length === 0 ? (
-        <p class="py-12 text-center text-gray-400">Belum ada produk tersedia.</p>
-      ) : (
-        <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {products.map((p) => (
-            <ProductCard
-              id={p.id}
-              name={p.name}
-              slug={p.slug}
-              primaryImage={p.primaryImage}
-              lowestPrice={p.lowestPrice}
-              highestPrice={p.highestPrice}
-              totalStock={p.totalStock}
-              tags={p.tags}
-            />
-          ))}
-        </div>
-      )}
     </div>
-  </section>
-
-  <!-- CTA banner -->
-  <section class="bg-accent py-14 text-white">
-    <div class="container mx-auto px-4 text-center">
-      <h2 class="text-2xl font-bold sm:text-3xl">Daftar & Dapatkan Diskon 10%</h2>
-      <p class="mt-2 text-white/80">untuk pembelian pertama kamu</p>
-      <a
-        href="/auth/register"
-        class="mt-6 inline-block rounded-full bg-white px-8 py-3.5 text-sm font-bold text-accent transition-all hover:scale-105"
-      >
-        Daftar Gratis
-      </a>
-    </div>
-  </section>
+  </div>
 </BaseLayout>

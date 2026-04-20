@@ -1,7 +1,7 @@
 {
   "name": "@repo/common",
-  "description": "Shared types, Zod schemas, error classes, and RabbitMQ helpers for the monorepo",
-  "module": "index.ts",
+ "description": "Shared types, Zod schemas, error classes, and BullMQ queue helpers for the monorepo",
+   "module": "index.ts",
   "type": "module",
   "engines": {
     "node": ">=20.0.0",
@@ -19,8 +19,8 @@
     "clean": "rm -rf .turbo node_modules"
   },
   "dependencies": {
-    "amqplib": "^1.0.3",
-    "hono": "^4.12.14",
+   "bullmq": "^5.12.0",
+   "hono": "^4.12.14",
     "zod": "^4.3.6"
   },
   "devDependencies": {

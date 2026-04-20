@@ -5,7 +5,7 @@
 import { addUniqueJob } from "@repo/common/events";
 import { ServiceUnavailableError } from "@repo/common/errors";
 import { queues, ORDER_SERVICE_URL } from "@/config";
-import type { PaymentRow } from "@my-ecommerce/database/drizzle/schema";
+import type { PaymentRow } from "@repo/database/drizzle/schema";
 
 // ── Notify order-service after payment confirmed ──────────────────────────────
 // Direct HTTP (not a queue) — synchronous confirmation before webhook ack

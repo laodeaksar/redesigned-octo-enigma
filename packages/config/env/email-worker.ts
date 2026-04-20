@@ -1,23 +1,16 @@
-import { z } from "zod"
-import { createEnv } from "@t3-oss/env-core"
-import { rabbitmqUrlSchema } from "."
+import { z } from "zod";
+import { createEnv } from "@t3-oss/env-core";
 
-export const envEmailWorker = createEnv({
+import { nodeEnvSchema, redisUrlSchema } from "./index";
+
+export const env = createEnv({
   server: {
-    NODE_ENV: z
-      .enum(["development", "production", "test"])
-      .default("development"),
+    NODE_ENV: nodeEnvSchema,
 
-    // ── RabbitMQ ──────────────────────────────────────────────────────────────
-    RABBITMQ_URL: rabbitmqUrlSchema,
-    /** Comma-separated list of queue names this worker consumes */
-    RABBITMQ_QUEUES: z
-      .string()
-      .default("email.welcome,email.order-confirmation,email.password-reset")
-      .transform((val) => val.split(",").map((s) => s.trim())),
-    RABBITMQ_PREFETCH: z.coerce.number().int().positive().default(10),
+    // ── Redis (BullMQ job queues) ─────────────────────────────────────────────
+    REDIS_URL: redisUrlSchema,
 
-    // ── SMTP (primary) ────────────────────────────────────────────────────────
+    // ── SMTP ──────────────────────────────────────────────────────────────────
     SMTP_HOST: z.string().min(1),
     SMTP_PORT: z.coerce.number().int().default(587),
     SMTP_SECURE: z
@@ -32,8 +25,9 @@ export const envEmailWorker = createEnv({
     EMAIL_FROM_ADDRESS: z.email(),
     EMAIL_REPLY_TO: z.email().optional(),
 
-    // ── Resend (alternative — only required if using Resend) ──────────────────
+    // ── Resend (alternative to SMTP) ──────────────────────────────────────────
     RESEND_API_KEY: z.string().optional(),
   },
   runtimeEnv: process.env,
-})
+});
+

@@ -3,7 +3,7 @@
 // Queue: email.order-cancelled
 // =============================================================================
 
-import type { Processor } from "@my-ecommerce/common/events";
+import type { Processor } from "@repo/common/events";
 import type { OrderCancelledEmailJobData } from "@repo/common/types";
 import { sendEmail } from "@/lib/mailer";
 import { orderCancelledTemplate } from "@/lib/templates";

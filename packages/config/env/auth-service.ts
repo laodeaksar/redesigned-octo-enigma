@@ -1,18 +1,18 @@
 import { z } from "zod";
 import { createEnv } from "@t3-oss/env-core";
+
 import {
   jwtSecretSchema,
+  nodeEnvSchema,
   portSchema,
   postgresUrlSchema,
-  rabbitmqUrlSchema,
-} from ".";
+  redisUrlSchema,
+} from "./index";
 
-export const envAuthService = createEnv({
+export const env = createEnv({
   server: {
-    NODE_ENV: z
-      .enum(["development", "production", "test"])
-      .default("development"),
-    PORT: portSchema,
+    NODE_ENV: nodeEnvSchema,
+    PORT: portSchema.default(3001),
 
     // ── Database ──────────────────────────────────────────────────────────────
     DATABASE_URL: postgresUrlSchema,
@@ -32,8 +32,9 @@ export const envAuthService = createEnv({
     GITHUB_CLIENT_ID: z.string().optional(),
     GITHUB_CLIENT_SECRET: z.string().optional(),
 
-    // ── RabbitMQ ──────────────────────────────────────────────────────────────
-    RABBITMQ_URL: rabbitmqUrlSchema,
+    // ── Redis (BullMQ job queues) ──────────────────────────────────────────────
+    REDIS_URL: redisUrlSchema,
   },
   runtimeEnv: process.env,
 });
+

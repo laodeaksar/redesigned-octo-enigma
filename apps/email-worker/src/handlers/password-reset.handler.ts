@@ -3,7 +3,7 @@
 // Queue: email.password-reset
 // =============================================================================
 
-import type { Processor } from "@my-ecommerce/common/events";
+import type { Processor } from "@repo/common/events";
 import type { PasswordResetEmailJobData } from "@repo/common/types";
 import { sendEmail } from "@/lib/mailer";
 import { passwordResetTemplate } from "@/lib/templates";

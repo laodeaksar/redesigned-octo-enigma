@@ -1,13 +1,17 @@
 import { z } from "zod";
 import { createEnv } from "@t3-oss/env-core";
-import { jwtSecretSchema, portSchema, rabbitmqUrlSchema } from ".";
 
-export const envPaymentService = createEnv({
+import {
+  jwtSecretSchema,
+  nodeEnvSchema,
+  portSchema,
+  redisUrlSchema,
+} from "./index";
+
+export const env = createEnv({
   server: {
-    NODE_ENV: z
-      .enum(["development", "production", "test"])
-      .default("development"),
-    PORT: portSchema,
+    NODE_ENV: nodeEnvSchema,
+    PORT: portSchema.default(3004),
 
     // ── Auth (for internal JWT verification) ──────────────────────────────────
     JWT_SECRET: jwtSecretSchema,
@@ -19,17 +23,14 @@ export const envPaymentService = createEnv({
       .string()
       .transform((v) => v === "true")
       .default(false),
-    /**
-     * The public URL of this service, used to set Midtrans notification_url.
-     * Example: https://api.my-ecommerce.com/payments/webhook
-     */
     PAYMENT_WEBHOOK_URL: z.url(),
 
     // ── Internal service URLs ─────────────────────────────────────────────────
     ORDER_SERVICE_URL: z.url(),
 
-    // ── RabbitMQ ──────────────────────────────────────────────────────────────
-    RABBITMQ_URL: rabbitmqUrlSchema,
+    // ── Redis (BullMQ job queues) ──────────────────────────────────────────────
+    REDIS_URL: redisUrlSchema,
   },
   runtimeEnv: process.env,
 });
+

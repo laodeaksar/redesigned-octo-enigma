@@ -1,24 +1,23 @@
 import { z } from "zod";
 import { createEnv } from "@t3-oss/env-core";
+
 import {
   jwtSecretSchema,
+  nodeEnvSchema,
   portSchema,
   postgresUrlSchema,
-  rabbitmqUrlSchema,
   redisUrlSchema,
-} from ".";
+} from "./index";
 
-export const envProductService = createEnv({
+export const env = createEnv({
   server: {
-    NODE_ENV: z
-      .enum(["development", "production", "test"])
-      .default("development"),
-    PORT: portSchema,
+    NODE_ENV: nodeEnvSchema,
+    PORT: portSchema.default(3002),
 
     // ── Database ──────────────────────────────────────────────────────────────
     DATABASE_URL: postgresUrlSchema,
 
-    // ── Cache ─────────────────────────────────────────────────────────────────
+    // ── Redis (cache + BullMQ job queues) ────────────────────────────────────
     REDIS_URL: redisUrlSchema,
     CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(300),
 
@@ -32,9 +31,7 @@ export const envProductService = createEnv({
     S3_SECRET_KEY: z.string().optional(),
     S3_REGION: z.string().default("ap-southeast-1"),
     S3_PUBLIC_URL: z.url().optional(),
-
-    // ── RabbitMQ ──────────────────────────────────────────────────────────────
-    RABBITMQ_URL: rabbitmqUrlSchema,
   },
   runtimeEnv: process.env,
 });
+

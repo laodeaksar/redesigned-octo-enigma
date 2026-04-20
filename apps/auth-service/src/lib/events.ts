@@ -6,7 +6,7 @@ import { addUniqueJob, IMPORTANT_JOB_OPTIONS } from "@repo/common/events";
 import type {
   WelcomeEmailJobData,
   PasswordResetEmailJobData,
-} from "@my-ecommerce/common/types";
+} from "@repo/common/types";
 import { queues } from "@/config";
 
 export async function publishUserRegistered(payload: WelcomeEmailJobData): Promise<void> {

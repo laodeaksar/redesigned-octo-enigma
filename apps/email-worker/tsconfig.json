@@ -1,6 +1,7 @@
 {
   "extends": "@repo/tsconfig/bundler",
   "compilerOptions": {
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }

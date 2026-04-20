@@ -3,35 +3,30 @@
   "module": "src/index.ts",
   "type": "module",
   "private": true,
+  "description": "API Gateway — single entry point for all clients (Hono.js)",
+  "license": "MIT",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc -p tsconfig.json",
-    "start": "node dist/index.js",
-    "lint": "eslint src --ext .ts",
-    "typecheck": "tsc --noEmit"
+    "dev": "bun run --watch src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --target bun",
+    "start": "bun run dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --max-warnings 0",
+    "clean": "rm -rf .turbo dist node_modules"
   },
   "dependencies": {
+    "@hono/swagger-ui": "^0.4.1",
+    "@hono/zod-validator": "^0.2.2",
+    "@repo/common": "workspace:*",
     "@repo/env": "workspace:*",
-    "@clerk/backend": "^1.0.0",
-    "express": "^4.19.0",
-    "http-proxy": "^1.18.1",
-    "cookie-parser": "^1.4.6",
-    "cors": "^2.8.5",
-    "helmet": "^7.0.0",
-    "dotenv": "^16.0.0"
+    "hono": "^4.4.0",
+    "ioredis": "^5.4.1",
+    "jose": "^5.3.0"
   },
   "devDependencies": {
-    "@repo/tsconfig": "workspace:*",
     "@repo/eslint-config": "workspace:*",
-    "@types/express": "^4.17.0",
-    "@types/http-proxy": "^1.17.0",
-    "@types/cookie-parser": "^1.4.0",
-    "@types/cors": "^2.8.0",
-    "tsx": "^4.0.0",
-    "typescript": "^5.4.0",
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
+    "@repo/tsconfig": "workspace:*",
+    "@types/bun": "latest",
+    "typescript": "^6.0.3"
   }
 }
+

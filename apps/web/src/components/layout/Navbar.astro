@@ -1,0 +1,96 @@
+---
+interface Props {
+  user?: { name: string } | null;
+}
+const { user } = Astro.props;
+const currentPath = Astro.url.pathname;
+---
+
+<header class="sticky top-0 z-40 border-b border-gray-100 bg-white/95 backdrop-blur-sm">
+  <nav class="container mx-auto flex h-16 items-center justify-between px-4">
+    <!-- Brand -->
+    <a href="/" class="flex items-center gap-2 text-lg font-bold text-brand-500">
+      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500 text-white text-sm">🛒</span>
+      My Ecommerce
+    </a>
+
+    <!-- Nav links (desktop) -->
+    <div class="hidden items-center gap-6 md:flex">
+      <a
+        href="/products"
+        class:list={[
+          "text-sm font-medium transition-colors hover:text-accent",
+          currentPath.startsWith("/products") ? "text-accent" : "text-gray-600",
+        ]}
+      >
+        Produk
+      </a>
+    </div>
+
+    <!-- Right actions -->
+    <div class="flex items-center gap-3">
+      <!-- Cart button (triggers island) -->
+      <button
+        id="cart-toggle"
+        class="relative flex h-9 w-9 items-center justify-center rounded-md text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+        aria-label="Buka keranjang"
+      >
+        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+        <span
+          id="cart-count"
+          class="absolute -right-0.5 -top-0.5 hidden h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white"
+        >0</span>
+      </button>
+
+      {user ? (
+        <div class="relative group">
+          <button class="flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium text-gray-700 hover:bg-gray-100">
+            <div class="flex h-6 w-6 items-center justify-center rounded-full bg-brand-500/10 text-xs font-semibold text-brand-500">
+              {user.name.charAt(0).toUpperCase()}
+            </div>
+            <span class="hidden sm:block">{user.name.split(" ")[0]}</span>
+          </button>
+          <!-- Dropdown -->
+          <div class="absolute right-0 top-full mt-1 hidden w-44 rounded-lg border border-gray-100 bg-white py-1 shadow-lg group-hover:block">
+            <a href="/orders" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Pesanan Saya</a>
+            <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Profil</a>
+            <hr class="my-1 border-gray-100" />
+            <form action="/api/auth/logout" method="post">
+              <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-gray-50">
+                Keluar
+              </button>
+            </form>
+          </div>
+        </div>
+      ) : (
+        <a
+          href="/auth/login"
+          class="rounded-md bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+        >
+          Masuk
+        </a>
+      )}
+    </div>
+  </nav>
+</header>
+
+<script>
+  import { $isCartOpen, $cartCount } from "@/stores/cart.store";
+
+  // Sync cart count badge
+  $cartCount.subscribe((count) => {
+    const el = document.getElementById("cart-count");
+    if (!el) return;
+    el.textContent = String(count);
+    el.classList.toggle("hidden", count === 0);
+    el.classList.toggle("flex", count > 0);
+  });
+
+  // Toggle cart drawer
+  document.getElementById("cart-toggle")?.addEventListener("click", () => {
+    $isCartOpen.set(!$isCartOpen.get());
+  });
+</script>

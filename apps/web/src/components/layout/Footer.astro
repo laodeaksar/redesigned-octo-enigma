@@ -1,0 +1,49 @@
+---
+const year = new Date().getFullYear();
+---
+
+<footer class="mt-16 border-t border-gray-100 bg-gray-50">
+  <div class="container mx-auto px-4 py-10">
+    <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+      <!-- Brand -->
+      <div>
+        <a href="/" class="text-base font-bold text-brand-500">🛒 My Ecommerce</a>
+        <p class="mt-2 text-sm text-gray-500">
+          Belanja produk terbaik dengan harga terjangkau dan pengiriman cepat ke seluruh Indonesia.
+        </p>
+      </div>
+
+      <!-- Layanan -->
+      <div>
+        <h3 class="mb-3 text-sm font-semibold text-gray-900">Layanan</h3>
+        <ul class="space-y-2 text-sm text-gray-500">
+          <li><a href="/products" class="hover:text-gray-900">Semua Produk</a></li>
+          <li><a href="/orders" class="hover:text-gray-900">Lacak Pesanan</a></li>
+          <li><a href="#" class="hover:text-gray-900">Pengembalian Barang</a></li>
+        </ul>
+      </div>
+
+      <!-- Bantuan -->
+      <div>
+        <h3 class="mb-3 text-sm font-semibold text-gray-900">Bantuan</h3>
+        <ul class="space-y-2 text-sm text-gray-500">
+          <li><a href="#" class="hover:text-gray-900">Cara Belanja</a></li>
+          <li><a href="#" class="hover:text-gray-900">FAQ</a></li>
+          <li><a href="mailto:support@my-ecommerce.com" class="hover:text-gray-900">Hubungi Kami</a></li>
+        </ul>
+      </div>
+
+      <!-- Pembayaran -->
+      <div>
+        <h3 class="mb-3 text-sm font-semibold text-gray-900">Pembayaran</h3>
+        <p class="text-sm text-gray-500">
+          Transfer Bank, GoPay, ShopeePay, DANA, OVO, QRIS, Kartu Kredit
+        </p>
+      </div>
+    </div>
+
+    <div class="mt-8 border-t border-gray-100 pt-6 text-center text-xs text-gray-400">
+      &copy; {year} My Ecommerce. Hak cipta dilindungi.
+    </div>
+  </div>
+</footer>

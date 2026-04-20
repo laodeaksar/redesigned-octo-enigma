@@ -1,0 +1,45 @@
+---
+interface Props {
+  page: number;
+  totalPages: number;
+  baseUrl: string;
+}
+
+const { page, totalPages, baseUrl } = Astro.props;
+if (totalPages <= 1) return;
+
+const getUrl = (p: number) => `${baseUrl}?page=${p}`;
+const pages = Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+  const half = 2;
+  let start = Math.max(1, page - half);
+  const end = Math.min(totalPages, start + 4);
+  start = Math.max(1, end - 4);
+  return start + i;
+});
+---
+
+<nav class="mt-8 flex items-center justify-center gap-1">
+  {page > 1 && (
+    <a href={getUrl(page - 1)} class="flex h-9 w-9 items-center justify-center rounded-md border border-gray-200 text-sm text-gray-600 hover:bg-gray-50">
+      ‹
+    </a>
+  )}
+  {pages.map((p) => (
+    <a
+      href={getUrl(p)}
+      class:list={[
+        "flex h-9 w-9 items-center justify-center rounded-md border text-sm font-medium",
+        p === page
+          ? "border-brand-500 bg-brand-500 text-white"
+          : "border-gray-200 text-gray-700 hover:bg-gray-50",
+      ]}
+    >
+      {p}
+    </a>
+  ))}
+  {page < totalPages && (
+    <a href={getUrl(page + 1)} class="flex h-9 w-9 items-center justify-center rounded-md border border-gray-200 text-sm text-gray-600 hover:bg-gray-50">
+      ›
+    </a>
+  )}
+</nav>

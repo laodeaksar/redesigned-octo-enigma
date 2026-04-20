@@ -1,0 +1,198 @@
+---
+import BaseLayout from "@/components/layout/BaseLayout.astro";
+import { requireAuth, getTokenFromCookies } from "@/lib/auth";
+import { api, type OrderDetail, type Payment } from "@/lib/api";
+import {
+  formatIDR, formatDateTime,
+  ORDER_STATUS_LABELS, ORDER_STATUS_COLORS
+} from "@/lib/utils";
+
+await requireAuth(Astro.cookies);
+const token = getTokenFromCookies(Astro.cookies)!;
+const { id } = Astro.params;
+
+let order: OrderDetail | null = null;
+let payment: Payment | null = null;
+
+try {
+  const [orderRes, paymentRes] = await Promise.allSettled([
+    api.get<{ success: true; data: OrderDetail }>(`/orders/${id}`, { token }),
+    api.get<{ success: true; data: Payment }>(`/payments/order/${id}`, { token }),
+  ]);
+
+  if (orderRes.status === "fulfilled") order = orderRes.value.data;
+  if (paymentRes.status === "fulfilled") payment = paymentRes.value.data;
+} catch {
+  return Astro.redirect("/orders");
+}
+
+if (!order) return Astro.redirect("/orders");
+
+const status = Astro.url.searchParams.get("status"); // success | pending from Midtrans redirect
+const statusColor = ORDER_STATUS_COLORS[order.status] ?? "bg-gray-100 text-gray-600";
+---
+
+<BaseLayout title={`Pesanan ${order.orderNumber}`}>
+  <div class="container mx-auto px-4 py-10">
+
+    <!-- Success/pending banner from Midtrans redirect -->
+    {status === "success" && (
+      <div class="mb-6 flex items-center gap-3 rounded-xl bg-green-50 border border-green-100 px-5 py-4 text-green-800">
+        <span class="text-2xl">🎉</span>
+        <div>
+          <p class="font-semibold">Pembayaran berhasil!</p>
+          <p class="text-sm">Pesananmu sedang diproses. Kami akan mengirimkan update via email.</p>
+        </div>
+      </div>
+    )}
+    {status === "pending" && (
+      <div class="mb-6 flex items-center gap-3 rounded-xl bg-yellow-50 border border-yellow-100 px-5 py-4 text-yellow-800">
+        <span class="text-2xl">⏳</span>
+        <div>
+          <p class="font-semibold">Menunggu pembayaran</p>
+          <p class="text-sm">Selesaikan pembayaran sebelum {order.expiresAt ? formatDateTime(order.expiresAt) : "—"}.</p>
+        </div>
+      </div>
+    )}
+
+    <!-- Header -->
+    <div class="mb-8 flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <a href="/orders" class="mb-1 flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800">
+          ← Pesanan Saya
+        </a>
+        <h1 class="text-xl font-bold text-gray-900 font-mono">{order.orderNumber}</h1>
+        <p class="text-sm text-gray-500">{formatDateTime(order.createdAt)}</p>
+      </div>
+      <span class:list={["inline-flex rounded-full px-4 py-1.5 text-sm font-semibold", statusColor]}>
+        {ORDER_STATUS_LABELS[order.status] ?? order.status}
+      </span>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-3">
+      <!-- Left -->
+      <div class="space-y-6 lg:col-span-2">
+
+        <!-- Items -->
+        <Card title="Item Pesanan">
+          <div class="divide-y divide-gray-100">
+            {order.items.map((item) => (
+              <div class="flex items-center gap-3 py-4 first:pt-0 last:pb-0">
+                <div class="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-gray-50">
+                  {item.product.imageUrl
+                    ? <img src={item.product.imageUrl} alt={item.product.name} class="h-full w-full object-cover" />
+                    : <div class="flex h-full w-full items-center justify-center text-2xl">📦</div>
+                  }
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium text-gray-900 truncate">{item.product.name}</p>
+                  <p class="text-xs text-gray-500">{item.product.variantName} · SKU: {item.product.sku}</p>
+                  <p class="text-xs text-gray-500">{formatIDR(item.unitPrice)} × {item.quantity}</p>
+                </div>
+                <span class="shrink-0 text-sm font-semibold">{formatIDR(item.subtotal)}</span>
+              </div>
+            ))}
+          </div>
+
+          <!-- Pricing -->
+          <div class="mt-4 space-y-1.5 border-t border-gray-100 pt-4 text-sm">
+            <Row label="Subtotal" value={formatIDR(order.pricing.subtotal)} />
+            {order.pricing.discountTotal > 0 && (
+              <Row label="Diskon" value={`- ${formatIDR(order.pricing.discountTotal)}`} className="text-green-600" />
+            )}
+            <Row label="Ongkir" value={formatIDR(order.pricing.shippingCost)} />
+            <div class="flex items-center justify-between border-t border-gray-100 pt-2 font-bold">
+              <span>Total</span>
+              <span class="text-accent">{formatIDR(order.pricing.grandTotal)}</span>
+            </div>
+          </div>
+        </Card>
+
+        <!-- Shipping -->
+        <Card title="Pengiriman">
+          <div class="grid gap-4 sm:grid-cols-2 text-sm">
+            <div>
+              <p class="mb-1 text-xs font-semibold uppercase text-gray-400">Alamat</p>
+              <address class="not-italic leading-relaxed text-gray-700">
+                <strong>{order.shipping.address.recipientName}</strong><br />
+                {order.shipping.address.street}<br />
+                {order.shipping.address.city}, {order.shipping.address.province} {order.shipping.address.postalCode}
+              </address>
+            </div>
+            <div>
+              <p class="mb-1 text-xs font-semibold uppercase text-gray-400">Kurir</p>
+              <p class="font-semibold text-gray-900">
+                {order.shipping.courier.toUpperCase()} — {order.shipping.service}
+              </p>
+              {order.shipping.trackingNumber && (
+                <p class="mt-1 font-mono text-sm font-bold text-brand-500">
+                  {order.shipping.trackingNumber}
+                </p>
+              )}
+              {order.shipping.shippedAt && (
+                <p class="mt-1 text-xs text-gray-500">
+                  Dikirim: {formatDateTime(order.shipping.shippedAt)}
+                </p>
+              )}
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <!-- Right: payment + pay button -->
+      <div class="space-y-6">
+
+        {payment && (
+          <Card title="Pembayaran">
+            <div class="space-y-2 text-sm">
+              <Row label="Status" value={payment.status} />
+              {payment.method && <Row label="Metode" value={payment.method.replace(/_/g, " ")} />}
+              {payment.virtualAccount && (
+                <div class="mt-3 rounded-lg bg-blue-50 border border-blue-100 p-3">
+                  <p class="text-xs font-semibold text-blue-700 uppercase">{payment.virtualAccount.bank} Virtual Account</p>
+                  <p class="mt-1 font-mono text-lg font-bold text-blue-900">{payment.virtualAccount.vaNumber}</p>
+                  <p class="mt-1 text-xs text-blue-600">Bayar sebelum {formatDateTime(payment.virtualAccount.expiresAt)}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Pay button if still pending */}
+            {payment.status === "pending" && payment.snapToken && (
+              <button
+                id="pay-btn"
+                data-token={payment.snapToken}
+                data-order-id={order.id}
+                class="mt-4 w-full rounded-lg bg-accent py-3 text-sm font-bold text-white hover:opacity-90"
+              >
+                Bayar Sekarang
+              </button>
+            )}
+          </Card>
+        )}
+
+        <!-- Help -->
+        <div class="rounded-xl bg-gray-50 p-5 text-sm text-gray-600">
+          <p class="font-semibold text-gray-900 mb-1">Butuh Bantuan?</p>
+          <p>Hubungi kami di <a href="mailto:support@my-ecommerce.com" class="text-accent hover:underline">support@my-ecommerce.com</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  // Midtrans Snap pay button
+  const btn = document.getElementById("pay-btn") as HTMLButtonElement | null;
+  if (btn) {
+    btn.addEventListener("click", () => {
+      const token = btn.dataset.token;
+      const orderId = btn.dataset.orderId;
+      // @ts-ignore
+      window.snap?.pay(token, {
+        onSuccess: () => { window.location.href = `/orders/${orderId}?status=success`; },
+        onPending: () => { window.location.href = `/orders/${orderId}?status=pending`; },
+        onError: () => { alert("Pembayaran gagal. Silakan coba lagi."); },
+      });
+    });
+  }
+</script>

@@ -29,7 +29,7 @@
     "clean": "rm -rf .turbo node_modules drizzle/migrations/*.sql"
   },
   "dependencies": {
-    "drizzle-orm": "^0.30.10",
+    "drizzle-orm": "^0.45.2",
     "mongoose": "^8.4.0",
     "postgres": "^3.4.9"
   },

@@ -1,6 +1,6 @@
 // =============================================================================
 // Drizzle schema — barrel export
-// Import from: "@my-ecommerce/database/drizzle/schema"
+// Import from: "@repo/database/drizzle/schema"
 // =============================================================================
 
 // ── Shared helpers & enums ────────────────────────────────────────────────────

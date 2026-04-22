@@ -2,10 +2,10 @@
 // @my-ecommerce/database — top-level barrel
 //
 // Prefer sub-path imports for better tree-shaking:
-//   import { createDrizzleClient } from "@my-ecommerce/database/drizzle"
-//   import * as schema             from "@my-ecommerce/database/drizzle/schema"
-//   import { connectMongo }        from "@my-ecommerce/database/mongo"
-//   import { OrderModel }          from "@my-ecommerce/database/mongo/models"
+//   import { createDrizzleClient } from "@repo/database/drizzle"
+//   import * as schema             from "@repo/database/drizzle/schema"
+//   import { connectMongo }        from "@repo/database/mongo"
+//   import { OrderModel }          from "@repo/database/mongo/models"
 // =============================================================================
 
 // ── Drizzle ───────────────────────────────────────────────────────────────────

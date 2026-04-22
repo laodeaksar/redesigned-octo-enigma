@@ -8,7 +8,7 @@
     "moduleResolution": "Bundler",
     "noEmit": false,
     "outDir": "dist",
-    "types": ["bun-types"],
+    "types": ["bun"],
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },

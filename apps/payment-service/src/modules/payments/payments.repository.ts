@@ -12,7 +12,7 @@ import {
   type RefundRow,
   type NewRefundRow,
 } from "@repo/database/drizzle/schema";
-import type { ListPaymentsQuery } from "@my-ecommerce/common/schemas";
+import type { ListPaymentsQuery } from "@repo/common/schemas";
 
 import type { DB } from "@/config";
 

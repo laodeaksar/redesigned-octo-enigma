@@ -1,10 +1,10 @@
 {
   "extends": "@repo/tsconfig/bundler",
   "compilerOptions": {
-    "baseUrl": ".",
+    "rootDir": "./src",
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
   },
   "include": ["src"]
 }

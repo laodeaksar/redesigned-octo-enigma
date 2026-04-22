@@ -8,12 +8,12 @@
 
 export type PaymentStatus =
   | "pending"
-  | "challenge"          // Midtrans: needs manual review (fraud detection)
-  | "capture"            // Midtrans: authorized but not yet settled (credit card)
-  | "settlement"         // Fully paid & settled
-  | "deny"               // Denied by bank/Midtrans
-  | "cancel"             // Cancelled by customer or system
-  | "expire"             // Payment page expired
+  | "challenge" // Midtrans: needs manual review (fraud detection)
+  | "capture" // Midtrans: authorized but not yet settled (credit card)
+  | "settlement" // Fully paid & settled
+  | "deny" // Denied by bank/Midtrans
+  | "cancel" // Cancelled by customer or system
+  | "expire" // Payment page expired
   | "failure"
   | "refund"
   | "partial_refund";
@@ -67,8 +67,8 @@ export interface Payment {
   orderId: string;
   userId: string;
   status: PaymentStatus;
-  method: PaymentMethod | null;  // null until customer selects method
-  amount: number;                // in IDR
+  method: PaymentMethod | null; // null until customer selects method
+  amount: number; // in IDR
   currency: "IDR";
 
   /** Midtrans transaction ID */

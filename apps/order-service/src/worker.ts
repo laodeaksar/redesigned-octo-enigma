@@ -9,7 +9,7 @@
 import { createWorker, QUEUES, type Worker } from "@repo/common/events";
 import { expireStaleOrders } from "@/modules/orders/orders.service";
 import { redis } from "@/config";
-import type { OrderExpirySweepJobData } from "@my-ecommerce/common/types";
+import type { OrderExpirySweepJobData } from "@repo/common/types";
 
 /**
  * Processor for ORDER_CANCEL_EXPIRED queue.

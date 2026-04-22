@@ -69,7 +69,7 @@ Setiap service mengimport env config-nya sendiri. Validasi dijalankan saat start
 
 ```ts
 // src/config.ts  (di dalam masing-masing service)
-export { env } from "@my-ecommerce/env/order-service";
+export { env } from "@repo/env/order-service";
 
 // src/index.ts
 import { env } from "./config";

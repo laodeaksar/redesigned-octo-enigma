@@ -5,7 +5,7 @@
 // Usage — apps/web/.eslintrc.cjs:
 //   module.exports = {
 //     root: true,
-//     extends: ["@my-ecommerce/eslint-config/astro"],
+//     extends: ["@repo/eslint-config/astro"],
 //     parserOptions: { project: true, tsconfigRootDir: __dirname },
 //   };
 // =============================================================================

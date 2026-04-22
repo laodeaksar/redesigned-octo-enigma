@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@repo/env": "workspace:*",
-    "@my-ecommerce/ui": "workspace:*",
+    "@repo/ui": "workspace:*",
     "@tanstack/react-query": "^5.45.0",
     "@tanstack/react-query-devtools": "^5.45.0",
     "@tanstack/react-router": "^1.45.0",
@@ -40,7 +40,7 @@
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.39",
     "tailwindcss": "^3.4.4",
-    "typescript": "^5.4.0"
+    "typescript": "^6.0.3"
   }
 }
 

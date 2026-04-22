@@ -9,7 +9,7 @@ import {
   midtransNotificationSchema,
   createRefundSchema,
   listPaymentsQuerySchema,
-} from "@my-ecommerce/common/schemas";
+} from "@repo/common/schemas";
 
 import * as service from "./payments.service";
 import type { DB } from "@/config";

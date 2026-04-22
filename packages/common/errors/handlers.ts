@@ -47,7 +47,7 @@ export function normalizeError(error: unknown): AppError {
  * Drop-in error handler for Elysia.js apps.
  *
  * Usage:
- *   import { elysiaErrorHandler } from "@my-ecommerce/common/errors"
+ *   import { elysiaErrorHandler } from "@repo/common/errors"
  *
  *   const app = new Elysia()
  *     .onError(elysiaErrorHandler)
@@ -83,7 +83,7 @@ export function elysiaErrorHandler({
  * Drop-in error handler for Hono apps.
  *
  * Usage:
- *   import { honoErrorHandler } from "@my-ecommerce/common/errors"
+ *   import { honoErrorHandler } from "@repo/common/errors"
  *   import { Hono } from "hono"
  *
  *   const app = new Hono()

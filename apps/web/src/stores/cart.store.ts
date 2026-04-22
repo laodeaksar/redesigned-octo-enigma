@@ -64,7 +64,16 @@ export function updateQuantity(variantId: string, quantity: number) {
   persistCart();
 }
 
-export function removeFromCart(variantId: string) {
+export function removeFromCart(variantId: string, withUndo: boolean = true) {
+  if (withUndo && typeof window !== "undefined") {
+    // @ts-expect-error undo handler di-inject oleh UndoToast component
+    if (window.removeFromCartWithUndo) {
+      // @ts-expect-error
+      window.removeFromCartWithUndo(variantId);
+      return;
+    }
+  }
+  
   $cart.set($cart.get().filter((i) => i.variantId !== variantId));
   persistCart();
 }

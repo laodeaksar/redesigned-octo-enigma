@@ -99,9 +99,6 @@
         "@types/nodemailer": "^6.4.15",
         "typescript": "^5.4.0",
       },
-      "peerDependencies": {
-        "typescript": "^5",
-      },
     },
     "apps/order-service": {
       "name": "order-service",
@@ -161,9 +158,6 @@
         "@repo/tsconfig": "workspace:*",
         "@types/bun": "latest",
         "typescript": "^6.0.3",
-      },
-      "peerDependencies": {
-        "typescript": "^5",
       },
     },
     "apps/web": {

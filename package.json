@@ -3,11 +3,32 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "build": "turbo build",
-    "dev": "turbo dev",
-    "lint": "turbo lint",
+    "build":      "turbo run build",
+    "dev":        "turbo run dev --parallel",
+    "typecheck":  "turbo run typecheck",
     "format": "turbo format",
-    "typecheck": "turbo typecheck"
+    "lint":       "turbo run lint",
+    "clean":      "turbo run clean",
+
+    "dev:gateway":  "turbo run dev --filter=@repo/api-gateway",
+    "dev:auth":     "turbo run dev --filter=@repo/auth-service",
+    "dev:product":  "turbo run dev --filter=@repo/product-service",
+    "dev:order":    "turbo run dev --filter=@repo/order-service",
+    "dev:payment":  "turbo run dev --filter=@repo/payment-service",
+    "dev:email":    "turbo run dev --filter=@repo/email-worker",
+    "dev:web":      "turbo run dev --filter=@repo/web",
+    "dev:admin":    "turbo run dev --filter=@repo/admin",
+
+    "dev:services": "turbo run dev --filter=@repo/api-gateway --filter=@repo/auth-service --filter=@repo/product-service --filter=@repo/order-service --filter=@repo/payment-service --filter=@repo/email-worker --parallel",
+
+    "db:generate": "turbo run db:generate --filter=@repo/database",
+    "db:migrate":  "turbo run db:migrate  --filter=@repo/database",
+    "db:seed":     "turbo run db:seed     --filter=@repo/database",
+    "db:studio":   "turbo run db:studio   --filter=@repo/database",
+
+    "infra:up":    "docker compose -f docker-compose.dev.yml up -d",
+    "infra:down":  "docker compose -f docker-compose.dev.yml down",
+    "infra:reset": "docker compose -f docker-compose.dev.yml down -v && docker compose -f docker-compose.dev.yml up -d"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",

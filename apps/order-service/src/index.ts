@@ -2,10 +2,11 @@
 // order-service entry point
 // =============================================================================
 
-import { scheduleRecurring } from "@repo/common/events";
+import { scheduleRecurring, closeWorkers } from "@repo/common/events";
 import { QUEUES } from "@repo/common/events";
 import { createApp } from "@/app";
 import { env, initMongo, queues, redis } from "@/config";
+import { startWorkers } from "@/worker";
 
 async function bootstrap() {
   console.info(`\n🚀 Starting order-service [${env.NODE_ENV}]…`);
@@ -19,7 +20,11 @@ async function bootstrap() {
     process.exit(1);
   }
 
-  // ── BullMQ recurring job — sweep expired orders every 5 min ──────────────
+  // ── BullMQ workers ────────────────────────────────────────────────────────
+  const workers = startWorkers();
+  console.info("✓ BullMQ workers started");
+
+  // ── BullMQ recurring job — schedule the expiry sweep ─────────────────────
   try {
     await scheduleRecurring(
       queues.orderCancelExpired,
@@ -44,15 +49,22 @@ async function bootstrap() {
   // ── Graceful shutdown ────────────────────────────────────────────────────
   const shutdown = async (signal: string) => {
     console.info(`\n${signal} received — shutting down gracefully…`);
+
+    // 1. Stop accepting new HTTP requests
     await app.stop();
 
-    // Close all queues
-    await Promise.all(Object.values(queues).map((q) => q.close()));
-    await redis.quit();
+    // 2. Drain workers — wait for in-flight jobs to finish
+    await closeWorkers(workers);
 
+    // 3. Close queues (producers)
+    await Promise.all(Object.values(queues).map((q) => q.close()));
+
+    // 4. Disconnect data stores
+    await redis.quit();
     const { disconnectMongo } = await import("@repo/database/mongo");
     await disconnectMongo();
-    console.info("✓ Server closed");
+
+    console.info("✓ order-service stopped");
     process.exit(0);
   };
 

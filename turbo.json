@@ -2,39 +2,64 @@
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
   "globalDotenv": [".env"],
-  "pipeline": {
-    "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**"],
-      "inputs": ["$DATABASE_URL", "$MONGODB_URI", "$MIDTRANS_SERVER_KEY"]
-    },
-    "lint": {
-      "dependsOn": ["^build"]
-    },
-    "dev": {
-      "cache": false,
-      "persistent": true
-    }
-  },
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "inputs": ["src/**", "package.json", "tsconfig.json"],
+      "outputs": ["dist/**", ".next/**", ".vinxi/**", ".astro/**"]
     },
+
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["^build"]
+    },
+
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "inputs": ["src/**", "tsconfig.json"],
+      "outputs": []
+    },
+
     "lint": {
       "dependsOn": ["^lint"],
+      "inputs": ["src/**", ".eslintrc.*", "eslint.config.*"],
       "outputs": []
+    },
+
+    "clean": {
+      "cache": false
+    },
+
+    "db:generate": {
+      "cache": false,
+      "inputs": [
+        "drizzle/schema/**",
+        "drizzle.config.ts"
+      ],
+      "outputs": ["drizzle/migrations/**"]
+    },
+
+    "db:migrate": {
+      "cache": false,
+      "dependsOn": ["db:generate"]
+    },
+
+    "db:seed": {
+      "cache": false,
+      "dependsOn": ["db:migrate"]
+    },
+
+    "db:studio": {
+      "cache": false,
+      "persistent": true
+    },
+
+    "db:push": {
+      "cache": false
     },
     "format": {
       "dependsOn": ["^format"]
-    },
-    "typecheck": {
-      "dependsOn": ["^typecheck"]
-    },
-    "dev": {
-      "cache": false,
-      "persistent": true
     }
   }
 }

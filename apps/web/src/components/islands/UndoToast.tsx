@@ -1,13 +1,14 @@
 import { useEffect, useState, useCallback } from "react";
 import { $cart, removeFromCart, addToCart, type CartItem } from "@/stores/cart.store";
 import { useStore } from "@nanostores/react";
-import { logger } from "@/lib/logger";
+import { LoadingIndicator } from "@/components/shared/LoadingIndicator";
 
 interface PendingDeletion {
   id: string;
   item: CartItem;
   expiresAt: number;
   restored: boolean;
+  restoring: boolean;
 }
 
 const TOAST_DURATION = 6000;
@@ -26,7 +27,8 @@ export function UndoToast() {
       id: deletionId,
       item,
       expiresAt: Date.now() + TOAST_DURATION,
-      restored: false
+      restored: false,
+      restoring: false
     };
 
     setPendingDeletions(prev => [...prev, pendingItem]);
@@ -57,22 +59,28 @@ export function UndoToast() {
   const handleUndo = useCallback((deletionId: string) => {
     setPendingDeletions(prev => {
       const item = prev.find(p => p.id === deletionId);
-      if (item && !item.restored) {
-        // Kembalikan item ke keranjang secara instan
-        addToCart(item.item);
-        logger.info("Item restored from undo action", {
-          deletionId,
-          productName: item.item.productName
-        });
-        return prev.map(p => p.id === deletionId ? { ...p, restored: true } : p);
+      if (item && !item.restored && !item.restoring) {
+        // Tandai sebagai loading sebelum operasi
+        return prev.map(p => p.id === deletionId ? { ...p, restoring: true } : p);
       }
       return prev;
     });
 
-    // Sembunyikan toast setelah animasi
+    // Simulasi async delay untuk menunjukkan loading
     setTimeout(() => {
-      setPendingDeletions(prev => prev.filter(p => p.id !== deletionId));
-    }, ANIMATION_DURATION);
+      setPendingDeletions(prev => {
+        const item = prev.find(p => p.id === deletionId);
+        if (item && item.restoring) {
+          addToCart(item.item);
+          return prev.map(p => p.id === deletionId ? { ...p, restored: true, restoring: false } : p);
+        }
+        return prev;
+      });
+
+      setTimeout(() => {
+        setPendingDeletions(prev => prev.filter(p => p.id !== deletionId));
+      }, ANIMATION_DURATION);
+    }, 300);
   }, []);
 
   // Auto hide toast ketika tidak ada pending item
@@ -130,10 +138,18 @@ export function UndoToast() {
       
       <button
         onClick={() => handleUndo(activeDeletion.id)}
-        className="shrink-0 bg-accent hover:bg-accent/90 text-white font-medium 
-        text-sm px-4 py-2 rounded-lg transition-all hover:scale-105 active:scale-95"
+        disabled={activeDeletion.restoring}
+        className={`shrink-0 bg-accent hover:bg-accent/90 text-white font-medium
+        text-sm px-4 py-2 rounded-lg transition-all
+        ${activeDeletion.restoring ? "opacity-50 pointer-events-none" : "hover:scale-105 active:scale-95"}
+        `}
       >
-        Batalkan
+        {activeDeletion.restoring ? (
+          <span className="flex items-center gap-2">
+            <LoadingIndicator size="xs" variant="white" />
+            Memproses
+          </span>
+        ) : "Batalkan"}
       </button>
 
       {/* Progress bar countdown */}

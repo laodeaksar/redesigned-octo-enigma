@@ -1,0 +1,280 @@
+name: my-ecommerce
+
+# =============================================================================
+# Production Docker Compose
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml up -d
+#   docker compose -f docker-compose.prod.yml logs -f api-gateway
+#   docker compose -f docker-compose.prod.yml down
+#
+# Required: create a .env file at repo root with all secrets.
+# Copy from: packages/config/env/examples/
+#
+# Build images:
+#   docker compose -f docker-compose.prod.yml build
+# =============================================================================
+
+services:
+
+  # ── Infrastructure ──────────────────────────────────────────────────────────
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB:       ${POSTGRES_DB:-ecommerce}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [backend]
+
+  mongo:
+    image: mongo:7-jammy
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-mongo}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [backend]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --save 60 1000
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks: [backend]
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER:     ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    volumes:
+      - minio_data:/data
+    networks: [backend]
+
+  # ── Application services ────────────────────────────────────────────────────
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: apps/api-gateway/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      PORT:     3000
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      AUTH_SERVICE_URL:    http://auth-service:3001
+      PRODUCT_SERVICE_URL: http://product-service:3002
+      ORDER_SERVICE_URL:   http://order-service:3003
+      PAYMENT_SERVICE_URL: http://payment-service:3004
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://my-ecommerce.com}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks: [backend, frontend]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: apps/auth-service/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV:       production
+      PORT:           3001
+      DATABASE_URL:   postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/ecommerce_auth
+      REDIS_URL:      redis://:${REDIS_PASSWORD}@redis:6379
+      JWT_SECRET:     ${JWT_SECRET}
+      JWT_ACCESS_EXPIRES_IN:  ${JWT_ACCESS_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      BETTER_AUTH_URL:    http://auth-service:3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [backend]
+
+  product-service:
+    build:
+      context: .
+      dockerfile: apps/product-service/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV:      production
+      PORT:          3002
+      DATABASE_URL:  postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/ecommerce_products
+      REDIS_URL:     redis://:${REDIS_PASSWORD}@redis:6379
+      JWT_SECRET:    ${JWT_SECRET}
+      ORDER_SERVICE_URL: http://order-service:3003
+      S3_ENDPOINT:   http://minio:9000
+      S3_BUCKET:     ${S3_BUCKET:-product-images}
+      S3_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      S3_SECRET_KEY: ${MINIO_SECRET_KEY}
+      S3_REGION:     ${S3_REGION:-ap-southeast-1}
+      S3_PUBLIC_URL: ${S3_PUBLIC_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [backend]
+
+  order-service:
+    build:
+      context: .
+      dockerfile: apps/order-service/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV:            production
+      PORT:                3003
+      DATABASE_URL:        postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/ecommerce_orders
+      MONGODB_URL:         mongodb://${MONGO_USER:-mongo}:${MONGO_PASSWORD}@mongo:27017
+      MONGODB_DB_NAME:     orders
+      REDIS_URL:           redis://:${REDIS_PASSWORD}@redis:6379
+      JWT_SECRET:          ${JWT_SECRET}
+      PRODUCT_SERVICE_URL: http://product-service:3002
+      PAYMENT_SERVICE_URL: http://payment-service:3004
+      AUTH_SERVICE_URL:    http://auth-service:3001
+      RAJAONGKIR_API_KEY:  ${RAJAONGKIR_API_KEY}
+      RAJAONGKIR_ORIGIN:   ${RAJAONGKIR_ORIGIN:-501}
+      ORDER_EXPIRY_MINUTES: ${ORDER_EXPIRY_MINUTES:-60}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [backend]
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: apps/payment-service/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV:                production
+      PORT:                    3004
+      DATABASE_URL:            postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/ecommerce_payments
+      REDIS_URL:               redis://:${REDIS_PASSWORD}@redis:6379
+      JWT_SECRET:              ${JWT_SECRET}
+      ORDER_SERVICE_URL:       http://order-service:3003
+      MIDTRANS_SERVER_KEY:     ${MIDTRANS_SERVER_KEY}
+      MIDTRANS_CLIENT_KEY:     ${MIDTRANS_CLIENT_KEY}
+      MIDTRANS_IS_PRODUCTION:  ${MIDTRANS_IS_PRODUCTION:-false}
+      PAYMENT_WEBHOOK_URL:     ${PAYMENT_WEBHOOK_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [backend]
+
+  email-worker:
+    build:
+      context: .
+      dockerfile: apps/email-worker/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV:            production
+      REDIS_URL:           redis://:${REDIS_PASSWORD}@redis:6379
+      SMTP_HOST:           ${SMTP_HOST}
+      SMTP_PORT:           ${SMTP_PORT:-587}
+      SMTP_SECURE:         ${SMTP_SECURE:-false}
+      SMTP_USER:           ${SMTP_USER}
+      SMTP_PASS:           ${SMTP_PASS}
+      EMAIL_FROM_NAME:     ${EMAIL_FROM_NAME:-My Ecommerce}
+      EMAIL_FROM_ADDRESS:  ${EMAIL_FROM_ADDRESS}
+      EMAIL_REPLY_TO:      ${EMAIL_REPLY_TO:-support@my-ecommerce.com}
+      RESEND_API_KEY:      ${RESEND_API_KEY:-}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks: [backend]
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        PUBLIC_API_URL:                  ${PUBLIC_API_URL:-https://api.my-ecommerce.com}
+        PUBLIC_MIDTRANS_CLIENT_KEY:      ${MIDTRANS_CLIENT_KEY}
+        PUBLIC_MIDTRANS_IS_PRODUCTION:   ${MIDTRANS_IS_PRODUCTION:-false}
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-3010}:3010"
+    environment:
+      NODE_ENV: production
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    networks: [frontend]
+
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+      args:
+        VITE_API_URL: ${PUBLIC_API_URL:-https://api.my-ecommerce.com}
+    restart: unless-stopped
+    ports:
+      - "${ADMIN_PORT:-3011}:3011"
+    environment:
+      NODE_ENV: production
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    networks: [frontend]
+
+# ── Networks ──────────────────────────────────────────────────────────────────
+
+networks:
+  backend:
+    driver: bridge
+    internal: true          # services in backend cannot be reached from outside
+  frontend:
+    driver: bridge           # api-gateway and web/admin are reachable from host
+
+# ── Volumes ───────────────────────────────────────────────────────────────────
+
+volumes:
+  postgres_data:
+  mongo_data:
+  redis_data:
+  minio_data:

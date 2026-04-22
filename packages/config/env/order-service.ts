@@ -23,6 +23,12 @@ export const env = createEnv({
     // ── Internal service URLs ─────────────────────────────────────────────────
     PRODUCT_SERVICE_URL: z.url(),
     PAYMENT_SERVICE_URL: z.url(),
+    AUTH_SERVICE_URL:    z.url(),
+
+    // ── RajaOngkir (shipping cost calculation) ────────────────────────────────
+    RAJAONGKIR_API_KEY:  z.string().min(1),
+    /** RajaOngkir origin city ID — set to your warehouse city */
+    RAJAONGKIR_ORIGIN:   z.string().min(1).default("501"), // Jakarta Pusat = 501
 
     // ── Redis (BullMQ job queues) ──────────────────────────────────────────────
     REDIS_URL: redisUrlSchema,

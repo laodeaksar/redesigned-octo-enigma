@@ -31,6 +31,22 @@ import type { DB } from "@/config";
 
 // ── Products ──────────────────────────────────────────────────────────────────
 
+export async function searchProducts(
+  db: DB,
+  redis: Redis | null,
+  input: { query: string; page: number; limit: number; categoryId?: string }
+) {
+  const cacheKey = CacheKey.productList(
+    `search:${input.query}:${input.page}:${input.limit}:${input.categoryId ?? ""}`
+  );
+  return cacheWrap(
+    redis,
+    cacheKey,
+    () => repo.fullTextSearch(db, input.query, input.page, input.limit, input.categoryId),
+    60 // 1 min TTL for search results
+  );
+}
+
 export async function listProducts(
   db: DB,
   redis: Redis | null,

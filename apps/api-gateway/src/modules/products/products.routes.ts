@@ -91,6 +91,13 @@ app.delete(
 );
 
 // ── Product public reads ──────────────────────────────────────────────────────
+app.get("/products/search", defaultRateLimit, optionalAuth, async (c) => {
+  return proxyRequest(c, {
+    target: buildTargetUrl(productBase, c),
+    user: c.var.user,
+  });
+});
+
 app.get("/products", defaultRateLimit, optionalAuth, async (c) => {
   return proxyRequest(c, {
     target: buildTargetUrl(productBase, c),

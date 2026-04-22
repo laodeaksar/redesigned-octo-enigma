@@ -1,0 +1,14 @@
+node_modules
+dist
+.turbo
+.git
+.gitignore
+*.md
+*.log
+.env*
+!.env.example
+coverage
+.nyc_output
+*.test.ts
+*.spec.ts
+__tests__

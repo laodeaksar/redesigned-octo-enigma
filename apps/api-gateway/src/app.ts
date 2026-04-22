@@ -19,6 +19,7 @@ import { authRoutes } from "@/modules/auth/auth.routes";
 import { productsRoutes } from "@/modules/products/products.routes";
 import { ordersRoutes } from "@/modules/orders/orders.routes";
 import { paymentsRoutes } from "@/modules/payments/payments.routes";
+import { shippingRoutes } from "@/modules/shipping/shipping.routes";
 
 export function createApp() {
   const app = new Hono();
@@ -94,6 +95,7 @@ export function createApp() {
   app.route("/", productsRoutes);
   app.route("/", ordersRoutes);
   app.route("/", paymentsRoutes);
+  app.route("/", shippingRoutes);
 
   // ── 404 handler ────────────────────────────────────────────────────────────
   app.notFound((c) =>

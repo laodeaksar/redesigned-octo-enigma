@@ -4,11 +4,12 @@
 
 import type Redis from "ioredis";
 
-import { ConflictError, NotFoundError } from "@repo/common/errors";
+import { ConflictError, NotFoundError, ForbiddenError } from "@repo/common/errors";
 import type { CreateReviewInput } from "@repo/common/schemas";
 
 import * as repo from "./reviews.repository";
 import { CacheKey, cacheWrap, cacheDel } from "@/lib/cache";
+import { verifyPurchase } from "@/lib/order-client";
 import type { DB } from "@/config";
 
 export async function listReviews(
@@ -45,7 +46,15 @@ export async function createReview(
   userId: string,
   input: CreateReviewInput
 ) {
-  // One review per user per order per product
+  // 1. Verify the user actually purchased this product via order-service
+  const isPurchased = await verifyPurchase(userId, input.productId, input.orderId);
+  if (!isPurchased) {
+    throw new ForbiddenError(
+      "Kamu hanya bisa memberi ulasan untuk produk yang sudah kamu beli dan terima."
+    );
+  }
+
+  // 2. One review per user per order per product
   const existing = await repo.findReviewByUserAndOrder(
     db,
     input.productId,
@@ -66,7 +75,7 @@ export async function createReview(
     isVerifiedPurchase: true,
   });
 
-  // Invalidate rating cache
+  // 3. Invalidate rating cache
   await cacheDel(
     redis,
     CacheKey.ratingSummary(input.productId),

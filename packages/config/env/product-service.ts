@@ -21,6 +21,10 @@ export const env = createEnv({
     REDIS_URL: redisUrlSchema,
     CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(300),
 
+    // ── Internal service URLs ─────────────────────────────────────────────────
+    /** URL of order-service — used for verified purchase check on reviews */
+    ORDER_SERVICE_URL: z.url().optional(),
+
     // ── Auth (for internal JWT verification) ──────────────────────────────────
     JWT_SECRET: jwtSecretSchema,
 

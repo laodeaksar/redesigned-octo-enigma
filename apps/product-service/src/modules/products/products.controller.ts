@@ -24,7 +24,21 @@ export async function handleList(db: DB, redis: Redis | null, query: unknown) {
   return paginated(items, { total, page: parsed.page, limit: parsed.limit });
 }
 
-export async function handleGetById(db: DB, redis: Redis | null, id: string) {
+export async function handleSearch(
+  db: DB,
+  redis: Redis | null,
+  query: { q: string; page?: string; limit?: string; categoryId?: string }
+) {
+  const page  = Math.max(1, parseInt(query.page  ?? "1",  10));
+  const limit = Math.min(50, Math.max(1, parseInt(query.limit ?? "24", 10)));
+  const { items, total } = await service.searchProducts(db, redis, {
+    query:      query.q,
+    page,
+    limit,
+    categoryId: query.categoryId,
+  });
+  return paginated(items, { total, page, limit });
+}
   return success(await service.getProductById(db, redis, id));
 }
 

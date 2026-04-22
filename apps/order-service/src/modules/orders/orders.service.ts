@@ -94,9 +94,34 @@ export async function createOrder(
     await incrementUsage(db, voucher.id);
   }
 
-  // 4. Build shipping info (cost comes from input — frontend fetched rates)
-  // In a real system you would re-verify the shipping cost here via a rate API
-  const shippingCost = freeShipping ? 0 : 15_000; // placeholder flat rate
+  // 4. Verify shipping cost via RajaOngkir
+  //    Client sends the rate they chose in CheckoutForm — we re-verify server-side
+  let shippingCost = 0;
+
+  if (!freeShipping) {
+    const totalWeightGrams = input.items.reduce((sum, item) => {
+      const variant = variantMap.get(item.variantId);
+      return sum + (variant ? 0 : 0) + (item.quantity * 500); // fallback: 500g/item
+    }, 0);
+
+    try {
+      const { getSingleRate } = await import("@/lib/rajaongkir");
+      shippingCost = await getSingleRate(
+        input.destinationCityId,
+        totalWeightGrams,
+        input.courier,
+        input.courierService
+      );
+
+      if (shippingCost === 0) {
+        // RajaOngkir returned 0 — use client-provided cost as fallback
+        shippingCost = input.shippingCost;
+      }
+    } catch (err) {
+      console.warn("[createOrder] RajaOngkir lookup failed, using client cost:", err);
+      shippingCost = input.shippingCost;
+    }
+  }
 
   // 5. Calculate final pricing
   const taxTotal = 0; // add PPN 11% logic here if needed
@@ -374,5 +399,5 @@ export async function expireStaleOrders() {
 }
 
 // ── Local type alias needed for updateOrderStatus ─────────────────────────────
-import type { IOrder } from "@my-ecommerce/database/mongo/models/order.model";
+import type { IOrder } from "@repo/database/mongo/models/order.model";
 

@@ -28,6 +28,32 @@ const ID_PARAM = t.Object({ id: MONGO_ID });
 export const ordersRoutes = new Elysia({ prefix: "/orders" })
   .use(databasePlugin)
 
+  // ── Internal: verify a user purchased a product (called by product-service) ─
+  .get(
+    "/:id/verify-purchase",
+    async ({ params, query }) => {
+      const { userId, productId } = query as { userId?: string; productId?: string };
+      if (!userId || !productId) {
+        return { success: true, data: { verified: false } };
+      }
+      const order = await repo.findOrderById(params.id);
+      const verified =
+        !!order &&
+        order.userId === userId &&
+        ["delivered", "completed"].includes(order.status) &&
+        order.items.some((i) => i.product.productId === productId);
+      return { success: true, data: { verified } };
+    },
+    {
+      params: t.Object({ id: t.String({ minLength: 1 }) }),
+      detail: {
+        tags: ["Orders"],
+        summary: "Verify user purchased a product (internal, called by product-service)",
+      },
+    }
+  )
+
+  // ── Internal: mark order as paid ─────────────────────────────────────────
   // ── Internal endpoints (no user auth — called service-to-service) ──────────
   .post(
     "/:id/paid",
@@ -69,8 +95,10 @@ export const ordersRoutes = new Elysia({ prefix: "/orders" })
           { minItems: 1, maxItems: 50 }
         ),
         shippingAddressId: t.String({ format: "uuid" }),
+        destinationCityId: t.String({ minLength: 1, description: "RajaOngkir city ID" }),
         courier: t.String({ minLength: 1 }),
         courierService: t.String({ minLength: 1 }),
+        shippingCost: t.Number({ minimum: 0, description: "Verified by server via RajaOngkir" }),
         voucherCode: t.Optional(t.String({ maxLength: 50 })),
         customerNote: t.Optional(t.String({ maxLength: 500 })),
       }),

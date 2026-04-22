@@ -13,7 +13,9 @@ import {
   asc,
   desc,
   sql,
+  or,
   count,
+  type SQL,
 } from "drizzle-orm";
 
 import {
@@ -272,5 +274,89 @@ export async function setPrimaryImage(
     .update(productImagesTable)
     .set({ isPrimary: true })
     .where(eq(productImagesTable.id, imageId));
+}
+
+// ── Full-text search ──────────────────────────────────────────────────────────
+
+export interface SearchProductsResult {
+  items: Array<ProductRow & { rank: number }>;
+  total: number;
+}
+
+/**
+ * Full-text product search using PostgreSQL GIN index on search_vector.
+ * Falls back to ilike if the query is too short for tsquery.
+ */
+export async function fullTextSearch(
+  db: DB,
+  query: string,
+  page = 1,
+  limit = 24,
+  categoryId?: string
+): Promise<SearchProductsResult> {
+  const offset = (page - 1) * limit;
+  const conditions: SQL[] = [
+    isNull(productsTable.deletedAt),
+    eq(productsTable.status, "active"),
+  ];
+
+  if (categoryId) {
+    conditions.push(eq(productsTable.categoryId, categoryId));
+  }
+
+  // Build tsquery — replace spaces with & for AND search
+  const tsQuery = query
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => `${w}:*`)   // prefix matching
+    .join(" & ");
+
+  // Use GIN full-text search when query is valid, else fall back to ilike
+  const useFullText = tsQuery.length > 0;
+
+  if (useFullText) {
+    const searchCondition = sql`${productsTable}.search_vector @@ to_tsquery('indonesian', ${tsQuery})`;
+    const rankExpr = sql<number>`ts_rank(${productsTable}.search_vector, to_tsquery('indonesian', ${tsQuery}))`;
+
+    const [items, [{ value: total }]] = await Promise.all([
+      db
+        .select({
+          ...productsTable,
+          rank: rankExpr,
+        })
+        .from(productsTable)
+        .where(and(...conditions, searchCondition))
+        .orderBy(desc(rankExpr))
+        .limit(limit)
+        .offset(offset),
+
+      db
+        .select({ value: count() })
+        .from(productsTable)
+        .where(and(...conditions, searchCondition)),
+    ]);
+
+    return { items: items as Array<ProductRow & { rank: number }>, total: Number(total) };
+  }
+
+  // Fallback: ilike on name
+  const ilikeCondition = ilike(productsTable.name, `%${query}%`);
+  const [items, [{ value: total }]] = await Promise.all([
+    db
+      .select({ ...productsTable, rank: sql<number>`1` })
+      .from(productsTable)
+      .where(and(...conditions, ilikeCondition))
+      .orderBy(desc(productsTable.createdAt))
+      .limit(limit)
+      .offset(offset),
+
+    db
+      .select({ value: count() })
+      .from(productsTable)
+      .where(and(...conditions, ilikeCondition)),
+  ]);
+
+  return { items: items as Array<ProductRow & { rank: number }>, total: Number(total) };
 }
 

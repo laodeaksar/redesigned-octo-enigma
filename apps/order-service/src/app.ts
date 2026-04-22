@@ -11,6 +11,7 @@ import { swaggerPlugin } from "@/plugins/swagger.plugin";
 import { healthRoutes } from "@/modules/health/health.routes";
 import { ordersRoutes } from "@/modules/orders/orders.routes";
 import { vouchersRoutes } from "@/modules/vouchers/vouchers.routes";
+import { shippingRoutes } from "@/modules/shipping/shipping.routes";
 import { env } from "@/config";
 
 export function createApp() {
@@ -37,7 +38,8 @@ export function createApp() {
     })
     .use(healthRoutes)
     .use(ordersRoutes)
-    .use(vouchersRoutes);
+    .use(vouchersRoutes)
+    .use(shippingRoutes);
 }
 
 export type App = ReturnType<typeof createApp>;

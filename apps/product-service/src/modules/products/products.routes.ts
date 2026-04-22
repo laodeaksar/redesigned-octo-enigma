@@ -33,6 +33,18 @@ const UUID_PARAM = t.Object({ id: UUID });
 export const productsRoutes = new Elysia({ prefix: "/products" })
   .use(databasePlugin)
 
+  // ── Full-text search (public) ───────────────────────────────────────────────
+  .get("/search", ({ db, redis, query }) =>
+    controller.handleSearch(db, redis, query), {
+    query: t.Object({
+      q:          t.String({ minLength: 1, description: "Search query" }),
+      page:       t.Optional(t.String()),
+      limit:      t.Optional(t.String()),
+      categoryId: t.Optional(t.String()),
+    }),
+    detail: { tags: ["Products"], summary: "Full-text product search" },
+  })
+
   // ── Public routes ───────────────────────────────────────────────────────────
   .get("/", ({ db, redis, query }) => controller.handleList(db, redis, query), {
     detail: { tags: ["Products"], summary: "List products" },

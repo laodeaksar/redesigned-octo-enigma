@@ -5,6 +5,7 @@
 
 import { Hono } from "hono";
 import { SERVICES, getRedis } from "@/config";
+import { CircuitBreakerManager } from "@/lib/circuit-breaker";
 
 const app = new Hono();
 
@@ -58,6 +59,29 @@ app.get("/health", async (c) => {
       checks,
     },
   }, allOk ? 200 : 207);
+});
+
+app.get("/health/circuit-breakers", async (c) => {
+  const metrics = CircuitBreakerManager.getAllMetrics();
+  
+  const allCircuitsOk = Object.values(metrics).every(m => m.state === "closed");
+  
+  return c.json({
+    success: true,
+    data: {
+      status: allCircuitsOk ? "ok" : "degraded",
+      timestamp: new Date(),
+      circuitBreakers: metrics
+    }
+  }, allCircuitsOk ? 200 : 207);
+});
+
+app.post("/health/circuit-breakers/reset", async (c) => {
+  CircuitBreakerManager.resetAll();
+  return c.json({
+    success: true,
+    message: "All circuit breakers have been reset to closed state"
+  });
 });
 
 export { app as healthRoutes };

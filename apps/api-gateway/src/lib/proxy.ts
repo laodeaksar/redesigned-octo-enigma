@@ -7,6 +7,8 @@
 import type { Context } from "hono";
 import { ServiceUnavailableError } from "@repo/common/errors";
 import type { VerifiedUser } from "@/lib/jwt";
+import { CircuitBreakerManager, CircuitBreakerOpenError, CircuitTimeoutError } from "./circuit-breaker";
+import { logger } from "./logger";
 
 export interface ProxyOptions {
   /** Full target URL (service base + path) */
@@ -86,17 +88,73 @@ export async function proxyRequest(
 
   let upstreamResponse: Response;
 
+  const serviceHostname = new URL(target).hostname;
+  const circuitBreaker = CircuitBreakerManager.get(serviceHostname);
+
   try {
-    upstreamResponse = await fetch(target, {
-      method: requestMethod,
-      headers,
-      body,
-      // @ts-expect-error — Bun supports duplex for streaming
-      duplex: "half",
-    });
+    upstreamResponse = await circuitBreaker.execute(
+      () => fetch(target, {
+        method: requestMethod,
+        headers,
+        body,
+        // @ts-expect-error — Bun supports duplex for streaming
+        duplex: "half",
+      }),
+      // Fallback response untuk GET request yang aman
+      requestMethod === "GET" ? async () => {
+        logger.info(`Serving fallback response for ${serviceHostname}`, {
+          path: c.req.path,
+          method: requestMethod
+        });
+        
+        return new Response(JSON.stringify({
+          success: false,
+          error: "Layanan sedang dalam pemeliharaan",
+          message: "Data mungkin tidak terbaru, silakan coba lagi nanti",
+          fallback: true
+        }), {
+          status: 503,
+          headers: {
+            "Content-Type": "application/json",
+            "X-Circuit-Breaker": "fallback",
+            "Retry-After": String(circuitBreaker.getMetrics().lastFailureTime
+              ? Math.ceil((circuitBreaker.getMetrics().lastFailureTime + 30000 - Date.now()) / 1000)
+              : 30)
+          }
+        });
+      } : undefined
+    );
   } catch (err) {
+    if (err instanceof CircuitBreakerOpenError) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: err.message,
+        service: err.serviceName
+      }), {
+        status: 503,
+        headers: {
+          "Content-Type": "application/json",
+          "Retry-After": String(Math.ceil(err.retryAfter / 1000))
+        }
+      });
+    }
+
+    if (err instanceof CircuitTimeoutError) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: "Permintaan memakan waktu terlalu lama",
+        message: "Silakan coba lagi",
+        service: err.serviceName
+      }), {
+        status: 504,
+        headers: {
+          "Content-Type": "application/json"
+        }
+      });
+    }
+
     throw new ServiceUnavailableError(
-      `Upstream service unavailable: ${new URL(target).hostname}`,
+      `Upstream service unavailable: ${serviceHostname}`,
       err
     );
   }

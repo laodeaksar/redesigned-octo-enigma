@@ -20,7 +20,7 @@ import type { DB } from "@/config";
 
 export async function findPaymentById(
   db: DB,
-  id: string
+  id: string,
 ): Promise<PaymentRow | undefined> {
   const [row] = await db
     .select()
@@ -32,7 +32,7 @@ export async function findPaymentById(
 
 export async function findPaymentByOrderId(
   db: DB,
-  orderId: string
+  orderId: string,
 ): Promise<PaymentRow | undefined> {
   const [row] = await db
     .select()
@@ -44,7 +44,7 @@ export async function findPaymentByOrderId(
 
 export async function findPaymentByMidtransOrderId(
   db: DB,
-  midtransOrderId: string
+  midtransOrderId: string,
 ): Promise<PaymentRow | undefined> {
   const [row] = await db
     .select()
@@ -56,7 +56,7 @@ export async function findPaymentByMidtransOrderId(
 
 export async function createPayment(
   db: DB,
-  data: NewPaymentRow
+  data: NewPaymentRow,
 ): Promise<PaymentRow> {
   const [row] = await db.insert(paymentsTable).values(data).returning();
   return row!;
@@ -65,7 +65,7 @@ export async function createPayment(
 export async function updatePayment(
   db: DB,
   id: string,
-  data: Partial<NewPaymentRow>
+  data: Partial<NewPaymentRow>,
 ): Promise<PaymentRow | undefined> {
   const [row] = await db
     .update(paymentsTable)
@@ -77,7 +77,7 @@ export async function updatePayment(
 
 export async function listPayments(
   db: DB,
-  query: ListPaymentsQuery
+  query: ListPaymentsQuery,
 ): Promise<{ items: PaymentRow[]; total: number }> {
   const conditions = [];
 
@@ -86,10 +86,13 @@ export async function listPayments(
   if (query.userId) conditions.push(eq(paymentsTable.userId, query.userId));
 
   const sortField =
-    query.sortBy === "amount" ? paymentsTable.amount :
-    query.sortBy === "paidAt" ? paymentsTable.paidAt :
-    query.sortBy === "updatedAt" ? paymentsTable.updatedAt :
-    paymentsTable.createdAt;
+    query.sortBy === "amount"
+      ? paymentsTable.amount
+      : query.sortBy === "paidAt"
+        ? paymentsTable.paidAt
+        : query.sortBy === "updatedAt"
+          ? paymentsTable.updatedAt
+          : paymentsTable.createdAt;
 
   const orderFn = query.sortOrder === "asc" ? asc : desc;
   const offset = (query.page - 1) * query.limit;
@@ -104,10 +107,7 @@ export async function listPayments(
       .orderBy(orderFn(sortField))
       .limit(query.limit)
       .offset(offset),
-    db
-      .select({ value: count() })
-      .from(paymentsTable)
-      .where(whereClause),
+    db.select({ value: count() }).from(paymentsTable).where(whereClause),
   ]);
 
   return { items, total: Number(total) };
@@ -117,7 +117,7 @@ export async function listPayments(
 
 export async function findRefundsByPaymentId(
   db: DB,
-  paymentId: string
+  paymentId: string,
 ): Promise<RefundRow[]> {
   return db
     .select()
@@ -128,7 +128,7 @@ export async function findRefundsByPaymentId(
 
 export async function createRefund(
   db: DB,
-  data: NewRefundRow
+  data: NewRefundRow,
 ): Promise<RefundRow> {
   const [row] = await db.insert(refundsTable).values(data).returning();
   return row!;
@@ -137,7 +137,7 @@ export async function createRefund(
 export async function updateRefund(
   db: DB,
   id: string,
-  data: Partial<NewRefundRow>
+  data: Partial<NewRefundRow>,
 ): Promise<RefundRow | undefined> {
   const [row] = await db
     .update(refundsTable)
@@ -146,4 +146,3 @@ export async function updateRefund(
     .returning();
   return row;
 }
-

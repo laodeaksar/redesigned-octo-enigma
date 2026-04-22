@@ -88,7 +88,10 @@ export const createOrderSchema = z.object({
         const ids = items.map((i) => i.variantId);
         return new Set(ids).size === ids.length;
       },
-      { message: "Duplicate variant IDs are not allowed — combine quantities instead" }
+      {
+        message:
+          "Duplicate variant IDs are not allowed — combine quantities instead",
+      },
     ),
   shippingAddressId: uuidSchema,
   courier: shippingCourierSchema,
@@ -97,12 +100,7 @@ export const createOrderSchema = z.object({
     .min(1, { message: "Courier service is required (e.g. REG, YES)" })
     .max(20)
     .toUpperCase(),
-  voucherCode: z
-    .string()
-    .max(50)
-    .toUpperCase()
-    .trim()
-    .optional(),
+  voucherCode: z.string().max(50).toUpperCase().trim().optional(),
   customerNote: z.string().max(500).optional(),
 });
 
@@ -137,7 +135,7 @@ export const updateOrderStatusSchema = z
     {
       message: "Tracking number is required when marking an order as shipped",
       path: ["trackingNumber"],
-    }
+    },
   );
 
 export type UpdateOrderStatusInput = z.infer<typeof updateOrderStatusSchema>;
@@ -185,7 +183,11 @@ export const listOrdersQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(100).default(20),
   status: orderStatusSchema.optional(),
   userId: uuidSchema.optional(),
-  search: z.string().max(100).optional().describe("Order number or customer email"),
+  search: z
+    .string()
+    .max(100)
+    .optional()
+    .describe("Order number or customer email"),
   dateRange: dateRangeSchema.optional(),
   minTotal: idrAmountSchema.optional(),
   maxTotal: idrAmountSchema.optional(),

@@ -18,7 +18,8 @@
   ],
   "scripts": {
     "lint": "eslint . --max-warnings 0",
-    "clean": "rm -rf .turbo node_modules"
+        "format": "prettier --write \"**/*.{ts,tsx}\"",
+"clean": "rm -rf .turbo node_modules"
   },
   "dependencies": {
     "@typescript-eslint/eslint-plugin": "^7.18.0",

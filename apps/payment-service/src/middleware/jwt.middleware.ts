@@ -4,14 +4,12 @@
 
 import Elysia from "elysia";
 
-import {
-  UnauthorizedError,
-  InsufficientRoleError,
-} from "@repo/common/errors";
+import { UnauthorizedError, InsufficientRoleError } from "@repo/common/errors";
 import type { UserRole } from "@repo/common/types";
 
-export const jwtMiddleware = new Elysia({ name: "jwt-middleware" })
-  .derive({ as: "scoped" }, ({ headers }) => {
+export const jwtMiddleware = new Elysia({ name: "jwt-middleware" }).derive(
+  { as: "scoped" },
+  ({ headers }) => {
     const id = headers["x-user-id"];
     const email = headers["x-user-email"];
     const role = headers["x-user-role"] as UserRole | undefined;
@@ -21,7 +19,8 @@ export const jwtMiddleware = new Elysia({ name: "jwt-middleware" })
     }
 
     return { user: { id, email, role } };
-  });
+  },
+);
 
 export const requireRole = (...roles: UserRole[]) =>
   new Elysia({ name: `require-role-${roles.join("-")}` })
@@ -32,4 +31,3 @@ export const requireRole = (...roles: UserRole[]) =>
       }
       return {};
     });
-

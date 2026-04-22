@@ -36,4 +36,3 @@ export const queues = {
 // ── Order Service HTTP base URL ───────────────────────────────────────────────
 
 export const ORDER_SERVICE_URL = env.ORDER_SERVICE_URL.replace(/\/$/, "");
-

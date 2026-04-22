@@ -103,4 +103,3 @@ export interface OrderPaymentConfirmedJobData {
 // ── Queue name constant (kept for backward compat with import paths) ──────────
 export { QUEUES } from "../events/queue-names";
 export type { QueueName } from "../events/queue-names";
-

@@ -26,6 +26,5 @@ export const healthRoutes = new Elysia({ prefix: "/health" }).get(
       checks,
     });
   },
-  { detail: { tags: ["Health"], summary: "Service health check" } }
+  { detail: { tags: ["Health"], summary: "Service health check" } },
 );
-

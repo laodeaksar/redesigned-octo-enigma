@@ -13,7 +13,7 @@ import type { PaymentRow } from "@repo/database/drizzle/schema";
 export async function notifyOrderPaid(
   orderId: string,
   paymentId: string,
-  paidAt: Date
+  paidAt: Date,
 ): Promise<void> {
   let res: Response;
 
@@ -34,9 +34,12 @@ export async function notifyOrderPaid(
   }
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({})) as Record<string, unknown>;
+    const body = (await res.json().catch(() => ({}))) as Record<
+      string,
+      unknown
+    >;
     throw new ServiceUnavailableError(
-      `order-service responded ${res.status}: ${JSON.stringify(body)}`
+      `order-service responded ${res.status}: ${JSON.stringify(body)}`,
     );
   }
 }
@@ -46,7 +49,7 @@ export async function notifyOrderPaid(
 
 export async function publishPaymentSucceeded(
   payment: PaymentRow,
-  _userEmail: string
+  _userEmail: string,
 ): Promise<void> {
   // Order confirmation email is already queued by order-service when order is created.
   // Payment success triggers order-service transition via notifyOrderPaid (HTTP above).
@@ -54,7 +57,9 @@ export async function publishPaymentSucceeded(
   void payment; // used for logging/analytics in full implementation
 }
 
-export async function publishPaymentExpired(payment: PaymentRow): Promise<void> {
+export async function publishPaymentExpired(
+  payment: PaymentRow,
+): Promise<void> {
   // Payment expiry is handled by order-service expiry sweep (BullMQ recurring job).
   // Nothing extra needed from payment-service side.
   void payment;
@@ -62,9 +67,8 @@ export async function publishPaymentExpired(payment: PaymentRow): Promise<void> 
 
 export async function publishPaymentRefunded(
   payment: PaymentRow,
-  _amount: number
+  _amount: number,
 ): Promise<void> {
   // Refund notification email can be added here when email template is ready.
   void payment;
 }
-

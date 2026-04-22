@@ -57,32 +57,32 @@ export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;
 
 // ── Product Variant ───────────────────────────────────────────────────────────
 
-export const productVariantSchema = z.object({
-  sku: shortStringSchema
-    .max(100)
-    .regex(/^[A-Za-z0-9_-]+$/, {
-      message: "SKU can only contain letters, numbers, hyphens, and underscores",
+export const productVariantSchema = z
+  .object({
+    sku: shortStringSchema.max(100).regex(/^[A-Za-z0-9_-]+$/, {
+      message:
+        "SKU can only contain letters, numbers, hyphens, and underscores",
     }),
-  name: shortStringSchema.max(200),
-  /** Key-value attribute pairs e.g. { color: "red", size: "XL" } */
-  attributes: z
-    .record(z.string(), z.string())
-    .refine((v) => Object.keys(v).length > 0, {
-      message: "At least one attribute is required",
-    }),
-  price: positiveIdrAmountSchema,
-  compareAtPrice: positiveIdrAmountSchema.nullable().optional(),
-  stock: nonNegativeIntSchema.default(0),
-  weight: weightSchema.nullable().optional(),
-  isActive: z.boolean().default(true),
-}).refine(
-  (data) =>
-    data.compareAtPrice == null || data.compareAtPrice > data.price,
-  {
-    message: "Compare-at price must be greater than the selling price",
-    path: ["compareAtPrice"],
-  }
-);
+    name: shortStringSchema.max(200),
+    /** Key-value attribute pairs e.g. { color: "red", size: "XL" } */
+    attributes: z
+      .record(z.string(), z.string())
+      .refine((v) => Object.keys(v).length > 0, {
+        message: "At least one attribute is required",
+      }),
+    price: positiveIdrAmountSchema,
+    compareAtPrice: positiveIdrAmountSchema.nullable().optional(),
+    stock: nonNegativeIntSchema.default(0),
+    weight: weightSchema.nullable().optional(),
+    isActive: z.boolean().default(true),
+  })
+  .refine(
+    (data) => data.compareAtPrice == null || data.compareAtPrice > data.price,
+    {
+      message: "Compare-at price must be greater than the selling price",
+      path: ["compareAtPrice"],
+    },
+  );
 
 export type ProductVariantInput = z.infer<typeof productVariantSchema>;
 
@@ -120,7 +120,7 @@ export const createProductSchema = z.object({
         const skus = variants.map((v) => v.sku);
         return new Set(skus).size === skus.length;
       },
-      { message: "All variant SKUs must be unique" }
+      { message: "All variant SKUs must be unique" },
     ),
 });
 
@@ -156,7 +156,7 @@ export const batchStockDeductSchema = z.object({
       z.object({
         variantId: uuidSchema,
         quantity: positiveIntSchema,
-      })
+      }),
     )
     .min(1),
 });
@@ -181,33 +181,35 @@ export type CreateReviewInput = z.infer<typeof createReviewSchema>;
 
 // ── Query / Filter ────────────────────────────────────────────────────────────
 
-export const listProductsQuerySchema = z.object({
-  page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(20),
-  search: z.string().max(200).optional(),
-  categoryId: uuidSchema.optional(),
-  /** Comma-separated category IDs */
-  categoryIds: commaSeparatedSchema.optional(),
-  status: productStatusSchema.optional(),
-  /** Comma-separated tags */
-  tags: commaSeparatedSchema.optional(),
-  minPrice: idrAmountSchema.optional(),
-  maxPrice: idrAmountSchema.optional(),
-  stockStatus: stockStatusSchema.optional(),
-  sortBy: z
-    .enum(["name", "createdAt", "updatedAt", "lowestPrice", "totalStock"])
-    .default("createdAt"),
-  sortOrder: sortOrderSchema,
-}).refine(
-  (data) =>
-    data.minPrice == null ||
-    data.maxPrice == null ||
-    data.minPrice <= data.maxPrice,
-  {
-    message: "minPrice cannot be greater than maxPrice",
-    path: ["minPrice"],
-  }
-);
+export const listProductsQuerySchema = z
+  .object({
+    page: z.coerce.number().int().positive().default(1),
+    limit: z.coerce.number().int().positive().max(100).default(20),
+    search: z.string().max(200).optional(),
+    categoryId: uuidSchema.optional(),
+    /** Comma-separated category IDs */
+    categoryIds: commaSeparatedSchema.optional(),
+    status: productStatusSchema.optional(),
+    /** Comma-separated tags */
+    tags: commaSeparatedSchema.optional(),
+    minPrice: idrAmountSchema.optional(),
+    maxPrice: idrAmountSchema.optional(),
+    stockStatus: stockStatusSchema.optional(),
+    sortBy: z
+      .enum(["name", "createdAt", "updatedAt", "lowestPrice", "totalStock"])
+      .default("createdAt"),
+    sortOrder: sortOrderSchema,
+  })
+  .refine(
+    (data) =>
+      data.minPrice == null ||
+      data.maxPrice == null ||
+      data.minPrice <= data.maxPrice,
+    {
+      message: "minPrice cannot be greater than maxPrice",
+      path: ["minPrice"],
+    },
+  );
 
 export type ListProductsQuery = z.infer<typeof listProductsQuerySchema>;
 

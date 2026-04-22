@@ -26,6 +26,7 @@
     "db:seed:products": "bun run seed/products.seed.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write \"**/*.{ts,tsx}\"",
     "clean": "rm -rf .turbo node_modules drizzle/migrations/*.sql"
   },
   "dependencies": {

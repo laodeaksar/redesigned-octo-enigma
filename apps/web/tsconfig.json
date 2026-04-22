@@ -40,7 +40,7 @@
     "isolatedModules": true,            // required by Vite
 
     // ── Paths ────────────────────────────────────────────────────────────────
-    "baseUrl": ".",
+    "rootDir": "./src",
     "paths": {
       "@/*": ["./src/*"]
     },

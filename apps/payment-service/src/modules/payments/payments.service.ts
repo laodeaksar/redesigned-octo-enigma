@@ -39,7 +39,7 @@ export async function createPayment(
   db: DB,
   userId: string,
   userEmail: string,
-  input: CreatePaymentInput
+  input: CreatePaymentInput,
 ) {
   // Prevent duplicate payment for the same order
   const existing = await repo.findPaymentByOrderId(db, input.orderId);
@@ -99,7 +99,7 @@ export async function createPayment(
  */
 export async function handleWebhook(
   db: DB,
-  notification: MidtransNotificationInput
+  notification: MidtransNotificationInput,
 ) {
   // 1. Verify signature to prevent spoofed webhooks
   if (!verifyMidtransSignature(notification)) {
@@ -109,14 +109,14 @@ export async function handleWebhook(
   // 2. Find the payment by Midtrans order ID
   const payment = await repo.findPaymentByMidtransOrderId(
     db,
-    notification.order_id
+    notification.order_id,
   );
 
   if (!payment) {
     // Midtrans might send notifications for orders we don't know about
     // (e.g. during testing). Log and return 200 to prevent retries.
     console.warn(
-      `[webhook] Payment not found for Midtrans order: ${notification.order_id}`
+      `[webhook] Payment not found for Midtrans order: ${notification.order_id}`,
     );
     return { processed: false, reason: "payment_not_found" };
   }
@@ -130,7 +130,8 @@ export async function handleWebhook(
   const grossAmount = parseInt(notification.gross_amount, 10);
 
   // 4. Build payment method details (VA, e-wallet, cstore)
-  const { virtualAccount, eWallet, cStore } = extractPaymentDetails(notification);
+  const { virtualAccount, eWallet, cStore } =
+    extractPaymentDetails(notification);
 
   // 5. Update payment record
   const paidAt =
@@ -172,7 +173,7 @@ export async function getPaymentById(
   db: DB,
   paymentId: string,
   requesterId: string,
-  requesterRole: string
+  requesterRole: string,
 ) {
   const payment = await repo.findPaymentById(db, paymentId);
   if (!payment) throw new NotFoundError("Payment");
@@ -188,7 +189,7 @@ export async function getPaymentByOrderId(
   db: DB,
   orderId: string,
   requesterId: string,
-  requesterRole: string
+  requesterRole: string,
 ) {
   const payment = await repo.findPaymentByOrderId(db, orderId);
   if (!payment) throw new NotFoundError("Payment");
@@ -206,10 +207,7 @@ export async function listPayments(db: DB, query: ListPaymentsQuery) {
 
 // ── Refund ────────────────────────────────────────────────────────────────────
 
-export async function requestRefund(
-  db: DB,
-  input: CreateRefundInput
-) {
+export async function requestRefund(db: DB, input: CreateRefundInput) {
   const payment = await repo.findPaymentById(db, input.paymentId);
   if (!payment) throw new NotFoundError("Payment");
 
@@ -264,7 +262,7 @@ type PaymentRow = Awaited<ReturnType<typeof repo.findPaymentById>>;
  */
 function mapMidtransStatus(
   transactionStatus: string,
-  fraudStatus?: string
+  fraudStatus?: string,
 ): string {
   switch (transactionStatus) {
     case "capture":
@@ -298,9 +296,22 @@ function mapMidtransStatus(
 function extractPaymentDetails(notification: MidtransNotificationInput) {
   const { payment_type } = notification;
 
-  let virtualAccount: { bank: string; vaNumber: string; expiresAt: string } | null = null;
-  let eWallet: { provider: string; qrCodeUrl: string | null; deepLinkUrl: string | null; expiresAt: string } | null = null;
-  let cStore: { store: "indomaret" | "alfamart"; paymentCode: string; expiresAt: string } | null = null;
+  let virtualAccount: {
+    bank: string;
+    vaNumber: string;
+    expiresAt: string;
+  } | null = null;
+  let eWallet: {
+    provider: string;
+    qrCodeUrl: string | null;
+    deepLinkUrl: string | null;
+    expiresAt: string;
+  } | null = null;
+  let cStore: {
+    store: "indomaret" | "alfamart";
+    paymentCode: string;
+    expiresAt: string;
+  } | null = null;
 
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
@@ -335,4 +346,3 @@ function extractPaymentDetails(notification: MidtransNotificationInput) {
 
   return { virtualAccount, eWallet, cStore };
 }
-

@@ -48,8 +48,8 @@ export interface OrderItem {
   /** Snapshot of product/variant at time of purchase */
   product: ProductSnapshot;
   quantity: number;
-  unitPrice: number;           // price per unit at time of order (IDR)
-  subtotal: number;            // unitPrice × quantity
+  unitPrice: number; // price per unit at time of order (IDR)
+  subtotal: number; // unitPrice × quantity
 }
 
 // ── Shipping ──────────────────────────────────────────────────────────────────
@@ -66,10 +66,10 @@ export type ShippingCourier =
 
 export interface ShippingInfo {
   courier: ShippingCourier;
-  service: string;             // e.g. "REG", "YES", "OKE"
+  service: string; // e.g. "REG", "YES", "OKE"
   trackingNumber: string | null;
   estimatedDays: number;
-  cost: number;                // shipping cost in IDR
+  cost: number; // shipping cost in IDR
   address: AddressSummary;
   shippedAt: Date | null;
   deliveredAt: Date | null;
@@ -78,11 +78,11 @@ export interface ShippingInfo {
 // ── Pricing ───────────────────────────────────────────────────────────────────
 
 export interface OrderPricing {
-  subtotal: number;            // sum of all item subtotals
+  subtotal: number; // sum of all item subtotals
   shippingCost: number;
-  discountTotal: number;       // sum of all discounts applied
-  taxTotal: number;            // e.g. PPN 11%
-  grandTotal: number;          // final amount charged
+  discountTotal: number; // sum of all discounts applied
+  taxTotal: number; // e.g. PPN 11%
+  grandTotal: number; // final amount charged
 }
 
 // ── Discount / Voucher ────────────────────────────────────────────────────────
@@ -93,7 +93,7 @@ export interface AppliedDiscount {
   code: string;
   type: DiscountType;
   value: number;
-  amount: number;              // actual IDR deducted
+  amount: number; // actual IDR deducted
 }
 
 // ── Status History ────────────────────────────────────────────────────────────
@@ -102,27 +102,27 @@ export interface OrderStatusEvent {
   status: OrderStatus;
   timestamp: Date;
   note: string | null;
-  actorId: string | null;      // userId or "system"
+  actorId: string | null; // userId or "system"
 }
 
 // ── Core Entity ───────────────────────────────────────────────────────────────
 
 /** Full Order document as stored in MongoDB */
 export interface Order {
-  id: string;                  // MongoDB ObjectId as string
-  orderNumber: string;         // Human-readable: "ORD-20240415-0001"
+  id: string; // MongoDB ObjectId as string
+  orderNumber: string; // Human-readable: "ORD-20240415-0001"
   userId: string;
   status: OrderStatus;
   items: OrderItem[];
   shipping: ShippingInfo;
   pricing: OrderPricing;
   discounts: AppliedDiscount[];
-  paymentId: string | null;    // reference to payment-service record
+  paymentId: string | null; // reference to payment-service record
   statusHistory: OrderStatusEvent[];
   cancellationReason: CancellationReason | null;
   cancellationNote: string | null;
   customerNote: string | null;
-  expiresAt: Date;             // auto-cancel deadline if unpaid
+  expiresAt: Date; // auto-cancel deadline if unpaid
   createdAt: Date;
   updatedAt: Date;
 }
@@ -150,7 +150,7 @@ export interface CartItem {
 }
 
 export interface Cart {
-  userId: string | null;       // null = guest cart
+  userId: string | null; // null = guest cart
   sessionId: string;
   items: CartItem[];
   updatedAt: Date;

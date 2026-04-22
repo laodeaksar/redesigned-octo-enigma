@@ -39,8 +39,12 @@ export const registerSchema = z
       .string()
       .min(8, { message: "Password must be at least 8 characters" })
       .max(72, { message: "Password cannot exceed 72 characters" })
-      .regex(/[A-Z]/, { message: "Password must contain at least one uppercase letter" })
-      .regex(/[a-z]/, { message: "Password must contain at least one lowercase letter" })
+      .regex(/[A-Z]/, {
+        message: "Password must contain at least one uppercase letter",
+      })
+      .regex(/[a-z]/, {
+        message: "Password must contain at least one lowercase letter",
+      })
       .regex(/[0-9]/, { message: "Password must contain at least one number" }),
     confirmPassword: z.string(),
   })
@@ -83,8 +87,12 @@ export const resetPasswordSchema = z
       .string()
       .min(8, { message: "Password must be at least 8 characters" })
       .max(72)
-      .regex(/[A-Z]/, { message: "Password must contain at least one uppercase letter" })
-      .regex(/[a-z]/, { message: "Password must contain at least one lowercase letter" })
+      .regex(/[A-Z]/, {
+        message: "Password must contain at least one uppercase letter",
+      })
+      .regex(/[a-z]/, {
+        message: "Password must contain at least one lowercase letter",
+      })
       .regex(/[0-9]/, { message: "Password must contain at least one number" }),
     confirmPassword: z.string(),
   })
@@ -99,7 +107,9 @@ export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 
 export const changePasswordSchema = z
   .object({
-    currentPassword: z.string().min(1, { message: "Current password is required" }),
+    currentPassword: z
+      .string()
+      .min(1, { message: "Current password is required" }),
     newPassword: z
       .string()
       .min(8)
@@ -123,10 +133,7 @@ export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 // ── Update Profile ────────────────────────────────────────────────────────────
 
 export const updateProfileSchema = z.object({
-  name: shortStringSchema
-    .min(2)
-    .max(100)
-    .optional(),
+  name: shortStringSchema.min(2).max(100).optional(),
   phone: phoneSchema.optional(),
   avatarUrl: z.string().url().nullable().optional(),
 });

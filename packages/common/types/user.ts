@@ -7,7 +7,11 @@
 
 export type UserRole = "customer" | "admin" | "super_admin";
 
-export type UserStatus = "active" | "inactive" | "banned" | "pending_verification";
+export type UserStatus =
+  | "active"
+  | "inactive"
+  | "banned"
+  | "pending_verification";
 
 export type OAuthProvider = "google" | "github";
 
@@ -55,7 +59,7 @@ export interface OAuthAccount {
 
 /** Payload encoded inside a JWT access token */
 export interface JwtPayload {
-  sub: string;       // userId
+  sub: string; // userId
   email: string;
   role: UserRole;
   iat: number;
@@ -64,8 +68,8 @@ export interface JwtPayload {
 
 /** Payload encoded inside a JWT refresh token */
 export interface RefreshTokenPayload {
-  sub: string;       // userId
-  jti: string;       // unique token ID (for revocation)
+  sub: string; // userId
+  jti: string; // unique token ID (for revocation)
   iat: number;
   exp: number;
 }
@@ -92,7 +96,7 @@ export interface RequestUser {
 export interface Address {
   id: string;
   userId: string;
-  label: string;           // e.g. "Home", "Office"
+  label: string; // e.g. "Home", "Office"
   recipientName: string;
   phone: string;
   street: string;
@@ -107,5 +111,13 @@ export interface Address {
 
 export type AddressSummary = Pick<
   Address,
-  "id" | "label" | "recipientName" | "phone" | "street" | "city" | "province" | "postalCode" | "country"
+  | "id"
+  | "label"
+  | "recipientName"
+  | "phone"
+  | "street"
+  | "city"
+  | "province"
+  | "postalCode"
+  | "country"
 >;

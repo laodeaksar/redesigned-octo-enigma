@@ -22,7 +22,10 @@ async function bootstrap() {
     await initRabbitMQ();
     console.info("✓ RabbitMQ connected");
   } catch (err) {
-    console.warn("⚠ RabbitMQ unavailable — payment events will not be published:", err);
+    console.warn(
+      "⚠ RabbitMQ unavailable — payment events will not be published:",
+      err,
+    );
     if (env.NODE_ENV === "production") process.exit(1);
   }
 
@@ -53,4 +56,3 @@ async function bootstrap() {
 }
 
 await bootstrap();
-

@@ -16,7 +16,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
-    "clean": "rm -rf .turbo node_modules"
+        "format": "prettier --write \"**/*.{ts,tsx}\"",
+"clean": "rm -rf .turbo node_modules"
   },
   "dependencies": {
    "bullmq": "^5.12.0",

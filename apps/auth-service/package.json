@@ -12,7 +12,8 @@
     "start": "bun run dist/index.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --max-warnings 0",
-    "clean": "rm -rf .turbo dist node_modules"
+          "format": "prettier --write \"**/*.{ts,tsx}\"",
+  "clean": "rm -rf .turbo dist node_modules"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.1.0",

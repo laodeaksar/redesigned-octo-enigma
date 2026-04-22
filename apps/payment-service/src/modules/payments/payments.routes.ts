@@ -28,16 +28,12 @@ export const paymentsRoutes = new Elysia({ prefix: "/payments" })
   // ── Midtrans webhook — no auth ────────────────────────────────────────────
   // Signature is verified inside the handler using MIDTRANS_SERVER_KEY.
   // Must return HTTP 200 quickly to prevent Midtrans retries.
-  .post(
-    "/webhook",
-    ({ db, body }) => controller.handleWebhook(db, body),
-    {
-      detail: {
-        tags: ["Webhook"],
-        summary: "Midtrans HTTP notification — POST by Midtrans after payment",
-      },
-    }
-  )
+  .post("/webhook", ({ db, body }) => controller.handleWebhook(db, body), {
+    detail: {
+      tags: ["Webhook"],
+      summary: "Midtrans HTTP notification — POST by Midtrans after payment",
+    },
+  })
 
   // ── Authenticated routes ──────────────────────────────────────────────────
   .use(jwtMiddleware)
@@ -54,7 +50,7 @@ export const paymentsRoutes = new Elysia({ prefix: "/payments" })
         tags: ["Payments"],
         summary: "Create a Midtrans Snap transaction for an order",
       },
-    }
+    },
   )
 
   .get(
@@ -67,7 +63,7 @@ export const paymentsRoutes = new Elysia({ prefix: "/payments" })
         tags: ["Payments"],
         summary: "Get payment by order ID",
       },
-    }
+    },
   )
 
   .get(
@@ -80,53 +76,44 @@ export const paymentsRoutes = new Elysia({ prefix: "/payments" })
         tags: ["Payments"],
         summary: "Get payment by ID",
       },
-    }
+    },
   )
 
   // ── Admin routes ──────────────────────────────────────────────────────────
   .use(requireRole("admin", "super_admin"))
 
-  .get(
-    "/",
-    ({ db, query }) => controller.handleList(db, query),
-    {
-      query: t.Object({
-        page: t.Optional(t.String()),
-        limit: t.Optional(t.String()),
-        status: t.Optional(t.String()),
-        method: t.Optional(t.String()),
-        userId: t.Optional(t.String()),
-        sortBy: t.Optional(t.String()),
-        sortOrder: t.Optional(t.String()),
-      }),
-      detail: {
-        tags: ["Payments"],
-        summary: "List all payments (admin)",
-      },
-    }
-  )
+  .get("/", ({ db, query }) => controller.handleList(db, query), {
+    query: t.Object({
+      page: t.Optional(t.String()),
+      limit: t.Optional(t.String()),
+      status: t.Optional(t.String()),
+      method: t.Optional(t.String()),
+      userId: t.Optional(t.String()),
+      sortBy: t.Optional(t.String()),
+      sortOrder: t.Optional(t.String()),
+    }),
+    detail: {
+      tags: ["Payments"],
+      summary: "List all payments (admin)",
+    },
+  })
 
-  .post(
-    "/refund",
-    ({ db, body }) => controller.handleRefund(db, body),
-    {
-      body: t.Object({
-        paymentId: UUID,
-        amount: t.Optional(t.Number({ minimum: 1 })),
-        reason: t.Union([
-          t.Literal("customer_request"),
-          t.Literal("defective_product"),
-          t.Literal("wrong_item"),
-          t.Literal("item_not_received"),
-          t.Literal("order_cancelled"),
-          t.Literal("admin_action"),
-        ]),
-        note: t.Optional(t.String({ maxLength: 500 })),
-      }),
-      detail: {
-        tags: ["Refunds"],
-        summary: "Initiate a refund (admin)",
-      },
-    }
-  );
-
+  .post("/refund", ({ db, body }) => controller.handleRefund(db, body), {
+    body: t.Object({
+      paymentId: UUID,
+      amount: t.Optional(t.Number({ minimum: 1 })),
+      reason: t.Union([
+        t.Literal("customer_request"),
+        t.Literal("defective_product"),
+        t.Literal("wrong_item"),
+        t.Literal("item_not_received"),
+        t.Literal("order_cancelled"),
+        t.Literal("admin_action"),
+      ]),
+      note: t.Optional(t.String({ maxLength: 500 })),
+    }),
+    detail: {
+      tags: ["Refunds"],
+      summary: "Initiate a refund (admin)",
+    },
+  });

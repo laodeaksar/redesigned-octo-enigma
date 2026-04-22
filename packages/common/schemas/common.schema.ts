@@ -8,8 +8,7 @@ import { z } from "zod/v4";
 // ── Identifiers ───────────────────────────────────────────────────────────────
 
 /** Postgres UUID */
-export const uuidSchema = z
-  .uuid({ message: "Must be a valid UUID" });
+export const uuidSchema = z.uuid({ message: "Must be a valid UUID" });
 
 /** MongoDB ObjectId as 24-char hex string */
 export const objectIdSchema = z
@@ -26,7 +25,8 @@ export const slugSchema = z
   .min(2, { message: "Slug must be at least 2 characters" })
   .max(255)
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
-    message: "Slug must be lowercase, alphanumeric with hyphens only (e.g. my-product)",
+    message:
+      "Slug must be lowercase, alphanumeric with hyphens only (e.g. my-product)",
   });
 
 // ── Strings ───────────────────────────────────────────────────────────────────
@@ -60,7 +60,8 @@ export const phoneSchema = z
   .string()
   .trim()
   .regex(/^(\+62|62|0)8[1-9][0-9]{6,11}$/, {
-    message: "Must be a valid Indonesian phone number (e.g. 081234567890 or +6281234567890)",
+    message:
+      "Must be a valid Indonesian phone number (e.g. 081234567890 or +6281234567890)",
   });
 
 /** URL with http/https */
@@ -101,11 +102,9 @@ export const weightSchema = z
   .max(100_000, { message: "Weight cannot exceed 100,000g (100kg)" });
 
 /** Rating 1–5 */
-export const ratingSchema = z
-  .number()
-  .int()
-  .min(1)
-  .max(5) as z.ZodType<1 | 2 | 3 | 4 | 5>;
+export const ratingSchema = z.number().int().min(1).max(5) as z.ZodType<
+  1 | 2 | 3 | 4 | 5
+>;
 
 // ── Dates ─────────────────────────────────────────────────────────────────────
 
@@ -113,8 +112,9 @@ export const ratingSchema = z
 export const dateSchema = z.coerce.date();
 
 /** ISO 8601 string representation */
-export const isoDateStringSchema = z
-  .date({ message: "Must be a valid ISO 8601 datetime string" });
+export const isoDateStringSchema = z.date({
+  message: "Must be a valid ISO 8601 datetime string",
+});
 
 // ── Pagination ────────────────────────────────────────────────────────────────
 
@@ -130,18 +130,23 @@ export const cursorPaginationSchema = z.object({
 
 export const sortOrderSchema = z.enum(["asc", "desc"]).default("desc");
 
-export const dateRangeSchema = z.object({
-  from: isoDateStringSchema.optional(),
-  to: isoDateStringSchema.optional(),
-}).refine(
-  (val) => {
-    if (val.from && val.to) {
-      return new Date(val.from) <= new Date(val.to);
-    }
-    return true;
-  },
-  { message: "'from' date must be before or equal to 'to' date", path: ["from"] }
-);
+export const dateRangeSchema = z
+  .object({
+    from: isoDateStringSchema.optional(),
+    to: isoDateStringSchema.optional(),
+  })
+  .refine(
+    (val) => {
+      if (val.from && val.to) {
+        return new Date(val.from) <= new Date(val.to);
+      }
+      return true;
+    },
+    {
+      message: "'from' date must be before or equal to 'to' date",
+      path: ["from"],
+    },
+  );
 
 // ── Address ───────────────────────────────────────────────────────────────────
 
@@ -179,11 +184,9 @@ export const emptyToNull = z
   .nullable();
 
 /** Parse comma-separated string into a string array */
-export const commaSeparatedSchema = z
-  .string()
-  .transform((v) =>
-    v
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean)
-  );
+export const commaSeparatedSchema = z.string().transform((v) =>
+  v
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean),
+);

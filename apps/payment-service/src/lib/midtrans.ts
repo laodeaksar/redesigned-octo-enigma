@@ -37,7 +37,7 @@ export interface SnapCustomerDetails {
 export interface SnapItemDetail {
   id: string;
   name: string;
-  price: number;       // unit price in IDR
+  price: number; // unit price in IDR
   quantity: number;
 }
 
@@ -78,7 +78,7 @@ export interface SnapTransactionResult {
  * The token is passed to the frontend Snap.js popup.
  */
 export async function createSnapTransaction(
-  input: CreateSnapTransactionInput
+  input: CreateSnapTransactionInput,
 ): Promise<SnapTransactionResult> {
   const {
     orderId,
@@ -149,7 +149,11 @@ export async function createSnapTransaction(
     throw new PaymentGatewayError("Failed to reach Midtrans Snap API", err);
   }
 
-  const json = await res.json() as { token?: string; redirect_url?: string; error_messages?: string[] };
+  const json = (await res.json()) as {
+    token?: string;
+    redirect_url?: string;
+    error_messages?: string[];
+  };
 
   if (!res.ok || !json.token) {
     const messages = json.error_messages?.join("; ") ?? `HTTP ${res.status}`;
@@ -172,7 +176,7 @@ export async function createSnapTransaction(
  * @returns true if the signature is valid
  */
 export function verifyMidtransSignature(
-  notification: MidtransNotification
+  notification: MidtransNotification,
 ): boolean {
   const raw =
     notification.order_id +
@@ -192,7 +196,7 @@ export function verifyMidtransSignature(
  * Useful for manual status verification.
  */
 export async function checkTransactionStatus(
-  midtransOrderId: string
+  midtransOrderId: string,
 ): Promise<Record<string, unknown>> {
   let res: Response;
 
@@ -211,41 +215,38 @@ export async function checkTransactionStatus(
 
 export interface RefundRequest {
   midtransOrderId: string;
-  refundKey: string;    // unique key per refund attempt
-  amount: number;       // IDR
+  refundKey: string; // unique key per refund attempt
+  amount: number; // IDR
   reason: string;
 }
 
 export async function createRefund(
-  input: RefundRequest
+  input: RefundRequest,
 ): Promise<Record<string, unknown>> {
   let res: Response;
 
   try {
-    res = await fetch(
-      `${API_BASE_URL}/${input.midtransOrderId}/refund`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: AUTH_HEADER,
-        },
-        body: JSON.stringify({
-          refund_key: input.refundKey,
-          amount: input.amount,
-          reason: input.reason,
-        }),
-      }
-    );
+    res = await fetch(`${API_BASE_URL}/${input.midtransOrderId}/refund`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: AUTH_HEADER,
+      },
+      body: JSON.stringify({
+        refund_key: input.refundKey,
+        amount: input.amount,
+        reason: input.reason,
+      }),
+    });
   } catch (err) {
     throw new PaymentGatewayError("Failed to reach Midtrans refund API", err);
   }
 
-  const json = await res.json() as Record<string, unknown>;
+  const json = (await res.json()) as Record<string, unknown>;
 
   if (!res.ok) {
     throw new PaymentGatewayError(
-      `Midtrans refund error: ${(json["error_messages"] as string[] | undefined)?.join("; ") ?? res.statusText}`
+      `Midtrans refund error: ${(json["error_messages"] as string[] | undefined)?.join("; ") ?? res.statusText}`,
     );
   }
 
@@ -257,9 +258,7 @@ export async function createRefund(
 /**
  * Map Midtrans payment_type + bank/acquirer → our PaymentMethod enum value.
  */
-export function parsePaymentMethod(
-  notification: MidtransNotification
-): string {
+export function parsePaymentMethod(notification: MidtransNotification): string {
   const { payment_type, acquirer, bank } = notification;
 
   const vaBank = notification.va_numbers?.[0]?.bank?.toLowerCase();
@@ -302,4 +301,3 @@ export function parsePaymentMethod(
       return payment_type;
   }
 }
-

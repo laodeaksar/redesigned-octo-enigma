@@ -26,7 +26,7 @@ export function createApp() {
           "x-webhook-source",
         ],
         methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-      })
+      }),
     )
     .use(swaggerPlugin)
     .onError(elysiaErrorHandler)
@@ -40,4 +40,3 @@ export function createApp() {
 }
 
 export type App = ReturnType<typeof createApp>;
-

@@ -5,11 +5,7 @@
 
 import { z } from "zod/v4";
 
-import {
-  objectIdSchema,
-  slugSchema,
-  uuidSchema,
-} from "./common.schema";
+import { objectIdSchema, slugSchema, uuidSchema } from "./common.schema";
 
 // ── Route Params ──────────────────────────────────────────────────────────────
 
@@ -47,7 +43,9 @@ export const internalRequestHeadersSchema = z.looseObject({
   "x-request-id": z.uuid(), // dibikin wajib buat tracing
 });
 
-export type InternalRequestHeaders = z.infer<typeof internalRequestHeadersSchema>;
+export type InternalRequestHeaders = z.infer<
+  typeof internalRequestHeadersSchema
+>;
 
 // ── Bearer Token ──────────────────────────────────────────────────────────────
 
@@ -69,7 +67,7 @@ export const bearerTokenSchema = z
 export const commonApiErrorCodeSchema = z.enum([
   "VALIDATION_ERROR",
   "INVALID_REQUEST",
-  "UNAUTHORIZED", 
+  "UNAUTHORIZED",
   "TOKEN_EXPIRED",
   "TOKEN_INVALID",
   "FORBIDDEN",
@@ -228,7 +226,7 @@ export function success<T>(data: T, message?: string) {
  */
 export function paginated<T>(
   items: T[],
-  meta: { total: number; page: number; limit: number }
+  meta: { total: number; page: number; limit: number },
 ) {
   if (meta.limit <= 0) throw new Error("Limit must be > 0");
   if (meta.page <= 0) throw new Error("Page must be > 0");
@@ -255,7 +253,7 @@ export function paginated<T>(
 export function failure(
   code: ApiErrorCode,
   message: string,
-  details?: Array<{ field: string; message: string }>
+  details?: Array<{ field: string; message: string }>,
 ) {
   return {
     success: false as const,

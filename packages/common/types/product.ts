@@ -17,7 +17,7 @@ export interface Category {
   slug: string;
   description: string | null;
   imageUrl: string | null;
-  parentId: string | null;     // null = root category
+  parentId: string | null; // null = root category
   sortOrder: number;
   createdAt: Date;
   updatedAt: Date;
@@ -46,12 +46,12 @@ export interface ProductVariant {
   id: string;
   productId: string;
   sku: string;
-  name: string;                // e.g. "Red / XL"
+  name: string; // e.g. "Red / XL"
   attributes: Record<string, string>; // e.g. { color: "red", size: "XL" }
-  price: number;               // in IDR, integer (no decimals)
+  price: number; // in IDR, integer (no decimals)
   compareAtPrice: number | null;
   stock: number;
-  weight: number | null;       // in grams
+  weight: number | null; // in grams
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -59,7 +59,14 @@ export interface ProductVariant {
 
 export type ProductVariantSummary = Pick<
   ProductVariant,
-  "id" | "sku" | "name" | "attributes" | "price" | "compareAtPrice" | "stock" | "isActive"
+  | "id"
+  | "sku"
+  | "name"
+  | "attributes"
+  | "price"
+  | "compareAtPrice"
+  | "stock"
+  | "isActive"
 >;
 
 // ── Product ───────────────────────────────────────────────────────────────────
@@ -73,10 +80,10 @@ export interface Product {
   status: ProductStatus;
   categoryId: string;
   tags: string[];
-  weight: number | null;       // in grams (used when no variant weight)
+  weight: number | null; // in grams (used when no variant weight)
   createdAt: Date;
   updatedAt: Date;
-  deletedAt: Date | null;      // soft delete
+  deletedAt: Date | null; // soft delete
 }
 
 /** Full product with all relations — used in detail pages & admin */
@@ -116,9 +123,9 @@ export interface ProductSnapshot {
 
 export interface StockAdjustment {
   variantId: string;
-  delta: number;               // positive = restock, negative = deduction
+  delta: number; // positive = restock, negative = deduction
   reason: StockAdjustmentReason;
-  referenceId: string | null;  // orderId, returnId, etc.
+  referenceId: string | null; // orderId, returnId, etc.
   note: string | null;
   createdAt: Date;
 }

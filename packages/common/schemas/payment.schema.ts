@@ -81,11 +81,9 @@ export const midtransNotificationSchema = z.object({
   payment_type: z.string().min(1),
   order_id: z.string().min(1),
   merchant_id: z.string().min(1),
-  gross_amount: z
-    .string()
-    .regex(/^\d+(\.\d{2})?$/, {
-      message: "gross_amount must be a numeric string (e.g. '150000.00')",
-    }),
+  gross_amount: z.string().regex(/^\d+(\.\d{2})?$/, {
+    message: "gross_amount must be a numeric string (e.g. '150000.00')",
+  }),
   fraud_status: z.string().optional(),
   currency: z.string().default("IDR"),
   // Bank transfer
@@ -105,17 +103,18 @@ export const midtransNotificationSchema = z.object({
   store: z.string().optional(),
 });
 
-export type MidtransNotificationInput = z.infer<typeof midtransNotificationSchema>;
+export type MidtransNotificationInput = z.infer<
+  typeof midtransNotificationSchema
+>;
 
 // ── Refund ────────────────────────────────────────────────────────────────────
 
-export const createRefundSchema = z
-  .object({
-    paymentId: uuidSchema,
-    amount: positiveIdrAmountSchema,
-    reason: refundReasonSchema,
-    note: z.string().max(500).nullable().optional(),
-  });
+export const createRefundSchema = z.object({
+  paymentId: uuidSchema,
+  amount: positiveIdrAmountSchema,
+  reason: refundReasonSchema,
+  note: z.string().max(500).nullable().optional(),
+});
 
 export type CreateRefundInput = z.infer<typeof createRefundSchema>;
 

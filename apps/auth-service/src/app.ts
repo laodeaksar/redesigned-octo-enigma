@@ -10,6 +10,7 @@ import { elysiaErrorHandler } from "@repo/common/errors";
 import { swaggerPlugin } from "@/plugins/swagger.plugin";
 import { healthRoutes } from "@/modules/health/health.routes";
 import { authRoutes } from "@/modules/auth/auth.routes";
+import { oauthRoutes, betterAuthHandler } from "@/modules/auth/oauth.routes";
 import { usersRoutes } from "@/modules/users/users.routes";
 import { env } from "@/config";
 
@@ -41,6 +42,8 @@ export function createApp() {
     // ── Routes ────────────────────────────────────────────────────────────────
     .use(healthRoutes)
     .use(authRoutes)
+    .use(oauthRoutes)
+    .use(betterAuthHandler)
     .use(usersRoutes);
 }
 

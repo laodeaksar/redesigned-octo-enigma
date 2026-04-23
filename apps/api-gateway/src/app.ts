@@ -20,6 +20,8 @@ import { productsRoutes } from "@/modules/products/products.routes";
 import { ordersRoutes } from "@/modules/orders/orders.routes";
 import { paymentsRoutes } from "@/modules/payments/payments.routes";
 import { shippingRoutes } from "@/modules/shipping/shipping.routes";
+import { bullBoardRoutes } from "@/modules/bull-board/bull-board.routes";
+import { analyticsRoutes } from "@/modules/analytics/analytics.routes";
 
 export function createApp() {
   const app = new Hono();
@@ -96,6 +98,8 @@ export function createApp() {
   app.route("/", ordersRoutes);
   app.route("/", paymentsRoutes);
   app.route("/", shippingRoutes);
+  app.route("/", bullBoardRoutes);
+  app.route("/", analyticsRoutes);
 
   // ── 404 handler ────────────────────────────────────────────────────────────
   app.notFound((c) =>

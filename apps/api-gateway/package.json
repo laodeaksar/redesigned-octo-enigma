@@ -15,6 +15,8 @@
 "clean": "rm -rf .turbo dist node_modules"
   },
   "dependencies": {
+    "@bull-board/api": "^5.19.0",
+    "@bull-board/hono": "^5.19.0",
     "@hono/swagger-ui": "^0.4.1",
     "@hono/zod-validator": "^0.2.2",
     "@repo/common": "workspace:*",

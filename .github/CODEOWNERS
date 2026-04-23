@@ -1,0 +1,32 @@
+# =============================================================================
+# CODEOWNERS — auto-request reviews when PRs touch these paths
+# Syntax: <pattern> <@github-username or @org/team>
+# =============================================================================
+
+# Default: all changes require review from the core team
+*                               @your-org/core
+
+# Infrastructure & CI/CD
+.github/                        @your-org/devops
+docker-compose*.yml             @your-org/devops
+*/Dockerfile                    @your-org/devops
+
+# Shared packages — breaking changes need broader review
+packages/common/                @your-org/core @your-org/backend
+packages/database/              @your-org/core @your-org/backend
+packages/config/                @your-org/core
+
+# Backend services
+apps/api-gateway/               @your-org/backend
+apps/auth-service/              @your-org/backend
+apps/product-service/           @your-org/backend
+apps/order-service/             @your-org/backend
+apps/payment-service/           @your-org/backend
+apps/email-worker/              @your-org/backend
+
+# Frontend
+apps/web/                       @your-org/frontend
+apps/admin/                     @your-org/frontend
+
+# Migrations — always require DBA review
+packages/database/drizzle/migrations/ @your-org/core @your-org/dba

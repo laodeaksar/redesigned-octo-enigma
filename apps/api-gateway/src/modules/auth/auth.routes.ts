@@ -29,6 +29,20 @@ const app = new Hono();
 
 const authBase = SERVICES.auth;
 
+// ── OAuth providers ───────────────────────────────────────────────────────────
+app.get("/auth/oauth/providers", defaultRateLimit, async (c) => {
+  return proxyRequest(c, { target: buildTargetUrl(authBase, c), user: null });
+});
+
+// OAuth initiate + callback — proxy all to Better-auth handler in auth-service
+app.all("/auth/oauth/:provider", authRateLimit, async (c) => {
+  return proxyRequest(c, { target: buildTargetUrl(authBase, c), user: null });
+});
+
+app.all("/auth/oauth/:provider/callback", authRateLimit, async (c) => {
+  return proxyRequest(c, { target: buildTargetUrl(authBase, c), user: null });
+});
+
 // ── Registration / Login ───────────────────────────────────────────────────────
 app.post("/auth/register", authRateLimit, async (c) => {
   return proxyRequest(c, {

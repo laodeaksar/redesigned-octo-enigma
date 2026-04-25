@@ -10,6 +10,7 @@ import { elysiaErrorHandler } from "@repo/common/errors";
 import { swaggerPlugin } from "@/plugins/swagger.plugin";
 import { healthRoutes } from "@/modules/health/health.routes";
 import { paymentsRoutes } from "@/modules/payments/payments.routes";
+import { metricsRoutes } from "@/metrics";
 import { env } from "@/config";
 
 export function createApp() {
@@ -36,6 +37,7 @@ export function createApp() {
       }
     })
     .use(healthRoutes)
+    .use(metricsRoutes)
     .use(paymentsRoutes);
 }
 

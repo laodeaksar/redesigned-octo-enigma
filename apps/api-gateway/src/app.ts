@@ -22,9 +22,13 @@ import { paymentsRoutes } from "@/modules/payments/payments.routes";
 import { shippingRoutes } from "@/modules/shipping/shipping.routes";
 import { bullBoardRoutes } from "@/modules/bull-board/bull-board.routes";
 import { analyticsRoutes } from "@/modules/analytics/analytics.routes";
+import { metricsMiddleware, metricsRoutes } from "@/metrics";
 
 export function createApp() {
   const app = new Hono();
+
+  // ── Metrics (Prometheus scrape endpoint) ─────────────────────────────────
+  app.use("*", metricsMiddleware);
 
   // ── Security headers ───────────────────────────────────────────────────────
   app.use("*", secureHeaders());
@@ -100,6 +104,7 @@ export function createApp() {
   app.route("/", shippingRoutes);
   app.route("/", bullBoardRoutes);
   app.route("/", analyticsRoutes);
+  app.route("/", metricsRoutes);
 
   // ── 404 handler ────────────────────────────────────────────────────────────
   app.notFound((c) =>

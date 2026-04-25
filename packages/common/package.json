@@ -11,7 +11,8 @@
     "./types": "./types/index.ts",
     "./schemas": "./schemas/index.ts",
     "./errors": "./errors/index.ts",
-    "./events": "./events/index.ts"
+    "./events": "./events/index.ts",
+    "./metrics": "./metrics/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -22,7 +23,8 @@
   "dependencies": {
    "bullmq": "^5.12.0",
    "hono": "^4.12.14",
-    "zod": "^4.3.6"
+   "prom-client": "^15.1.0",
+   "zod": "^4.3.6"
   },
   "devDependencies": {
     "@repo/tsconfig": "workspace:*",
@@ -32,7 +34,7 @@
     "typescript": "^6.0.3"
   },
   "peerDependencies": {
-    "typescript": "^5.0.0",
+    "typescript": "^5 || ^6",
     "zod": "^4"
   }
 }

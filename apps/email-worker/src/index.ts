@@ -6,6 +6,7 @@
 import { env, redis } from "@/config";
 import { verifyMailer } from "@/lib/mailer";
 import { startWorkers, closeWorkers } from "@/consumer";
+import { startMetricsServer } from "@/metrics";
 
 async function bootstrap() {
   console.info(`\n📧 Starting email-worker [${env.NODE_ENV}]…`);
@@ -17,6 +18,9 @@ async function bootstrap() {
     console.error("✗ Mailer transport verification failed:", err);
     process.exit(1);
   }
+
+  // ── Metrics server (separate port for Prometheus scraping) ──────────────
+  startMetricsServer();
 
   // ── Start BullMQ workers ─────────────────────────────────────────────────
   const workers = startWorkers();

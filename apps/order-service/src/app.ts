@@ -13,6 +13,7 @@ import { ordersRoutes } from "@/modules/orders/orders.routes";
 import { vouchersRoutes } from "@/modules/vouchers/vouchers.routes";
 import { shippingRoutes } from "@/modules/shipping/shipping.routes";
 import { analyticsRoutes } from "@/modules/analytics/analytics.routes";
+import { metricsRoutes } from "@/metrics";
 import { env } from "@/config";
 
 export function createApp() {
@@ -38,6 +39,7 @@ export function createApp() {
       }
     })
     .use(healthRoutes)
+    .use(metricsRoutes)
     .use(ordersRoutes)
     .use(vouchersRoutes)
     .use(shippingRoutes)

@@ -1,0 +1,198 @@
+groups:
+  # ── Payment alerts ────────────────────────────────────────────────────────────
+  - name: payments
+    interval: 30s
+    rules:
+
+      # Payment failure rate > 20%
+      - alert: HighPaymentFailureRate
+        expr: |
+          (
+            rate(payment_failed_total[10m])
+            /
+            (rate(payment_settled_total[10m]) + rate(payment_failed_total[10m]) + 0.001)
+          ) > 0.20
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High payment failure rate"
+          description: "{{ $value | humanizePercentage }} of payments are failing. Midtrans may have an issue."
+          runbook: "https://docs.my-ecommerce.com/runbooks/payment-failures"
+
+      # No payments settled in 30 min during business hours (06:00-23:00 WIB = UTC+7)
+      - alert: NoPaymentsSettled
+        expr: |
+          (
+            increase(payment_settled_total[30m]) == 0
+          )
+          and
+          (
+            (hour() + 7) % 24 >= 6
+            and
+            (hour() + 7) % 24 <= 23
+          )
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No payments settled in the last 30 minutes"
+          description: "During business hours, zero payments have been settled. Payment flow may be broken."
+
+      # Webhook signature failures (potential spoofing attempt or Midtrans issue)
+      - alert: WebhookSignatureFailures
+        expr: |
+          increase(
+            payment_webhook_received_total{valid_signature="false"}[5m]
+          ) > 5
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Midtrans webhook signature failures"
+          description: "{{ $value }} webhooks with invalid signatures in 5 minutes. Possible spoofing or key mismatch."
+
+      # Midtrans API latency > 5s
+      - alert: MidtransApiSlow
+        expr: |
+          histogram_quantile(0.95,
+            rate(payment_midtrans_api_duration_seconds_bucket[5m])
+          ) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Midtrans API is slow"
+          description: "p95 Midtrans API latency is {{ $value | humanizeDuration }} for {{ $labels.operation }}."
+
+      # Large number of pending payments (may indicate stuck checkout flows)
+      - alert: LargePendingPaymentBacklog
+        expr: payment_pending_total > 500
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Large pending payment backlog"
+          description: "{{ $value }} payments are in pending state. Some may be stuck."
+
+  # ── Order anomalies ──────────────────────────────────────────────────────────
+  - name: orders
+    interval: 60s
+    rules:
+
+      # Order creation rate drops to zero during business hours
+      - alert: NoOrdersCreated
+        expr: |
+          (
+            rate(order_created_total[30m]) == 0
+          )
+          and
+          (
+            (hour() + 7) % 24 >= 9
+            and
+            (hour() + 7) % 24 <= 22
+          )
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No orders created in last 30 minutes"
+          description: "During business hours, no orders have been created. Checkout flow may be broken."
+
+      # High cancellation rate (>40% of orders in last hour)
+      - alert: HighCancellationRate
+        expr: |
+          (
+            rate(order_cancelled_total[1h])
+            /
+            (rate(order_created_total[1h]) + 0.001)
+          ) > 0.40
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High order cancellation rate"
+          description: "{{ $value | humanizePercentage }} of orders are being cancelled. May indicate payment or stock issues."
+
+      # Unusually high order expiry rate (payment link not being used)
+      - alert: HighExpiryRate
+        expr: |
+          rate(order_expired_total[1h]) > 10
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High order expiry rate"
+          description: "{{ $value | humanize }} orders per hour are expiring unpaid. Snap payment flow may have issues."
+
+  # ── Auth anomalies ────────────────────────────────────────────────────────────
+  - name: auth
+    interval: 30s
+    rules:
+
+      # Brute force / credential stuffing detection
+      - alert: HighLoginFailureRate
+        expr: |
+          rate(auth_logins_total{success="false"}[5m]) > 10
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High login failure rate"
+          description: "{{ $value | humanize }} failed logins per second. Possible brute force attack."
+
+      # Spike in password reset requests (account takeover attempt)
+      - alert: PasswordResetSpike
+        expr: rate(auth_password_resets_total[5m]) > 5
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Password reset request spike"
+          description: "{{ $value | humanize }} password resets per second. Possible account takeover attempt."
+
+      # Auth gateway rejections spike
+      - alert: GatewayAuthRejectionSpike
+        expr: rate(gateway_auth_failures_total[5m]) > 20
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High auth rejection rate at api-gateway"
+          description: "{{ $value | humanize }} auth rejections/s (reason: {{ $labels.reason }}). Token issues or attack."
+
+  # ── SLO alerts ────────────────────────────────────────────────────────────────
+  - name: slo
+    interval: 60s
+    rules:
+
+      # 99th percentile checkout-to-payment latency > 10s (bad UX)
+      - alert: CheckoutLatencySLO
+        expr: |
+          histogram_quantile(0.99,
+            sum by (le) (
+              rate(http_request_duration_seconds_bucket{
+                service="order-service",
+                route=~"POST /orders"
+              }[10m])
+            )
+          ) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Checkout latency SLO breach"
+          description: "p99 order creation latency is {{ $value | humanizeDuration }} (SLO: 10s)."
+
+      # Availability SLO: api-gateway uptime < 99.9% in last 1h
+      - alert: AvailabilitySLOBreach
+        expr: |
+          avg_over_time(
+            up{service="api-gateway"}[1h]
+          ) < 0.999
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "api-gateway availability SLO breach"
+          description: "api-gateway uptime is {{ $value | humanizePercentage }} in the last hour (SLO: 99.9%)."

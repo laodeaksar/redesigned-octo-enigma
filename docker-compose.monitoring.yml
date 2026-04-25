@@ -1,0 +1,169 @@
+name: my-ecommerce-monitoring
+
+# =============================================================================
+# Monitoring stack
+#
+# Usage (standalone — connects to main stack via external network):
+#   docker compose -f docker-compose.monitoring.yml up -d
+#
+# Or start everything together:
+#   docker compose -f docker-compose.dev.yml -f docker-compose.monitoring.yml up -d
+#
+# Dashboards: http://localhost:3001 (Grafana, admin/admin)
+# Prometheus: http://localhost:9090
+# Alertmanager: http://localhost:9093
+# =============================================================================
+
+services:
+
+  # ── Prometheus ───────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+      - "--storage.tsdb.retention.size=10GB"
+      - "--web.enable-lifecycle"           # POST /-/reload to hot-reload config
+      - "--web.enable-admin-api"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/rules:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus
+    networks:
+      - monitoring
+      - my-ecommerce_backend    # reach app services by name
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9090/-/healthy || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ── Alertmanager ─────────────────────────────────────────────────────────────
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+      - "--web.external-url=http://localhost:9093"
+      - "--cluster.listen-address="       # single-instance mode (no clustering)
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    environment:
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      SMTP_PASS:         ${SMTP_PASS:-}
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9093/-/healthy || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ── Grafana ───────────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.4.0
+    restart: unless-stopped
+    ports:
+      - "3030:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER:     ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP:     "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/overview.json
+      GF_SERVER_ROOT_URL:         "http://localhost:3030"
+      GF_SMTP_ENABLED:            "false"
+      # Disable Grafana's own telemetry
+      GF_FEATURE_TOGGLES_ENABLE:  ""
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - monitoring
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+
+  # ── Node Exporter (host-level CPU, memory, disk, network) ────────────────────
+  node-exporter:
+    image: prom/node-exporter:v1.8.0
+    restart: unless-stopped
+    command:
+      - "--path.rootfs=/host"
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+    pid: host
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host:ro,rslave
+    networks:
+      - monitoring
+
+  # ── Redis Exporter ────────────────────────────────────────────────────────────
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.61.0
+    restart: unless-stopped
+    environment:
+      REDIS_ADDR:     redis://redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    networks:
+      - monitoring
+      - my-ecommerce_backend
+
+  # ── MongoDB Exporter ──────────────────────────────────────────────────────────
+  mongodb-exporter:
+    image: percona/mongodb_exporter:0.40
+    restart: unless-stopped
+    command:
+      - "--mongodb.uri=mongodb://${MONGO_USER:-mongo}:${MONGO_PASSWORD:-}@mongo:27017/admin?authSource=admin"
+      - "--collect-all"
+    networks:
+      - monitoring
+      - my-ecommerce_backend
+
+  # ── PostgreSQL Exporter ───────────────────────────────────────────────────────
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-}@postgres:5432/postgres?sslmode=disable"
+    networks:
+      - monitoring
+      - my-ecommerce_backend
+
+# ── Networks ──────────────────────────────────────────────────────────────────
+
+networks:
+  monitoring:
+    driver: bridge
+
+  # Connect to main app stack's backend network so Prometheus can scrape services
+  # This network must already exist (created by docker-compose.dev.yml or .prod.yml)
+  my-ecommerce_backend:
+    external: true
+
+# ── Volumes ───────────────────────────────────────────────────────────────────
+
+volumes:
+  prometheus_data:
+  alertmanager_data:
+  grafana_data:

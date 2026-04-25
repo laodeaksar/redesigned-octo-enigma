@@ -1,0 +1,149 @@
+groups:
+  # ── Queue depth ─────────────────────────────────────────────────────────────
+  - name: queue-depth
+    interval: 30s
+    rules:
+
+      # Email queue backed up > 100 waiting jobs
+      - alert: EmailQueueBacklog
+        expr: |
+          sum by (queue) (
+            bullmq_queue_depth{state="waiting", queue=~"email\\..*"}
+          ) > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Email queue backlog — {{ $labels.queue }}"
+          description: "{{ $labels.queue }} has {{ $value }} jobs waiting. email-worker may be down or slow."
+          runbook: "https://docs.my-ecommerce.com/runbooks/email-queue-backlog"
+
+      # Email queue critical backlog > 500
+      - alert: EmailQueueCritical
+        expr: |
+          sum by (queue) (
+            bullmq_queue_depth{state="waiting", queue=~"email\\..*"}
+          ) > 500
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical email queue backlog — {{ $labels.queue }}"
+          description: "{{ $labels.queue }} has {{ $value }} jobs waiting. Email delivery is severely delayed."
+
+      # Stock deduct queue backed up (means orders are not being processed)
+      - alert: StockDeductBacklog
+        expr: bullmq_queue_depth{state="waiting", queue="product.stock-deduct"} > 50
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Stock deduct queue backlog"
+          description: "{{ $value }} stock deduction jobs are waiting. product-service worker may be down."
+
+      # Stock restore queue backed up (means stock isn't being returned after cancellations)
+      - alert: StockRestoreBacklog
+        expr: bullmq_queue_depth{state="waiting", queue="product.stock-restore"} > 50
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Stock restore queue backlog"
+          description: "{{ $value }} stock restore jobs are waiting. Cancelled order stock may not be restored."
+
+      # Order expiry sweep queue backed up
+      - alert: OrderExpiryQueueBacklog
+        expr: bullmq_queue_depth{state="waiting", queue="order.cancel-expired"} > 10
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Order expiry queue backlog"
+          description: "{{ $value }} order expiry jobs are waiting. Expired orders may not be cancelled promptly."
+
+  # ── Failed jobs ──────────────────────────────────────────────────────────────
+  - name: queue-failures
+    interval: 30s
+    rules:
+
+      # High job failure rate on any queue (>10% in last 5 min)
+      - alert: HighJobFailureRate
+        expr: |
+          (
+            rate(bullmq_jobs_failed_total[5m])
+            /
+            (rate(bullmq_jobs_completed_total[5m]) + rate(bullmq_jobs_failed_total[5m]) + 0.001)
+          ) > 0.10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High job failure rate on {{ $labels.queue }}"
+          description: "{{ $labels.queue }} has a {{ $value | humanizePercentage }} job failure rate. Check worker logs."
+
+      # Failure rate > 50% — critical
+      - alert: CriticalJobFailureRate
+        expr: |
+          (
+            rate(bullmq_jobs_failed_total[5m])
+            /
+            (rate(bullmq_jobs_completed_total[5m]) + rate(bullmq_jobs_failed_total[5m]) + 0.001)
+          ) > 0.50
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical job failure rate on {{ $labels.queue }}"
+          description: "{{ $labels.queue }} has a {{ $value | humanizePercentage }} failure rate. Worker is likely broken."
+
+      # Growing failed job accumulation in dead letter
+      - alert: DeadLetterAccumulation
+        expr: |
+          increase(bullmq_queue_depth{state="failed"}[1h]) > 100
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Dead letter accumulation on {{ $labels.queue }}"
+          description: "{{ $value }} jobs moved to failed state in the last hour on {{ $labels.queue }}."
+
+  # ── Worker health ─────────────────────────────────────────────────────────────
+  - name: worker-health
+    interval: 30s
+    rules:
+
+      # No active workers for a queue that should have workers
+      - alert: NoActiveWorkers
+        expr: |
+          bullmq_workers_active{
+            queue=~"email\\..*|product\\.stock-.*|order\\.cancel-expired"
+          } == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No active workers for {{ $labels.queue }}"
+          description: "Queue {{ $labels.queue }} has no active worker instances. Jobs are piling up unprocessed."
+
+      # Job processing time > 30s (likely stuck)
+      - alert: SlowJobProcessing
+        expr: |
+          histogram_quantile(0.95,
+            rate(bullmq_job_duration_seconds_bucket[10m])
+          ) > 30
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow job processing on {{ $labels.queue }}"
+          description: "p95 processing time on {{ $labels.queue }} is {{ $value | humanizeDuration }}."
+
+      # Delayed jobs growing (scheduler not firing)
+      - alert: DelayedJobsGrowing
+        expr: bullmq_queue_depth{state="delayed"} > 1000
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Large delayed job backlog on {{ $labels.queue }}"
+          description: "{{ $value }} delayed jobs on {{ $labels.queue }}. Scheduler may not be running."

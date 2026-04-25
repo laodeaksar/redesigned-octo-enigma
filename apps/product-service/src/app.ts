@@ -12,6 +12,7 @@ import { healthRoutes } from "@/modules/health/health.routes";
 import { categoriesRoutes } from "@/modules/categories/categories.routes";
 import { productsRoutes } from "@/modules/products/products.routes";
 import { reviewsRoutes } from "@/modules/reviews/reviews.routes";
+import { metricsRoutes } from "@/metrics";
 import { env } from "@/config";
 
 export function createApp() {
@@ -46,6 +47,7 @@ export function createApp() {
 
     // ── Routes ────────────────────────────────────────────────────────────────
     .use(healthRoutes)
+    .use(metricsRoutes)
     .use(categoriesRoutes)
     .use(productsRoutes)
     .use(reviewsRoutes);

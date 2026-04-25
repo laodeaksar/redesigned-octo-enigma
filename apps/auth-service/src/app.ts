@@ -12,6 +12,7 @@ import { healthRoutes } from "@/modules/health/health.routes";
 import { authRoutes } from "@/modules/auth/auth.routes";
 import { oauthRoutes, betterAuthHandler } from "@/modules/auth/oauth.routes";
 import { usersRoutes } from "@/modules/users/users.routes";
+import { metricsRoutes } from "@/metrics";
 import { env } from "@/config";
 
 export function createApp() {
@@ -41,6 +42,7 @@ export function createApp() {
 
     // ── Routes ────────────────────────────────────────────────────────────────
     .use(healthRoutes)
+    .use(metricsRoutes)
     .use(authRoutes)
     .use(oauthRoutes)
     .use(betterAuthHandler)

@@ -1,0 +1,158 @@
+groups:
+  # ── Service availability ────────────────────────────────────────────────────
+  - name: service-health
+    interval: 30s
+    rules:
+
+      # Service completely unreachable (scrape fails for 1 min)
+      - alert: ServiceDown
+        expr: up{job=~"api-gateway|auth-service|product-service|order-service|payment-service|email-worker"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.service }} is DOWN"
+          description: "Prometheus cannot scrape {{ $labels.service }} (instance {{ $labels.instance }}). Service has been unreachable for more than 1 minute."
+          runbook: "https://docs.my-ecommerce.com/runbooks/service-down"
+
+      # Service flapping (up/down repeatedly)
+      - alert: ServiceFlapping
+        expr: changes(up{job=~"api-gateway|auth-service|product-service|order-service|payment-service"}[10m]) > 4
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.service }} is flapping"
+          description: "{{ $labels.service }} has changed state {{ $value }} times in the last 10 minutes."
+
+  # ── HTTP error rates ────────────────────────────────────────────────────────
+  - name: http-errors
+    interval: 30s
+    rules:
+
+      # High 5xx rate (>5% of requests)
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum by (service) (
+              rate(http_requests_total{status_code=~"5.."}[5m])
+            )
+            /
+            sum by (service) (
+              rate(http_requests_total[5m])
+            )
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High 5xx error rate on {{ $labels.service }}"
+          description: "{{ $labels.service }} has a {{ $value | humanizePercentage }} 5xx error rate over the last 5 minutes."
+          runbook: "https://docs.my-ecommerce.com/runbooks/high-error-rate"
+
+      # Elevated 4xx rate (>20% — may indicate bad clients or auth issues)
+      - alert: Elevated4xxRate
+        expr: |
+          (
+            sum by (service) (
+              rate(http_requests_total{status_code=~"4.."}[5m])
+            )
+            /
+            sum by (service) (
+              rate(http_requests_total[5m])
+            )
+          ) > 0.20
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Elevated 4xx rate on {{ $labels.service }}"
+          description: "{{ $labels.service }} has a {{ $value | humanizePercentage }} 4xx error rate. May indicate auth issues or bad requests."
+
+  # ── Latency ─────────────────────────────────────────────────────────────────
+  - name: latency
+    interval: 30s
+    rules:
+
+      # p99 latency > 2s on any service
+      - alert: SlowP99
+        expr: |
+          histogram_quantile(0.99,
+            sum by (service, le) (
+              rate(http_request_duration_seconds_bucket[5m])
+            )
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow p99 latency on {{ $labels.service }}"
+          description: "{{ $labels.service }} p99 response time is {{ $value | humanizeDuration }} (threshold: 2s)."
+
+      # p99 latency > 5s — critical
+      - alert: CriticalLatency
+        expr: |
+          histogram_quantile(0.99,
+            sum by (service, le) (
+              rate(http_request_duration_seconds_bucket[5m])
+            )
+          ) > 5
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical latency on {{ $labels.service }}"
+          description: "{{ $labels.service }} p99 response time is {{ $value | humanizeDuration }}. Immediate action required."
+
+  # ── Memory ──────────────────────────────────────────────────────────────────
+  - name: resources
+    interval: 60s
+    rules:
+
+      # Node.js heap > 500MB
+      - alert: HighHeapUsage
+        expr: nodejs_heap_size_used_bytes > 500 * 1024 * 1024
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High heap usage on {{ $labels.service }}"
+          description: "{{ $labels.service }} heap is {{ $value | humanize1024 }}B (threshold: 500MiB). Possible memory leak."
+
+      # Event loop lag > 200ms
+      - alert: EventLoopLag
+        expr: nodejs_eventloop_lag_seconds > 0.2
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Event loop lag on {{ $labels.service }}"
+          description: "{{ $labels.service }} event loop lag is {{ $value | humanizeDuration }}. Service may be CPU-starved."
+
+      # External dependencies (Redis, Postgres, MongoDB) all checked via /health
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis is DOWN"
+          description: "Redis has been unreachable for more than 1 minute. All queue processing and caching is affected."
+
+      - alert: PostgresDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL is DOWN"
+          description: "PostgreSQL has been unreachable for more than 1 minute."
+
+      - alert: MongoDBDown
+        expr: mongodb_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "MongoDB is DOWN"
+          description: "MongoDB has been unreachable for more than 1 minute. Order service is fully degraded."

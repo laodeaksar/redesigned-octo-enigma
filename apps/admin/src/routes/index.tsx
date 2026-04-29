@@ -1,12 +1,14 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
-import { isAuthenticated } from "@/lib/auth";
+import { createFileRoute } from '@tanstack/react-router'
 
-export const Route = createFileRoute("/")({
-  beforeLoad() {
-    if (isAuthenticated()) {
-      throw redirect({ to: "/_admin/dashboard" });
-    }
-    throw redirect({ to: "/_auth/login" });
-  },
-});
+export const Route = createFileRoute('/')({ component: Home })
 
+function Home() {
+  return (
+    <div className="p-8">
+      <h1 className="text-4xl font-bold">Welcome to TanStack Start</h1>
+      <p className="mt-4 text-lg">
+        Edit <code>src/routes/index.tsx</code> to get started.
+      </p>
+    </div>
+  )
+}

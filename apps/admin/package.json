@@ -11,8 +11,8 @@
     "start": "vinxi start",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --max-warnings 0",
-           "format": "prettier --write \"**/*.{ts,tsx}\"",
- "clean": "rm -rf .turbo .vinxi dist node_modules"
+    "format": "prettier --write \"**/*.{ts,tsx}\"",
+    "clean": "rm -rf .turbo .vinxi dist node_modules"
   },
   "dependencies": {
     "@repo/env": "workspace:*",
@@ -28,7 +28,7 @@
     "lucide-react": "^0.400.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    recharts": "^2.12.7",
+    "recharts": "^2.12.7",
     "tailwind-merge": "^2.3.0",
     "vinxi": "^0.4.0"
   },
@@ -45,4 +45,3 @@
     "typescript": "^6.0.3"
   }
 }
-

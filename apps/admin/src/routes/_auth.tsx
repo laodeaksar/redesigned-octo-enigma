@@ -1,4 +1,3 @@
-import React from "react";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { isAuthenticated } from "@/lib/auth";
 

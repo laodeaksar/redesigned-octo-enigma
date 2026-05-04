@@ -12,17 +12,18 @@
     "start": "bun run dist/index.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --max-warnings 0",
-          "format": "prettier --write \"**/*.{ts,tsx}\"",
-  "clean": "rm -rf .turbo dist node_modules"
+    "format": "prettier --write \"**/*.{ts,tsx}\"",
+    "clean": "rm -rf .turbo dist node_modules"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.1.0",
     "@elysiajs/swagger": "^1.1.0",
     "@node-rs/argon2": "^1.7.0",
-"@repo/common": "workspace:*",
-"@repo/database": "workspace:*",
-"@repo/env": "workspace:*",
-"elysia": "^1.1.0",
+    "@repo/common": "workspace:*",
+    "@repo/database": "workspace:*",
+    "@repo/env": "workspace:*",
+    "better-auth": "^1.5.3",
+    "elysia": "^1.1.0",
     "jose": "^5.3.0"
   },
   "devDependencies": {

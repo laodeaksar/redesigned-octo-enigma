@@ -16,25 +16,25 @@ import {
 } from "@repo/database/drizzle/schema";
 
 export const auth = betterAuth({
-  secret:  env.BETTER_AUTH_SECRET,
+  secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL,
 
   // ── Database adapter ───────────────────────────────────────────────────────
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {
-      user:         usersTable,
-      session:      sessionsTable,
-      account:      accountsTable,
+      user: usersTable,
+      session: sessionsTable,
+      account: accountsTable,
       verification: verificationsTable,
     },
   }),
 
   // ── Email + Password ───────────────────────────────────────────────────────
   emailAndPassword: {
-    enabled:              true,
+    enabled: true,
     requireEmailVerification: false, // handled separately by our flow
-    minPasswordLength:    8,
+    minPasswordLength: 8,
   },
 
   // ── Social providers ───────────────────────────────────────────────────────
@@ -42,9 +42,9 @@ export const auth = betterAuth({
     ...(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
       ? {
           google: {
-            clientId:     env.GOOGLE_CLIENT_ID,
+            clientId: env.GOOGLE_CLIENT_ID,
             clientSecret: env.GOOGLE_CLIENT_SECRET,
-            scope:        ["openid", "email", "profile"],
+            scope: ["openid", "email", "profile"],
           },
         }
       : {}),
@@ -52,9 +52,9 @@ export const auth = betterAuth({
     ...(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET
       ? {
           github: {
-            clientId:     env.GITHUB_CLIENT_ID,
+            clientId: env.GITHUB_CLIENT_ID,
             clientSecret: env.GITHUB_CLIENT_SECRET,
-            scope:        ["user:email", "read:user"],
+            scope: ["user:email", "read:user"],
           },
         }
       : {}),
@@ -62,11 +62,11 @@ export const auth = betterAuth({
 
   // ── Session ────────────────────────────────────────────────────────────────
   session: {
-    expiresIn:        60 * 60 * 24 * 7,  // 7 days
-    updateAge:        60 * 60 * 24,       // refresh daily
+    expiresIn: 60 * 60 * 24 * 7, // 7 days
+    updateAge: 60 * 60 * 24, // refresh daily
     cookieCache: {
-      enabled:   true,
-      maxAge:    5 * 60,                  // 5 min client-side cache
+      enabled: true,
+      maxAge: 5 * 60, // 5 min client-side cache
     },
   },
 
@@ -74,9 +74,9 @@ export const auth = betterAuth({
   user: {
     additionalFields: {
       role: {
-        type:         "string",
+        type: "string",
         defaultValue: "customer",
-        input:        false,              // not settable by user
+        input: false, // not settable by user
       },
     },
   },
@@ -104,4 +104,3 @@ export const auth = betterAuth({
 });
 
 export type Auth = typeof auth;
-

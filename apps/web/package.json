@@ -11,34 +11,30 @@
     "preview": "astro preview",
     "typecheck": "astro check && tsc --noEmit",
     "lint": "eslint src --max-warnings 0",
-        "format": "prettier --write \"**/*.{ts,tsx}\"",
-"clean": "rm -rf .turbo dist node_modules"
+    "format": "prettier --write \"**/*.{ts,tsx}\"",
+    "clean": "rm -rf .turbo dist node_modules"
   },
   "dependencies": {
-    "@astrojs/react": "^3.6.0",
-    "@astrojs/tailwind": "^5.1.0",
+    "@astrojs/react": "^5.0.4",
+    "@nanostores/react": "^0.7.3",
     "@repo/env": "workspace:*",
     "@repo/ui": "workspace:*",
-    "@nanostores/react": "^0.7.3",
-    "astro": "^4.11.0",
-    "nanostores": "^0.10.3",
-    "react": "^18.3.0",
-    "react-dom": "^18.3.0",
-    "tailwind-merge": "^2.3.0",
-    "clsx": "^2.1.1"
+    "astro": "^6.1.10",
+    "nanostores": "^1.3.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "@repo/tsconfig": "workspace:*",
-    "@tailwindcss/forms": "^0.5.7",
-    "@tailwindcss/typography": "^0.5.13",
-    "@tailwindcss/aspect-ratio": "^0.4.2",
-    "@types/react": "^18.3.0",
-    "@types/react-dom": "^18.3.0",
+    "@tailwindcss/vite": "^4.2.4",
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.39",
     "tailwindcss": "^3.4.4",
-    "typescript": "^5.4.0"
-  }
+    "typescript": "^6.0.3",
+    "vite": "^8.0.0"
+ }
 }
-

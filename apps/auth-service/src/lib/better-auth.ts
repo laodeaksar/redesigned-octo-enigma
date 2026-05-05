@@ -1,11 +1,13 @@
 // =============================================================================
 // Better-auth server instance
 // Handles OAuth flows: Google, GitHub
+// Admin plugin: role management, ban/unban, user listing, impersonation
 // Docs: https://www.better-auth.com
 // =============================================================================
 
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { admin } from "better-auth/plugins";
 
 import { env, db } from "@/config";
 import {
@@ -29,6 +31,16 @@ export const auth = betterAuth({
       verification: verificationsTable,
     },
   }),
+
+  // ── Plugins ────────────────────────────────────────────────────────────────
+  plugins: [
+    admin({
+      // Both "admin" and "super_admin" can perform admin actions
+      adminRole: ["admin", "super_admin"],
+      // New users are assigned "customer" by default
+      defaultRole: "customer",
+    }),
+  ],
 
   // ── Email + Password ───────────────────────────────────────────────────────
   emailAndPassword: {
@@ -67,31 +79,6 @@ export const auth = betterAuth({
     cookieCache: {
       enabled: true,
       maxAge: 5 * 60, // 5 min client-side cache
-    },
-  },
-
-  // ── User defaults ──────────────────────────────────────────────────────────
-  user: {
-    additionalFields: {
-      role: {
-        type: "string",
-        defaultValue: "customer",
-        input: false, // not settable by user
-      },
-    },
-  },
-
-  // ── Callbacks ─────────────────────────────────────────────────────────────
-  callbacks: {
-    // After OAuth sign-in, send a welcome email the first time
-    async session({ session, user }) {
-      return {
-        ...session,
-        user: {
-          ...session.user,
-          role: (user as { role?: string }).role ?? "customer",
-        },
-      };
     },
   },
 

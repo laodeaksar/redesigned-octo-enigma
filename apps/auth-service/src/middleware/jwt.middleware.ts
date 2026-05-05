@@ -52,7 +52,7 @@ export const requireRole = (...roles: UserRole[]) =>
   new Elysia({ name: `require-role-${roles.join("-")}` })
     .use(jwtMiddleware)
     .derive({ as: "scoped" }, ({ user }) => {
-      if (!roles.includes(user.role)) {
+      if (!user || !roles.includes(user.role)) {
         throw new InsufficientRoleError(roles[0]);
       }
       return {};

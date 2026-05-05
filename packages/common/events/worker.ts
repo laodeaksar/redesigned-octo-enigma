@@ -102,7 +102,7 @@ export function createWorker<TData = unknown, TResult = void>(
 
 // ── Multi-queue worker setup ──────────────────────────────────────────────────
 
-export interface WorkerBinding<TData = unknown> {
+export interface WorkerBinding<TData = any> {
   queue: string;
   processor: Processor<TData>;
   options?: CreateWorkerOptions;

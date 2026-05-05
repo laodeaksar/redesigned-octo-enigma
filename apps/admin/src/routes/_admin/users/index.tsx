@@ -2,7 +2,7 @@
 // Users list page
 // =============================================================================
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Search, UserX, UserCheck } from "lucide-react";
@@ -10,7 +10,7 @@ import { AdminLayout } from "@/components/layout/admin-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { api, type PaginatedResponse } from "@/lib/api";
-import { formatDate, capitalize, cn } from "@/lib/utils";
+import { formatDate, cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_admin/users/")({
   component: UsersPage,

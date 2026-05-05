@@ -111,5 +111,8 @@ export type {
   WelcomeEmailJobData,
 } from "./events";
 
+// packages/common/src/types/index.ts
+export * from "./email";
+
 // ── Constants (value exports, not type-only) ──────────────────────────────────
 export { QUEUES } from "./events";

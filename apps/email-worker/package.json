@@ -18,13 +18,18 @@
     "@repo/common": "workspace:*",
     "@repo/env": "workspace:*",
     "nodemailer": "^6.9.13",
-    "resend": "^3.3.0"
+    "ioredis": "5.10.1",
+    "pino": "^10.3.1",
+    "pino-pretty": "^13.1.3",
+    "resend": "^3.3.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "@repo/tsconfig": "workspace:*",
     "@types/bun": "latest",
     "@types/nodemailer": "^6.4.15",
+    "@types/pino": "^7.0.5",
     "typescript": "^5.4.0"
   }
 }

@@ -1,6 +1,6 @@
 // =============================================================================
-// @my-ecommerce/common/metrics — barrel export
-// Import from: "@my-ecommerce/common/metrics"
+// @repo/common/metrics — barrel export
+// Import from: "@repo/common/metrics"
 // =============================================================================
 
 export {

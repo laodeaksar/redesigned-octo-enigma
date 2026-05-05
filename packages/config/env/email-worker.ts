@@ -27,7 +27,9 @@ export const env = createEnv({
 
     // ── Resend (alternative to SMTP) ──────────────────────────────────────────
     RESEND_API_KEY: z.string().optional(),
+
+    // ── logger ──────────────────────────────────────────
+    LOG_LEVEL: z.string().optional(),
   },
   runtimeEnv: process.env,
 });
-

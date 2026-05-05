@@ -16,31 +16,42 @@ import { handleOrderShippedEmail } from "@/handlers/order-shipped.handler";
 import { handleOrderCancelledEmail } from "@/handlers/order-cancelled.handler";
 import { handlePasswordResetEmail } from "@/handlers/password-reset.handler";
 
+const DEFAULT_WORKER_OPTS = {
+  concurrency: 5,
+  attempts: 3,
+  backoff: {
+    type: "exponential",
+    delay: 5000,
+  },
+  removeOnComplete: { age: 86400, count: 1000 },
+  removeOnFail: { age: 604800 },
+} as const;
+
 const BINDINGS: WorkerBinding[] = [
   {
     queue: QUEUES.EMAIL_WELCOME,
     processor: handleWelcomeEmail,
-    options: { concurrency: 5 },
+    options: DEFAULT_WORKER_OPTS,
   },
   {
     queue: QUEUES.EMAIL_ORDER_CONFIRMATION,
     processor: handleOrderConfirmationEmail,
-    options: { concurrency: 5 },
+    options: DEFAULT_WORKER_OPTS,
   },
   {
     queue: QUEUES.EMAIL_ORDER_SHIPPED,
     processor: handleOrderShippedEmail,
-    options: { concurrency: 5 },
+    options: DEFAULT_WORKER_OPTS,
   },
   {
     queue: QUEUES.EMAIL_ORDER_CANCELLED,
     processor: handleOrderCancelledEmail,
-    options: { concurrency: 5 },
+    options: DEFAULT_WORKER_OPTS,
   },
   {
     queue: QUEUES.EMAIL_PASSWORD_RESET,
     processor: handlePasswordResetEmail,
-    options: { concurrency: 5 },
+    options: DEFAULT_WORKER_OPTS,
   },
 ];
 
@@ -50,12 +61,31 @@ const BINDINGS: WorkerBinding[] = [
 export function startWorkers(): Worker[] {
   const workers = createWorkers(BINDINGS, redis);
 
+  workers.forEach((worker, idx) => {
+    const queueName = BINDINGS[idx]?.queue;
+    worker.on("completed", (job) =>
+      console.info(`[${queueName}] Job ${job.id} completed`),
+    );
+    worker.on("failed", (job, err) =>
+      console.error(`[${queueName}] Job ${job?.id} failed:`, err.message),
+    );
+  });
+
   console.info(`\n📬 Consuming ${workers.length} queue(s):`);
-  BINDINGS.forEach((b) => console.info(`   ${b.queue}`));
+  BINDINGS.forEach((b) => console.info(`   - ${b.queue}`));
   console.info("");
+
+  const shutdown = async (signal: string) => {
+    console.info(`\n${signal} received, closing workers...`);
+    await closeWorkers(workers);
+    await redis.quit();
+    process.exit(0);
+  };
+
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 
   return workers;
 }
 
 export { closeWorkers };
-

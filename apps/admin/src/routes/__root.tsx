@@ -72,7 +72,7 @@ interface MyRouterContext {
   queryClient: QueryClient
 }
 
-export const Route = createRootRouteWithContext<MyRouterContext>()({
+export const RootRoute = createRootRouteWithContext<MyRouterContext>()({
   head: () => ({
     meta: [
       {

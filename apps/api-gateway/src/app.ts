@@ -16,6 +16,7 @@ import { env } from "@/config";
 import { requestIdMiddleware } from "@/middleware/request-id.middleware";
 import { healthRoutes } from "@/modules/health/health.routes";
 import { authRoutes } from "@/modules/auth/auth.routes";
+import { adminRoutes } from "@/modules/admin/admin.routes";
 import { productsRoutes } from "@/modules/products/products.routes";
 import { ordersRoutes } from "@/modules/orders/orders.routes";
 import { paymentsRoutes } from "@/modules/payments/payments.routes";
@@ -98,6 +99,7 @@ export function createApp() {
   // ── Routes ─────────────────────────────────────────────────────────────────
   app.route("/", healthRoutes);
   app.route("/", authRoutes);
+  app.route("/", adminRoutes);
   app.route("/", productsRoutes);
   app.route("/", ordersRoutes);
   app.route("/", paymentsRoutes);

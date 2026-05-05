@@ -15,15 +15,20 @@ export default defineConfig({
     react(),
   ],
 
-  // Astro will call the adapter's server on each request
-  // For Bun deploy, swap to @astrojs/node with "standalone" mode
-  // adapter: node({ mode: "standalone" }),
+  // Dev server configuration
+  server: {
+    port: 5000,
+    host: "0.0.0.0",
+  },
 
   vite: {
     //@ts-ignore
     plugins: [tailwindcss()],
     define: {
       "import.meta.env.PUBLIC_API_URL": JSON.stringify(PUBLIC_API_URL ?? "http://localhost:3000"),
+    },
+    server: {
+      allowedHosts: true,
     },
   },
 

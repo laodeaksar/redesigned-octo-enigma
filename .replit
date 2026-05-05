@@ -1,0 +1,78 @@
+modules = ["web", "nodejs-22"]
+[agent]
+expertMode = true
+stack = "BEST_EFFORT_FALLBACK"
+
+[nix]
+channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+NODE_ENV = "development"
+PORT = "3000"
+PUBLIC_API_URL = "http://localhost:3000"
+AUTH_SERVICE_PORT = "3001"
+PRODUCT_SERVICE_PORT = "3002"
+ORDER_SERVICE_PORT = "3003"
+PAYMENT_SERVICE_PORT = "3004"
+AUTH_SERVICE_URL = "http://localhost:3001"
+PRODUCT_SERVICE_URL = "http://localhost:3002"
+ORDER_SERVICE_URL = "http://localhost:3003"
+PAYMENT_SERVICE_URL = "http://localhost:3004"
+CORS_ORIGINS = "http://localhost:5000,http://localhost:3000"
+SKIP_ENV_VALIDATION = "true"
+JWT_SECRET = "d82ecaee72ac636091c2d635513de8ad7a8dfbdc9c74f2b8442e8d5e938ab84c"
+BETTER_AUTH_SECRET = "64d2c785dc6903b21c7a3f2d81c7013b5db9167ccab42b4ed332d85dcbc61565"
+BETTER_AUTH_URL = "http://localhost:3001"
+JWT_ACCESS_EXPIRES_IN = "15m"
+JWT_REFRESH_EXPIRES_IN = "7d"
+REDIS_URL = "redis://localhost:6379"
+MONGODB_URL = "mongodb://localhost:27017"
+MONGODB_DB_NAME = "orders"
+RAJAONGKIR_API_KEY = "placeholder"
+RAJAONGKIR_ORIGIN = "501"
+MIDTRANS_SERVER_KEY = "Mid-server-placeholder"
+MIDTRANS_CLIENT_KEY = "Mid-client-placeholder"
+MIDTRANS_IS_PRODUCTION = "false"
+PAYMENT_WEBHOOK_URL = "http://localhost:3000/payments/webhook"
+SMTP_HOST = "localhost"
+SMTP_PORT = "587"
+SMTP_SECURE = "false"
+SMTP_USER = "placeholder"
+SMTP_PASS = "placeholder"
+EMAIL_FROM_NAME = "My Ecommerce"
+EMAIL_FROM_ADDRESS = "noreply@example.com"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd apps/web && bun run dev"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["bun", "run", "--cwd", "apps/web", "preview", "--host", "0.0.0.0", "--port", "5000"]
+build = ["bun", "run", "turbo", "run", "build", "--filter=web"]

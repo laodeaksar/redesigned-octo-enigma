@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { formatIDR } from "@/lib/utils";
 
 const BASE = (import.meta as any).env?.PUBLIC_API_URL ?? "http://localhost:3000";
 
@@ -11,14 +12,14 @@ type Suggestion = {
   primaryImage: string | null;
 };
 
-function formatIDR(n: number) {
+/*function formatIDR(n: number) {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
     currency: "IDR",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(n);
-}
+}*/
 
 function PriceLabel({ low, high }: { low: number; high: number }) {
   if (low === high) return <span className="text-xs font-semibold text-brand-600">{formatIDR(low)}</span>;

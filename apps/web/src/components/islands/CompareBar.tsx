@@ -9,15 +9,16 @@ import {
   clearCompare,
   hydrateCompare,
 } from "@/stores/compare.store";
+import { formatIDR } from "@/lib/utils";
 
-function formatIDR(n: number) {
+/*function formatIDR(n: number) {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
     currency: "IDR",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(n);
-}
+}*/
 
 // ── Comparison modal table ────────────────────────────────────────────────────
 

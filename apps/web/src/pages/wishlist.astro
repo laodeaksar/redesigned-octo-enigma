@@ -2,11 +2,10 @@
 import BaseLayout from "@/components/layout/BaseLayout.astro";
 import ProductCard from "@/components/shared/ProductCard.astro";
 import Pagination from "@/components/shared/Pagination.astro";
-import { /*getCurrentUser*/ requireAuth, getTokenFromCookies } from "@/lib/auth";
+import { requireAuth, getTokenFromCookies } from "@/lib/auth";
 import { api, type WishlistItem } from "@/lib/api";
 
 const user = await requireAuth(Astro.cookies, `/auth/login?redirect=/checkout`);
-// if (!user) return Astro.redirect(`/auth/login?redirect=/wishlist`, 302);
 const token = getTokenFromCookies(Astro.cookies)!;
 
 const { searchParams } = Astro.url;

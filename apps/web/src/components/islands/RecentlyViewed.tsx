@@ -1,15 +1,16 @@
 import { useStore } from "@nanostores/react";
 import { useEffect } from "react";
 import { $recentlyViewed, hydrateRecentlyViewed, type RecentProduct } from "@/stores/recentlyViewed.store";
+import { formatIDR } from "@/lib/utils";
 
-function formatIDR(n: number) {
+/*function formatIDR(n: number) {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
     currency: "IDR",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(n);
-}
+}*/
 
 function PriceLabel({ low, high }: { low: number; high: number }) {
   if (low === high) return <span className="font-semibold text-gray-900">{formatIDR(low)}</span>;

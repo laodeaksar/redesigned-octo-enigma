@@ -3,7 +3,7 @@
 // =============================================================================
 
 import { createApp } from "@/app";
-import { env, initRabbitMQ } from "@/config";
+import { env } from "@/config";
 
 // Suppress non-fatal unhandled rejections from Redis/BullMQ when unavailable
 process.on("unhandledRejection", (reason) => {
@@ -18,15 +18,6 @@ process.on("unhandledRejection", (reason) => {
 
 async function bootstrap() {
   console.info(`\n🚀 Starting auth-service [${env.NODE_ENV}]…`);
-
-  // ── RabbitMQ connection ──────────────────────────────────────────────────
-  try {
-    await initRabbitMQ();
-    console.info("✓ RabbitMQ connected");
-  } catch (err) {
-    console.warn("⚠ RabbitMQ unavailable — email events will not be published:", (err as Error).message);
-    if (env.NODE_ENV === "production") process.exit(1);
-  }
 
   // ── Elysia server ────────────────────────────────────────────────────────
   const app = createApp();

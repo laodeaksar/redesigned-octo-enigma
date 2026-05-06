@@ -5,10 +5,6 @@
 import { env as rawEnv } from "@repo/env/auth-service";
 import { createDrizzleClient } from "@repo/database/drizzle";
 
-export async function initRabbitMQ(): Promise<void> {
-  console.warn("RabbitMQ not configured — email events disabled in this environment");
-}
-
 export const env = rawEnv;
 
 // ── PostgreSQL via Drizzle ────────────────────────────────────────────────────

@@ -14,9 +14,6 @@ export const portSchema = z.coerce.number().int().min(1024).max(65535);
 /** Standard database URL */
 export const postgresUrlSchema = z.url().startsWith("postgresql://");
 
-/** Standard RabbitMQ URL */
-export const rabbitmqUrlSchema = z.url().startsWith("amqp");
-
 /** Standard Redis URL */
 export const redisUrlSchema = z.url().startsWith("redis");
 

@@ -27,4 +27,3 @@ export const env = createEnv({
   runtimeEnv: process.env,
 });
 
-export const envAPIGateway = env;

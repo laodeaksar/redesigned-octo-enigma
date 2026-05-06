@@ -3,7 +3,7 @@
 // =============================================================================
 
 import { createApp } from "@/app";
-import { env, initRabbitMQ } from "@/config";
+import { env } from "@/config";
 
 // Suppress non-fatal unhandled rejections from Redis/BullMQ when unavailable
 process.on("unhandledRejection", (reason) => {
@@ -21,18 +21,6 @@ async function bootstrap() {
 
   const mode = env.MIDTRANS_IS_PRODUCTION ? "PRODUCTION" : "SANDBOX";
   console.info(`✓ Midtrans configured [${mode}]`);
-
-  // ── RabbitMQ ──────────────────────────────────────────────────────────────
-  try {
-    await initRabbitMQ();
-    console.info("✓ RabbitMQ connected");
-  } catch (err) {
-    console.warn(
-      "⚠ RabbitMQ unavailable — payment events will not be published:",
-      (err as Error).message,
-    );
-    if (env.NODE_ENV === "production") process.exit(1);
-  }
 
   // ── Elysia server ─────────────────────────────────────────────────────────
   const app = createApp();

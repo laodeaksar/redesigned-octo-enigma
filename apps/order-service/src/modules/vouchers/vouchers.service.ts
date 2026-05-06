@@ -111,3 +111,9 @@ export async function updateVoucher(
   return repo.updateVoucher(db, id, data);
 }
 
+export async function deleteVoucher(db: DB, id: string) {
+  const voucher = await repo.findVoucherById(db, id);
+  if (!voucher) throw new NotFoundError("Voucher");
+  return repo.deleteVoucher(db, id);
+}
+

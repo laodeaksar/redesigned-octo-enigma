@@ -13,11 +13,12 @@
 //   POST  /vouchers/validate
 //
 // Admin only:
-//   GET   /orders
-//   PATCH /orders/:id/status
-//   GET   /vouchers
-//   POST  /vouchers
-//   PATCH /vouchers/:id
+//   GET    /orders
+//   PATCH  /orders/:id/status
+//   GET    /vouchers
+//   POST   /vouchers
+//   PATCH  /vouchers/:id
+//   DELETE /vouchers/:id
 // =============================================================================
 
 import { Hono } from "hono";
@@ -123,6 +124,10 @@ app.post("/vouchers", ...adminMw, async (c) =>
 );
 
 app.patch("/vouchers/:id", ...adminMw, async (c) =>
+  proxyRequest(c, { target: buildTargetUrl(orderBase, c), user: c.var.user })
+);
+
+app.delete("/vouchers/:id", ...adminMw, async (c) =>
   proxyRequest(c, { target: buildTargetUrl(orderBase, c), user: c.var.user })
 );
 

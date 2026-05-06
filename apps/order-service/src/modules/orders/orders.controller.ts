@@ -2,7 +2,7 @@
 // Orders controller
 // =============================================================================
 
-import { success, paginated } from "@repp/common/schemas";
+import { success, paginated } from "@repo/common/schemas";
 import { safeParse } from "@repo/common/errors";
 import {
   createOrderSchema,

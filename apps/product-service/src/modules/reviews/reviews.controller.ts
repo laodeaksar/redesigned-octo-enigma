@@ -2,7 +2,7 @@
 // Reviews controller
 // =============================================================================
 
-import { success, paginated } from "@repocommon/schemas";
+import { success, paginated } from "@repo/common/schemas";
 import { safeParse } from "@repo/common/errors";
 import { createReviewSchema } from "@repo/common/schemas";
 import type Redis from "ioredis";
@@ -38,5 +38,16 @@ export async function handleCreate(
 ) {
   const input = safeParse(createReviewSchema, body);
   return success(await service.createReview(db, redis, userId, input), "Review submitted");
+}
+
+export async function handleDelete(
+  db: DB,
+  redis: Redis | null,
+  reviewId: string,
+  requesterId: string,
+  requesterRole: string
+) {
+  await service.deleteReview(db, redis, reviewId, requesterId, requesterRole);
+  return success({ reviewId }, "Review deleted");
 }
 

@@ -89,3 +89,14 @@ export async function listVouchers(db: DB): Promise<VoucherRow[]> {
     .orderBy(vouchersTable.createdAt);
 }
 
+export async function deleteVoucher(
+  db: DB,
+  id: string
+): Promise<VoucherRow | undefined> {
+  const [row] = await db
+    .delete(vouchersTable)
+    .where(eq(vouchersTable.id, id))
+    .returning();
+  return row;
+}
+

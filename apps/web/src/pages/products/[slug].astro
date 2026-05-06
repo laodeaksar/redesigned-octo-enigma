@@ -3,6 +3,8 @@ import BaseLayout from "@/components/layout/BaseLayout.astro";
 import { getCurrentUser } from "@/lib/auth";
 import AddToCartButton from "@/components/islands/AddToCartButton";
 import WishlistButton from "@/components/islands/WishlistButton";
+import TrackProductView from "@/components/islands/TrackProductView";
+import RecentlyViewed from "@/components/islands/RecentlyViewed";
 import Badge from "@/components/shared/Badge.astro";
 import { api, type ProductDetail } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
@@ -159,6 +161,22 @@ const sortedImages = [...product.images].sort((a, b) => a.sortOrder - b.sortOrde
         <p>{product.description}</p>
       </div>
     </div>
+  </div>
+
+  <!-- Track this view (fires once on mount, writes to localStorage) -->
+  <TrackProductView
+    client:load
+    id={product.id}
+    name={product.name}
+    slug={product.slug}
+    primaryImage={primaryImage?.url ?? null}
+    lowestPrice={product.variants.length > 0 ? Math.min(...product.variants.map((v) => v.price)) : 0}
+    highestPrice={product.variants.length > 0 ? Math.max(...product.variants.map((v) => v.price)) : 0}
+  />
+
+  <!-- Recently viewed (excludes current product) -->
+  <div class="border-t border-gray-100 bg-gray-50/50">
+    <RecentlyViewed client:load currentSlug={slug} title="Produk yang Baru Kamu Lihat" />
   </div>
 </BaseLayout>
 

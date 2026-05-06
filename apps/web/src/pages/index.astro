@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "@/components/layout/BaseLayout.astro";
 import ProductCard from "@/components/shared/ProductCard.astro";
+import RecentlyViewed from "@/components/islands/RecentlyViewed";
 import { api, type Product, type Category } from "@/lib/api";
 
 // Fetch featured products + categories in parallel
@@ -139,6 +140,11 @@ try {
       )}
     </div>
   </section>
+
+  <!-- Recently viewed (client-side, reads localStorage) -->
+  <div class="border-t border-gray-100">
+    <RecentlyViewed client:load />
+  </div>
 
   <!-- CTA banner -->
   <section class="bg-accent py-14 text-white">

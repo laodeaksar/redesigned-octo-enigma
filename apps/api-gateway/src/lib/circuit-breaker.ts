@@ -1,10 +1,10 @@
 /**
  * Circuit Breaker Pattern Implementation
  * Standar industri untuk fault tolerance pada komunikasi microservice
- * 
+ *
  * State Machine:
  * CLOSED -> OPEN -> HALF_OPEN -> CLOSED / OPEN
- * 
+ *
  * Sesuai standar Netflix Hystrix dan Resilience4j
  */
 
@@ -42,6 +42,20 @@ export interface CircuitBreakerMetrics {
   totalRejected: number;
   uptimeSinceReset: number;
 }
+
+/**
+ * Operasi yang bisa dieksekusi oleh circuit breaker.
+ *
+ * Callback menerima `AbortSignal` opsional yang akan dipicu (`abort()`)
+ * ketika request melewati `requestTimeout`. Caller yang mendukung
+ * cancellation (`fetch`, undici, dll.) sebaiknya meneruskan signal ini
+ * agar koneksi TCP benar-benar dibatalkan, bukan hanya promise di-race.
+ *
+ * Caller lama yang mengabaikan parameter (`() => Promise<T>`) tetap valid
+ * secara struktural — TypeScript memperbolehkan callback dengan arity
+ * lebih sedikit dari yang dideklarasikan.
+ */
+export type CircuitOperation<T> = (signal: AbortSignal) => Promise<T>;
 
 const DEFAULT_CONFIG: Partial<CircuitBreakerConfig> = {
   failureThreshold: 5,
@@ -109,19 +123,23 @@ export class CircuitBreaker {
   private totalSuccesses = 0;
   private totalRejected = 0;
   private halfOpenRequestCount = 0;
-  private resetTimer: NodeJS.Timeout | null = null;
-  
+  private resetTimer: ReturnType<typeof setTimeout> | null = null;
+
   private readonly config: CircuitBreakerConfig;
-  
+
   constructor(config: CircuitBreakerConfig) {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
   /**
-   * Jalankan operasi dengan proteksi circuit breaker
+   * Jalankan operasi dengan proteksi circuit breaker.
+   *
+   * Operasi menerima `AbortSignal` yang akan di-abort jika `requestTimeout`
+   * terlampaui — caller wajib meneruskannya ke `fetch`/HTTP client agar
+   * koneksi benar-benar diputus dan tidak meninggalkan socket menggantung.
    */
   async execute<T>(
-    operation: () => Promise<T>,
+    operation: CircuitOperation<T>,
     fallback?: () => Promise<T>
   ): Promise<T> {
     if (this.isOpen()) {
@@ -133,15 +151,15 @@ export class CircuitBreaker {
         logger.warn(`Circuit OPEN request rejected`, {
           service: this.config.serviceName,
           failureCount: this.failureCount,
-          remainingWait: this.lastFailureTime 
+          remainingWait: this.lastFailureTime
             ? Math.max(0, this.config.resetTimeout - (Date.now() - this.lastFailureTime))
             : 0
         });
-        
+
         if (fallback) {
           return fallback();
         }
-        
+
         throw new CircuitBreakerOpenError(
           `Service ${this.config.serviceName} tidak tersedia saat ini. Silakan coba lagi nanti.`,
           this.config.serviceName
@@ -156,7 +174,7 @@ export class CircuitBreaker {
           service: this.config.serviceName,
           currentRequests: this.halfOpenRequestCount
         });
-        
+
         if (fallback) return fallback();
         throw new CircuitBreakerOpenError(
           `Service ${this.config.serviceName} dalam masa pemulihan. Coba lagi sebentar lagi.`,
@@ -184,20 +202,56 @@ export class CircuitBreaker {
   }
 
   /**
-   * Bungkus operasi dengan timeout individual
+   * Bungkus operasi dengan timeout individual.
+   *
+   * Implementasi:
+   *   1. Buat `AbortController`; signal dilewatkan ke `operation()`.
+   *   2. `setTimeout` memicu `controller.abort()` + reject `CircuitTimeoutError`.
+   *   3. `try/finally` memastikan timer SELALU di-clear, baik saat operasi
+   *      menang race maupun saat timeout — mencegah handle bocor di event loop.
    */
-  private async withTimeout<T>(operation: () => Promise<T>): Promise<T> {
-    return Promise.race([
-      operation(),
-      new Promise<never>((_, reject) => {
-        setTimeout(() => {
-          reject(new CircuitTimeoutError(
+  private async withTimeout<T>(operation: CircuitOperation<T>): Promise<T> {
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let timedOut = false;
+
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        timedOut = true;
+        try {
+          controller.abort();
+        } catch {
+          // ignore — beberapa runtime lempar saat double-abort
+        }
+        reject(
+          new CircuitTimeoutError(
             `Request ke ${this.config.serviceName} timeout setelah ${this.config.requestTimeout}ms`,
             this.config.serviceName
-          ));
-        }, this.config.requestTimeout);
-      })
-    ]);
+          )
+        );
+      }, this.config.requestTimeout);
+
+      // Jangan biarkan timer menahan proses keluar saat shutdown.
+      // `unref` tidak ada di semua runtime (mis. browser test), jadi kita guard.
+      if (timer && typeof (timer as unknown as { unref?: () => void }).unref === "function") {
+        (timer as unknown as { unref: () => void }).unref();
+      }
+    });
+
+    try {
+      return await Promise.race([operation(controller.signal), timeoutPromise]);
+    } finally {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      // Jika operasi menang race tapi timer SUDAH telanjur abort
+      // (race condition sangat sempit di mana setTimeout firing sebelum
+      // resolve sempat dipropagasi), state controller sudah aborted —
+      // tidak masalah karena promise utamanya sudah terselesaikan.
+      // Variabel `timedOut` di-keep untuk debugging.
+      void timedOut;
+    }
   }
 
   /**
@@ -205,7 +259,7 @@ export class CircuitBreaker {
    */
   private onSuccess(): void {
     this.totalSuccesses++;
-    
+
     if (this.state === CircuitState.HALF_OPEN) {
       this.consecutiveSuccesses++;
       logger.debug(`Half-open success`, {
@@ -258,10 +312,10 @@ export class CircuitBreaker {
    */
   private openCircuit(): void {
     if (this.state === CircuitState.OPEN) return;
-    
+
     this.changeState(CircuitState.OPEN);
     this.halfOpenRequestCount = 0;
-    
+
     logger.critical(`CIRCUIT BREAKER TRIGGERED - SERVICE UNHEALTHY`, {
       service: this.config.serviceName,
       failureCount: this.failureCount,
@@ -278,6 +332,15 @@ export class CircuitBreaker {
         });
       }
     }, this.config.resetTimeout);
+
+    // Jangan tahan event loop — reset timer murni informasional;
+    // transition aktual ke HALF_OPEN dipicu lazily oleh shouldAttemptReset().
+    if (
+      this.resetTimer &&
+      typeof (this.resetTimer as unknown as { unref?: () => void }).unref === "function"
+    ) {
+      (this.resetTimer as unknown as { unref: () => void }).unref();
+    }
   }
 
   /**
@@ -288,7 +351,7 @@ export class CircuitBreaker {
     this.failureCount = 0;
     this.consecutiveSuccesses = 0;
     this.halfOpenRequestCount = 0;
-    
+
     logger.info(`CIRCUIT BREAKER CLOSED - SERVICE RECOVERED`, {
       service: this.config.serviceName,
       totalFailures: this.totalFailures,
@@ -358,7 +421,7 @@ export class CircuitBreaker {
     this.halfOpenRequestCount = 0;
     this.lastFailureTime = null;
     this.lastStateChange = Date.now();
-    
+
     if (this.resetTimer) {
       clearTimeout(this.resetTimer);
       this.resetTimer = null;
@@ -388,7 +451,7 @@ export class CircuitBreakerManager {
         ...baseConfig,
         ...customConfig
       } as CircuitBreakerConfig;
-      
+
       this.instances.set(serviceName, new CircuitBreaker(mergedConfig));
       logger.debug(`Circuit breaker initialized`, { serviceName, config: mergedConfig });
     }
@@ -423,7 +486,7 @@ export class CircuitBreakerManager {
 export class CircuitBreakerOpenError extends Error {
   readonly statusCode = 503;
   readonly retryAfter: number;
-  
+
   constructor(message: string, public readonly serviceName: string) {
     super(message);
     this.name = "CircuitBreakerOpenError";
@@ -433,7 +496,7 @@ export class CircuitBreakerOpenError extends Error {
 
 export class CircuitTimeoutError extends Error {
   readonly statusCode = 504;
-  
+
   constructor(message: string, public readonly serviceName: string) {
     super(message);
     this.name = "CircuitTimeoutError";

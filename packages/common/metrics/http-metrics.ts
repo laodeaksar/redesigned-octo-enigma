@@ -48,7 +48,7 @@ export function createHttpMetrics(registry: Registry): HttpMetrics {
  *
  * Usage:
  *   import Elysia from "elysia"
- *   import { elysiaMetricsMiddleware } from "@my-ecommerce/common/metrics"
+ *   import { elysiaMetricsMiddleware } from "@repo/common/metrics"
  *
  *   const app = new Elysia()
  *     .use(elysiaMetricsMiddleware(httpMetrics))
@@ -97,7 +97,7 @@ import type { MiddlewareHandler } from "hono";
  * Hono middleware that records HTTP metrics.
  *
  * Usage:
- *   import { honoMetricsMiddleware } from "@my-ecommerce/common/metrics"
+ *   import { honoMetricsMiddleware } from "@repo/common/metrics"
  *   app.use("*", honoMetricsMiddleware(httpMetrics))
  */
 export function honoMetricsMiddleware(metrics: HttpMetrics): MiddlewareHandler {

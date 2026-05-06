@@ -23,6 +23,7 @@ import { shippingRoutes } from "@/modules/shipping/shipping.routes";
 import { bullBoardRoutes } from "@/modules/bull-board/bull-board.routes";
 import { analyticsRoutes } from "@/modules/analytics/analytics.routes";
 import { metricsMiddleware, metricsRoutes } from "@/metrics";
+import { wishlistRoutes } from "@/modules/wishlist/wishlist.routes";
 
 export function createApp() {
   const app = new Hono();
@@ -105,6 +106,7 @@ export function createApp() {
   app.route("/", bullBoardRoutes);
   app.route("/", analyticsRoutes);
   app.route("/", metricsRoutes);
+  app.route("/", wishlistRoutes)
 
   // ── 404 handler ────────────────────────────────────────────────────────────
   app.notFound((c) =>

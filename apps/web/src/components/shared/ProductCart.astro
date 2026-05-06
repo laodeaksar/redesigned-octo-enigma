@@ -11,9 +11,10 @@ interface Props {
   highestPrice: number;
   totalStock: number;
   tags?: string[];
+  isLoggedIn?: boolean;
 }
 
-const { name, slug, primaryImage, lowestPrice, highestPrice, totalStock, tags } = Astro.props;
+const { name, slug, primaryImage, lowestPrice, highestPrice, totalStock, tags, isLoggedIn } = Astro.props;
 
 const isOutOfStock = totalStock === 0;
 const hasDiscount = lowestPrice !== highestPrice;
@@ -28,7 +29,16 @@ const priceLabel = hasDiscount
     "group flex flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
     isOutOfStock && "opacity-70",
   ]}
->
+    >
+
+    <!-- Heart button (island) -->
+  <WishlistButton
+    productId={product.id}
+    variant="icon"
+    isLoggedIn={isLoggedIn}
+    client:idle
+    />
+
   <!-- Image -->
   <div class="aspect-square overflow-hidden bg-gray-50">
     {primaryImage ? (

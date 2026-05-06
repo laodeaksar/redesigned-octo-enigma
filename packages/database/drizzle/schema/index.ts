@@ -90,3 +90,6 @@ export type { RefundRow, NewRefundRow } from "./refunds";
 // ── Shared tables ─────────────────────────────────────────────────────────────
 export { vouchersTable } from "./vouchers";
 export type { VoucherRow, NewVoucherRow } from "./vouchers";
+
+export { wishlistsTable } from "./wishlist";
+export type { Wishlist, NewWishlist } from "./wishlist";

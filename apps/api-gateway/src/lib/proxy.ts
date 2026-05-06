@@ -93,10 +93,11 @@ export async function proxyRequest(
 
   try {
     upstreamResponse = await circuitBreaker.execute(
-      () => fetch(target, {
+      (signal) => fetch(target, {
         method: requestMethod,
         headers,
         body,
+        signal,
         // @ts-expect-error — Bun supports duplex for streaming
         duplex: "half",
       }),

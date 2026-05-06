@@ -6,6 +6,7 @@ import ScrollToTop from "@/components/shared/ScrollToTop.astro";
 import CartDrawer from "@/components/islands/CartDrawer";
 import ProductQuickView from "@/components/islands/ProductQuickView";
 import { UndoToast } from "@/components/islands/UndoToast";
+import CompareBar from "@/components/islands/CompareBar";
 import { getCurrentUser } from "@/lib/auth";
 import "@/styles/global.css";
 
@@ -44,6 +45,7 @@ const user = await getCurrentUser(Astro.cookies);
     <CartDrawer client:load />
     <ProductQuickView client:load />
     <UndoToast client:load />
+    <CompareBar client:load />
 
     <Navbar user={user} />
 

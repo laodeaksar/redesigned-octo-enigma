@@ -1,5 +1,6 @@
 ---
 import Badge from "./Badge.astro";
+import CompareToggle from "@/components/islands/CompareToggle";
 import { formatIDR } from "@/lib/utils";
 
 interface Props {
@@ -11,9 +12,10 @@ interface Props {
   highestPrice: number;
   totalStock: number;
   tags?: string[];
+  categoryName?: string | null;
 }
 
-const { id, name, slug, primaryImage, lowestPrice, highestPrice, totalStock, tags } = Astro.props;
+const { id, name, slug, primaryImage, lowestPrice, highestPrice, totalStock, tags, categoryName } = Astro.props;
 
 const isOutOfStock = totalStock === 0;
 const hasDiscount  = lowestPrice !== highestPrice;
@@ -69,21 +71,41 @@ const priceLabel   = hasDiscount
   </div>
 
   <!-- Info -->
-  <a href={`/products/${slug}`} class="flex flex-1 flex-col p-4">
-    <p class="line-clamp-2 text-sm font-medium text-gray-900 leading-snug">{name}</p>
+  <div class="flex flex-1 flex-col p-4">
+    <a href={`/products/${slug}`} class="flex flex-1 flex-col">
+      <p class="line-clamp-2 text-sm font-medium text-gray-900 leading-snug">{name}</p>
 
-    <div class="mt-2 flex items-center gap-2">
-      <span class="text-base font-bold text-gray-900">{priceLabel}</span>
-    </div>
+      <div class="mt-2 flex items-center gap-2">
+        <span class="text-base font-bold text-gray-900">{priceLabel}</span>
+      </div>
 
-    <div class="mt-2 flex flex-wrap items-center gap-1.5">
-      {isOutOfStock && <Badge variant="destructive">Habis</Badge>}
-      {!isOutOfStock && totalStock <= 5 && <Badge variant="warning">Sisa {totalStock}</Badge>}
-      {tags?.slice(0, 2).map((tag) => (
-        <Badge variant="secondary">{tag}</Badge>
-      ))}
+      <div class="mt-2 flex flex-wrap items-center gap-1.5">
+        {isOutOfStock && <Badge variant="destructive">Habis</Badge>}
+        {!isOutOfStock && totalStock <= 5 && <Badge variant="warning">Sisa {totalStock}</Badge>}
+        {tags?.slice(0, 2).map((tag) => (
+          <Badge variant="secondary">{tag}</Badge>
+        ))}
+      </div>
+    </a>
+
+    <!-- Compare toggle — outside <a> to avoid nested interactive elements -->
+    <div class="mt-3 border-t border-gray-50 pt-2.5">
+      <CompareToggle
+        client:visible
+        product={{
+          id,
+          name,
+          slug,
+          primaryImage,
+          lowestPrice,
+          highestPrice,
+          totalStock,
+          tags: tags ?? [],
+          categoryName: categoryName ?? null,
+        }}
+      />
     </div>
-  </a>
+  </div>
 </article>
 
 <script>

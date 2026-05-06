@@ -5,6 +5,7 @@ import AddToCartButton from "@/components/islands/AddToCartButton";
 import WishlistButton from "@/components/islands/WishlistButton";
 import TrackProductView from "@/components/islands/TrackProductView";
 import RecentlyViewed from "@/components/islands/RecentlyViewed";
+import CompareToggle from "@/components/islands/CompareToggle";
 import Badge from "@/components/shared/Badge.astro";
 import { api, type ProductDetail } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
@@ -116,21 +117,38 @@ const sortedImages = [...product.images].sort((a, b) => a.sortOrder - b.sortOrde
           </div>
         )}
 
-        <!-- AddToCartButton & WishlistButton React island -->
-        <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+        <!-- AddToCartButton, WishlistButton & CompareToggle React islands -->
+        <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm space-y-3">
           <AddToCartButton
             client:load
             productName={product.name}
             variants={product.variants}
             primaryImage={primaryImage?.url ?? null}
-              />
+          />
 
-              <WishlistButton
-    productId={product.id}
-    variant="full"
-    isLoggedIn={!!user}
-    client:load
-  />
+          <div class="flex items-center gap-2">
+            <WishlistButton
+              productId={product.id}
+              variant="full"
+              isLoggedIn={!!user}
+              client:load
+            />
+            <CompareToggle
+              client:load
+              size="md"
+              product={{
+                id: product.id,
+                name: product.name,
+                slug: product.slug,
+                primaryImage: primaryImage?.url ?? null,
+                lowestPrice: product.variants.length > 0 ? Math.min(...product.variants.map((v) => v.price)) : 0,
+                highestPrice: product.variants.length > 0 ? Math.max(...product.variants.map((v) => v.price)) : 0,
+                totalStock: product.variants.reduce((s, v) => s + v.stock, 0),
+                tags: product.tags,
+                categoryName: product.category?.name ?? null,
+              }}
+            />
+          </div>
         </div>
 
         <!-- Weight + specs -->

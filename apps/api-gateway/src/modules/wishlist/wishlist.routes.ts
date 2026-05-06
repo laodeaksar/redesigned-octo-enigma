@@ -1,19 +1,47 @@
+// =============================================================================
+// Wishlist proxy routes — forward to product-service
+//
+// All endpoints require authentication (customer+):
+//   GET    /wishlist                       — paginated wishlist
+//   GET    /wishlist/status/:productId     — single product status
+//   POST   /wishlist/status/bulk           — bulk status check
+//   POST   /wishlist/:productId            — add to wishlist
+//   DELETE /wishlist/:productId            — remove from wishlist
+//   POST   /wishlist/:productId/toggle     — toggle wishlist
+// =============================================================================
+
 import { Hono } from "hono";
-import { authGuard } from "@/middleware/auth.guard"; // JWT guard existing
-import { proxyTo } from "@/lib/proxy";               // helper proxy existing
 
-const wishlistRoutes = new Hono();
+import { requireAuth } from "@/middleware/auth.middleware";
+import { defaultRateLimit } from "@/middleware/rate-limit.middleware";
+import { proxyRequest, buildTargetUrl } from "@/lib/proxy";
+import { SERVICES } from "@/config";
 
-const PRODUCT_SERVICE = process.env.PRODUCT_SERVICE_URL ?? "<http://product-service:3002>";
+const app = new Hono();
+const productBase = SERVICES.product;
 
-// Semua endpoint wishlist butuh autentikasi
-wishlistRoutes.use("/wishlist/*", authGuard);
+app.get("/wishlist", requireAuth, defaultRateLimit, async (c) =>
+  proxyRequest(c, { target: buildTargetUrl(productBase, c), user: c.var.user })
+);
 
-wishlistRoutes.get("/wishlist",                     proxyTo(PRODUCT_SERVICE));
-wishlistRoutes.get("/wishlist/status/:productId",   proxyTo(PRODUCT_SERVICE));
-wishlistRoutes.post("/wishlist/status/bulk",        proxyTo(PRODUCT_SERVICE));
-wishlistRoutes.post("/wishlist/:productId",         proxyTo(PRODUCT_SERVICE));
-wishlistRoutes.delete("/wishlist/:productId",       proxyTo(PRODUCT_SERVICE));
-wishlistRoutes.post("/wishlist/:productId/toggle",  proxyTo(PRODUCT_SERVICE));
+app.get("/wishlist/status/:productId", requireAuth, defaultRateLimit, async (c) =>
+  proxyRequest(c, { target: buildTargetUrl(productBase, c), user: c.var.user })
+);
 
-export { wishlistRoutes };
+app.post("/wishlist/status/bulk", requireAuth, defaultRateLimit, async (c) =>
+  proxyRequest(c, { target: buildTargetUrl(productBase, c), user: c.var.user })
+);
+
+app.post("/wishlist/:productId", requireAuth, defaultRateLimit, async (c) =>
+  proxyRequest(c, { target: buildTargetUrl(productBase, c), user: c.var.user })
+);
+
+app.delete("/wishlist/:productId", requireAuth, defaultRateLimit, async (c) =>
+  proxyRequest(c, { target: buildTargetUrl(productBase, c), user: c.var.user })
+);
+
+app.post("/wishlist/:productId/toggle", requireAuth, defaultRateLimit, async (c) =>
+  proxyRequest(c, { target: buildTargetUrl(productBase, c), user: c.var.user })
+);
+
+export { app as wishlistRoutes };

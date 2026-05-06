@@ -1,18 +1,18 @@
-import { pgTable, uniqueIndex } from "drizzle-orm/pg-core";
-import { primaryId, timestamps, softDelete } from "./_helpers";
-import { users } from "./users";
-import { products } from "./products";
+import { pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
+import { primaryId, timestamps } from "./_helpers";
+import { usersTable } from "./users";
+import { productsTable } from "./products";
 
 export const wishlistsTable = pgTable(
   "wishlists",
   {
-    ...primaryId(),
+    id: primaryId(),
     userId: text("user_id")
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => usersTable.id, { onDelete: "cascade" }),
     productId: text("product_id")
       .notNull()
-      .references(() => products.id, { onDelete: "cascade" }),
+      .references(() => productsTable.id, { onDelete: "cascade" }),
     ...timestamps(),
   },
   (t) => ({
@@ -23,5 +23,5 @@ export const wishlistsTable = pgTable(
   })
 );
 
-export type Wishlist = typeof wishlists.$inferSelect;
-export type NewWishlist = typeof wishlists.$inferInsert;
+export type Wishlist = typeof wishlistsTable.$inferSelect;
+export type NewWishlist = typeof wishlistsTable.$inferInsert;

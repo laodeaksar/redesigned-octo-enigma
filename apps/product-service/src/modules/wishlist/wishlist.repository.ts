@@ -1,70 +1,93 @@
-import { db } from "@repo/database";
-import { wishlists, products } from "@repo/database/schema";
-import { eq, and, inArray, desc } from "drizzle-orm";
+// =============================================================================
+// Wishlist repository
+// =============================================================================
+
+import { eq, and, inArray, desc, isNull, sql } from "drizzle-orm";
+
+import {
+  wishlistsTable,
+  productsTable,
+  productVariantsTable,
+} from "@repo/database/drizzle/schema";
+
+import { db } from "@/config";
 
 export const wishlistRepository = {
-  /** Tambah item — idempotent (conflict diabaikan) */
+  /** Add item — idempotent (conflict ignored) */
   async add(userId: string, productId: string) {
     const [row] = await db
-      .insert(wishlists)
+      .insert(wishlistsTable)
       .values({ userId, productId })
       .onConflictDoNothing()
       .returning();
-    return row ?? null; // null = sudah ada sebelumnya (fine)
+    return row ?? null;
   },
 
-  /** Hapus item */
+  /** Remove item */
   async remove(userId: string, productId: string) {
     const [row] = await db
-      .delete(wishlists)
+      .delete(wishlistsTable)
       .where(
-        and(eq(wishlists.userId, userId), eq(wishlists.productId, productId))
+        and(
+          eq(wishlistsTable.userId, userId),
+          eq(wishlistsTable.productId, productId)
+        )
       )
       .returning();
     return row ?? null;
   },
 
-  /** Toggle — return status akhir */
+  /** Toggle — return final status */
   async toggle(
     userId: string,
     productId: string
   ): Promise<{ wishlisted: boolean }> {
-    const existing = await db.query.wishlists.findFirst({
-      where: and(
-        eq(wishlists.userId, userId),
-        eq(wishlists.productId, productId)
-      ),
-    });
+    const [existing] = await db
+      .select({ id: wishlistsTable.id })
+      .from(wishlistsTable)
+      .where(
+        and(
+          eq(wishlistsTable.userId, userId),
+          eq(wishlistsTable.productId, productId)
+        )
+      )
+      .limit(1);
 
     if (existing) {
       await db
-        .delete(wishlists)
+        .delete(wishlistsTable)
         .where(
-          and(eq(wishlists.userId, userId), eq(wishlists.productId, productId))
+          and(
+            eq(wishlistsTable.userId, userId),
+            eq(wishlistsTable.productId, productId)
+          )
         );
       return { wishlisted: false };
     }
 
     await db
-      .insert(wishlists)
+      .insert(wishlistsTable)
       .values({ userId, productId })
       .onConflictDoNothing();
     return { wishlisted: true };
   },
 
-  /** Cek status satu produk */
+  /** Check status for a single product */
   async isWishlisted(userId: string, productId: string): Promise<boolean> {
-    const row = await db.query.wishlists.findFirst({
-      where: and(
-        eq(wishlists.userId, userId),
-        eq(wishlists.productId, productId)
-      ),
-      columns: { id: true },
-    });
+    const [row] = await db
+      .select({ id: wishlistsTable.id })
+      .from(wishlistsTable)
+      .where(
+        and(
+          eq(wishlistsTable.userId, userId),
+          eq(wishlistsTable.productId, productId)
+        )
+      )
+      .limit(1);
     return !!row;
   },
 
-  /** Bulk check — untuk product listing (hindari N+1) */
+  /** Bulk check — for product listings (avoids N+1) */
   async bulkStatus(
     userId: string,
     productIds: string[]
@@ -72,12 +95,12 @@ export const wishlistRepository = {
     if (!productIds.length) return {};
 
     const rows = await db
-      .select({ productId: wishlists.productId })
-      .from(wishlists)
+      .select({ productId: wishlistsTable.productId })
+      .from(wishlistsTable)
       .where(
         and(
-          eq(wishlists.userId, userId),
-          inArray(wishlists.productId, productIds)
+          eq(wishlistsTable.userId, userId),
+          inArray(wishlistsTable.productId, productIds)
         )
       );
 
@@ -85,7 +108,7 @@ export const wishlistRepository = {
     return Object.fromEntries(productIds.map((id) => [id, wishlisted.has(id)]));
   },
 
-  /** Daftar wishlist user beserta data produk (untuk halaman /wishlist) */
+  /** User's wishlist with product summary data (for /wishlist page) */
   async findByUser(
     userId: string,
     { page = 1, limit = 20 }: { page?: number; limit?: number }
@@ -94,29 +117,62 @@ export const wishlistRepository = {
 
     const rows = await db
       .select({
-        wishlistId: wishlists.id,
-        addedAt: wishlists.createdAt,
+        wishlistId: wishlistsTable.id,
+        addedAt: wishlistsTable.createdAt,
         product: {
-          id: products.id,
-          name: products.name,
-          slug: products.slug,
-          price: products.price,
-          imageUrl: products.imageUrl,
-          stock: products.stock,
+          id: productsTable.id,
+          name: productsTable.name,
+          slug: productsTable.slug,
+          status: productsTable.status,
+          tags: productsTable.tags,
+          categoryId: productsTable.categoryId,
+          createdAt: productsTable.createdAt,
+          lowestPrice: sql<number>`min(${productVariantsTable.price})`,
+          highestPrice: sql<number>`max(${productVariantsTable.price})`,
+          totalStock: sql<number>`coalesce(sum(${productVariantsTable.stock}), 0)`,
+          primaryImage: sql<string | null>`(
+            select url from product_images
+            where product_id = ${productsTable.id}
+            order by is_primary desc, sort_order asc
+            limit 1
+          )`,
         },
       })
-      .from(wishlists)
-      .innerJoin(products, eq(wishlists.productId, products.id))
-      .where(eq(wishlists.userId, userId))
-      .orderBy(desc(wishlists.createdAt))
+      .from(wishlistsTable)
+      .innerJoin(productsTable, eq(wishlistsTable.productId, productsTable.id))
+      .leftJoin(
+        productVariantsTable,
+        and(
+          eq(productVariantsTable.productId, productsTable.id),
+          eq(productVariantsTable.isActive, true)
+        )
+      )
+      .where(
+        and(
+          eq(wishlistsTable.userId, userId),
+          isNull(productsTable.deletedAt)
+        )
+      )
+      .groupBy(
+        wishlistsTable.id,
+        wishlistsTable.createdAt,
+        productsTable.id,
+        productsTable.name,
+        productsTable.slug,
+        productsTable.status,
+        productsTable.tags,
+        productsTable.categoryId,
+        productsTable.createdAt
+      )
+      .orderBy(desc(wishlistsTable.createdAt))
       .limit(limit)
       .offset(offset);
 
-    const [{ count }] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(wishlists)
-      .where(eq(wishlists.userId, userId));
+    const [{ total }] = await db
+      .select({ total: sql<number>`count(*)::int` })
+      .from(wishlistsTable)
+      .where(eq(wishlistsTable.userId, userId));
 
-    return { items: rows, total: count, page, limit };
+    return { items: rows, total, page, limit };
   },
 };

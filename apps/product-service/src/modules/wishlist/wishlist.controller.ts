@@ -1,10 +1,14 @@
+// =============================================================================
+// Wishlist controller
+// =============================================================================
+
 import Elysia, { t } from "elysia";
 import { wishlistService } from "./wishlist.service";
-import { successResponse, paginatedResponse } from "@repo/common/schemas";
-import { authMiddleware } from "@/middleware/auth.middleware"; // re-use existing
+import { success, paginated } from "@repo/common/schemas";
+import { jwtMiddleware } from "@/middleware/jwt.middleware";
 
 export const wishlistController = new Elysia({ prefix: "/wishlist" })
-  .use(authMiddleware)
+  .use(jwtMiddleware)
 
   // GET /wishlist?page=1&limit=20
   .get(
@@ -13,7 +17,7 @@ export const wishlistController = new Elysia({ prefix: "/wishlist" })
       const page = Number(query.page ?? 1);
       const limit = Math.min(Number(query.limit ?? 20), 100);
       const data = await wishlistService.getWishlist(user.id, page, limit);
-      return paginatedResponse(data.items, data.total, page, limit);
+      return paginated(data.items, { total: data.total, page, limit });
     },
     {
       query: t.Object({
@@ -28,7 +32,7 @@ export const wishlistController = new Elysia({ prefix: "/wishlist" })
     "/status/:productId",
     async ({ user, params }) => {
       const status = await wishlistService.getStatus(user.id, params.productId);
-      return successResponse(status);
+      return success(status);
     },
     { params: t.Object({ productId: t.String() }) }
   )
@@ -38,7 +42,7 @@ export const wishlistController = new Elysia({ prefix: "/wishlist" })
     "/status/bulk",
     async ({ user, body }) => {
       const map = await wishlistService.bulkStatus(user.id, body.productIds);
-      return successResponse(map);
+      return success(map);
     },
     {
       body: t.Object({
@@ -55,7 +59,7 @@ export const wishlistController = new Elysia({ prefix: "/wishlist" })
         user.id,
         params.productId
       );
-      return successResponse(result);
+      return success(result);
     },
     { params: t.Object({ productId: t.String() }) }
   )
@@ -68,7 +72,7 @@ export const wishlistController = new Elysia({ prefix: "/wishlist" })
         user.id,
         params.productId
       );
-      return successResponse(result);
+      return success(result);
     },
     { params: t.Object({ productId: t.String() }) }
   )
@@ -81,7 +85,7 @@ export const wishlistController = new Elysia({ prefix: "/wishlist" })
         user.id,
         params.productId
       );
-      return successResponse(result);
+      return success(result);
     },
     { params: t.Object({ productId: t.String() }) }
   );

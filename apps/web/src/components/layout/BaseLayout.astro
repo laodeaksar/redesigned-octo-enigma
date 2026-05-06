@@ -52,6 +52,14 @@ const user = await getCurrentUser(Astro.cookies);
       import { hydrateCart } from "@/stores/cart.store";
       hydrateCart();
     </script>
+
+    <!-- Hydrate wishlist when user is logged in -->
+    {user && (
+      <script>
+        import { hydrateWishlist } from "@/stores/wishlist.store";
+        hydrateWishlist();
+      </script>
+    )}
   </body>
 </html>
 

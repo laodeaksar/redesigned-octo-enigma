@@ -2,6 +2,7 @@
 import Navbar from "./Navbar.astro";
 import Footer from "./Footer.astro";
 import BottomNav from "./BottomNav.astro";
+import ScrollToTop from "@/components/shared/ScrollToTop.astro";
 import CartDrawer from "@/components/islands/CartDrawer";
 import { getCurrentUser } from "@/lib/auth";
 import "@/styles/global.css";
@@ -48,6 +49,7 @@ const user = await getCurrentUser(Astro.cookies);
 
     <Footer />
 
+    <ScrollToTop />
     <BottomNav />
 
     <!-- Hydrate cart from localStorage on mount -->

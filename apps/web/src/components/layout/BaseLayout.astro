@@ -4,6 +4,7 @@ import Footer from "./Footer.astro";
 import BottomNav from "./BottomNav.astro";
 import ScrollToTop from "@/components/shared/ScrollToTop.astro";
 import CartDrawer from "@/components/islands/CartDrawer";
+import ProductQuickView from "@/components/islands/ProductQuickView";
 import { getCurrentUser } from "@/lib/auth";
 import "@/styles/global.css";
 
@@ -38,8 +39,9 @@ const user = await getCurrentUser(Astro.cookies);
     />
   </head>
   <body class="min-h-screen bg-white text-gray-900 antialiased">
-    <!-- Cart drawer (React island, always mounted client-side) -->
+    <!-- Always-mounted React islands -->
     <CartDrawer client:load />
+    <ProductQuickView client:load />
 
     <Navbar user={user} />
 

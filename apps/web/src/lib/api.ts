@@ -147,3 +147,9 @@ export type Payment = {
   expiresAt: string;
 };
 
+export type WishlistItem = {
+  id: string;
+  product: Product;
+  createdAt: string;
+};
+

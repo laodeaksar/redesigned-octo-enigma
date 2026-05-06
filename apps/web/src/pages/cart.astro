@@ -1,0 +1,16 @@
+---
+import BaseLayout from "@/components/layout/BaseLayout.astro";
+import CartPage from "@/components/islands/CartPage";
+---
+
+<BaseLayout title="Keranjang Belanja" description="Keranjang belanja kamu">
+  <div class="container mx-auto px-4 py-10">
+    <!-- Page header -->
+    <div class="mb-8 flex items-center gap-3">
+      <h1 class="text-2xl font-bold text-gray-900">Keranjang Belanja</h1>
+    </div>
+
+    <!-- Cart content (React island — reads from localStorage) -->
+    <CartPage client:load />
+  </div>
+</BaseLayout>

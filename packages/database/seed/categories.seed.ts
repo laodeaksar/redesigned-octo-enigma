@@ -3,7 +3,7 @@
 // Creates a two-level category tree
 // =============================================================================
 
-import { eq } from "drizzle-orm";
+import { isNull } from "drizzle-orm";
 
 import type { DrizzleClient } from "../drizzle/client";
 import { categoriesTable } from "../drizzle/schema";
@@ -91,7 +91,7 @@ export async function seedCategories(db: DrizzleClient): Promise<void> {
   const allRoots = await db
     .select({ id: categoriesTable.id, slug: categoriesTable.slug })
     .from(categoriesTable)
-    .where(eq(categoriesTable.parentId, null as unknown as string));
+    .where(isNull(categoriesTable.parentId));
 
   console.info(`   ✓ ${insertedRoots.length} root categories inserted`);
 

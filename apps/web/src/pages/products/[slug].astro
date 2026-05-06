@@ -1,13 +1,13 @@
 ---
 import BaseLayout from "@/components/layout/BaseLayout.astro";
-import { requireAuth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 import AddToCartButton from "@/components/islands/AddToCartButton";
 import WishlistButton from "@/components/islands/WishlistButton";
 import Badge from "@/components/shared/Badge.astro";
 import { api, type ProductDetail } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 
-const user = await requireAuth(Astro.cookies);
+const user = await getCurrentUser(Astro.cookies);
 
 const { slug } = Astro.params;
 

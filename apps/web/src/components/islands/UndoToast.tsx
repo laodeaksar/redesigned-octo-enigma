@@ -34,7 +34,7 @@ export function UndoToast() {
     setPendingDeletions(prev => [...prev, pendingItem]);
     setToastVisible(true);
     
-    logger.debug("Item scheduled for deletion with undo toast", {
+    console.debug("[UndoToast] Item scheduled for deletion with undo toast", {
       deletionId,
       productName: item.productName,
       variantId: item.variantId
@@ -47,7 +47,7 @@ export function UndoToast() {
         if (item && !item.restored) {
           // Hapus permanen dari state keranjang
           removeFromCart(item.item.variantId);
-          logger.debug("Item permanently deleted after timeout", { deletionId });
+          console.debug("[UndoToast] Item permanently deleted after timeout", { deletionId });
         }
         return prev.filter(p => p.id !== deletionId);
       });

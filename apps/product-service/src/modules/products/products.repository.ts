@@ -85,10 +85,17 @@ export async function findProductWithRelations(db: DB, id: string) {
   return { ...product, variants, images, category: category[0] ?? null };
 }
 
+export type ProductListItem = ProductRow & {
+  lowestPrice: number;
+  highestPrice: number;
+  totalStock: number;
+  primaryImage: string | null;
+};
+
 export async function listProducts(
   db: DB,
   query: ListProductsQuery
-): Promise<{ items: ProductRow[]; total: number }> {
+): Promise<{ items: ProductListItem[]; total: number }> {
   const conditions = [isNull(productsTable.deletedAt)];
 
   if (query.status) conditions.push(eq(productsTable.status, query.status));
@@ -105,9 +112,34 @@ export async function listProducts(
 
   const [items, [{ value: total }]] = await Promise.all([
     db
-      .select()
+      .select({
+        id: productsTable.id,
+        name: productsTable.name,
+        slug: productsTable.slug,
+        description: productsTable.description,
+        shortDescription: productsTable.shortDescription,
+        status: productsTable.status,
+        categoryId: productsTable.categoryId,
+        tags: productsTable.tags,
+        weight: productsTable.weight,
+        createdAt: productsTable.createdAt,
+        updatedAt: productsTable.updatedAt,
+        deletedAt: productsTable.deletedAt,
+        lowestPrice: sql<number>`COALESCE(MIN(${productVariantsTable.price}), 0)`,
+        highestPrice: sql<number>`COALESCE(MAX(${productVariantsTable.price}), 0)`,
+        totalStock: sql<number>`COALESCE(SUM(${productVariantsTable.stock}), 0)`,
+        primaryImage: sql<string | null>`(
+          SELECT ${productImagesTable.url}
+          FROM ${productImagesTable}
+          WHERE ${productImagesTable.productId} = ${productsTable.id}
+          ORDER BY ${productImagesTable.isPrimary} DESC, ${productImagesTable.sortOrder} ASC
+          LIMIT 1
+        )`,
+      })
       .from(productsTable)
+      .leftJoin(productVariantsTable, eq(productVariantsTable.productId, productsTable.id))
       .where(and(...conditions))
+      .groupBy(productsTable.id)
       .orderBy(orderFn(sortField))
       .limit(query.limit)
       .offset(offset),
@@ -117,7 +149,7 @@ export async function listProducts(
       .where(and(...conditions)),
   ]);
 
-  return { items, total: Number(total) };
+  return { items: items as ProductListItem[], total: Number(total) };
 }
 
 export async function createProduct(

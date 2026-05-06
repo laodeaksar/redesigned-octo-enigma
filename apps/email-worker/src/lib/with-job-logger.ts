@@ -1,28 +1,28 @@
-//import { Job } from "bullmq";
-import { logger } from "./logger";
-import type { Job, Processor } from "@repo/common/events"; // atau dari bullmq, sesuaikan
+import { logger } from "@/lib/logger";
+import type { Job, Processor } from "@repo/common/events";
 
 /**
- * Membungkus processor asli dengan logging terstruktur per job.
- * Tipe tetap aman karena input dan output sama-sama Processor.
+ * Wraps a BullMQ processor with structured per-job logging.
+ * Used for handlers that are NOT built with createEmailHandler.
  */
 export function withJobLogger(queueName: string, processor: Processor): Processor {
   return async (job: Job) => {
     const jobLogger = logger.child({
-      jobId: job.id,
+      jobId:     job.id,
       queueName,
-      attempt: job.attemptsMade + 1,
+      attempt:   job.attemptsMade + 1,
     });
 
     jobLogger.info("Processing job");
     const start = Date.now();
 
     try {
-      await processor(job);
+      const result = await processor(job);
       jobLogger.info({ duration: Date.now() - start }, "Job completed");
+      return result;
     } catch (err) {
       jobLogger.error({ err, duration: Date.now() - start }, "Job failed");
-      throw err; // biar BullMQ yang handle retry
+      throw err;
     }
   };
 }

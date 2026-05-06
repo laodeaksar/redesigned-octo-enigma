@@ -3,24 +3,31 @@
 // Queue: email.order-shipped
 // =============================================================================
 
-import type { Processor } from "@repo/common/events";
+import { z } from "zod";
 import type { OrderShippedEmailJobData } from "@repo/common/types";
-import { sendEmail } from "@/lib/mailer";
 import { orderShippedTemplate } from "@/lib/templates";
+import { createEmailHandler } from "@/lib/create-email-handler";
+import { QUEUES } from "@repo/common/events";
 
-export const handleOrderShippedEmail: Processor<OrderShippedEmailJobData> =
-  async (job) => {
-    const template = orderShippedTemplate(job.data);
+const schema = z.object({
+  orderId:        z.string().min(1),
+  orderNumber:    z.string().min(1),
+  email:          z.string().email(),
+  courier:        z.string().min(1),
+  trackingNumber: z.string().nullable(),
+  address: z.object({
+    recipientName: z.string(),
+    city:          z.string(),
+    province:      z.string(),
+  }),
+});
 
-    const result = await sendEmail({
-      to: job.data.email,
-      subject: template.subject,
-      html: template.html,
-      text: template.text,
-    });
-
-    console.info(
-      `[order-shipped] Job ${job.id} — sent for ${job.data.orderNumber} to ${job.data.email} (${result.messageId})`
-    );
-  };
-
+export const handleOrderShippedEmail =
+  createEmailHandler<OrderShippedEmailJobData>({
+    queueName:   QUEUES.EMAIL_ORDER_SHIPPED,
+    schema,
+    getTemplate: (data) => orderShippedTemplate(data),
+    getExtraHeaders: (data) => ({
+      "X-Order-Number": data.orderNumber,
+    }),
+  });

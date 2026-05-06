@@ -1,5 +1,5 @@
-import pino, { LoggerOptions } from "pino";
-import { env } from "../config";
+import pino, { type LoggerOptions } from "pino";
+import { env } from "@/config";
 
 const redactPaths = [
   "password",
@@ -19,15 +19,12 @@ const redactPaths = [
 ];
 
 const pinoOptions: LoggerOptions = {
-  level: env.LOG_LEVEL ?? "info",
-  redact: {
-    paths: redactPaths,
-    remove: true,
-  },
+  level: env.LOG_LEVEL,
+  redact: { paths: redactPaths, remove: true },
   timestamp: pino.stdTimeFunctions.isoTime,
   base: {
     service: "email-worker",
-    env: env.NODE_ENV ?? "development",
+    env: env.NODE_ENV,
     pid: process.pid,
   },
   serializers: {

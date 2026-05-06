@@ -1,6 +1,6 @@
 // =============================================================================
 // Email templates
-// Minimal inline-CSS HTML templates — works in all email clients.
+// Minimal inline-CSS HTML — works in all email clients.
 // All amounts in IDR. All templates are mobile-responsive.
 // =============================================================================
 
@@ -9,13 +9,13 @@ import { env } from "@/config";
 // ── Design tokens ─────────────────────────────────────────────────────────────
 
 const COLORS = {
-  brand: "#1a1a2e",
+  brand:  "#1a1a2e",
   accent: "#e94560",
-  text: "#333333",
-  muted: "#666666",
+  text:   "#333333",
+  muted:  "#666666",
   border: "#e5e7eb",
-  bg: "#f9fafb",
-  white: "#ffffff",
+  bg:     "#f9fafb",
+  white:  "#ffffff",
 } as const;
 
 // ── Formatters ────────────────────────────────────────────────────────────────
@@ -31,19 +31,21 @@ export function formatIDR(amount: number): string {
 export function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("id-ID", {
     weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
+    year:    "numeric",
+    month:   "long",
+    day:     "numeric",
   });
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function appUrl(path = ""): string {
+  return `${env.APP_URL}${path}`;
 }
 
 // ── Base layout ───────────────────────────────────────────────────────────────
 
 function baseLayout(title: string, content: string): string {
-  const appUrl = env.NODE_ENV === "production"
-    ? "https://my-ecommerce.com"
-    : "http://localhost:3010";
-
   return `<!DOCTYPE html>
 <html lang="id">
 <head>
@@ -56,13 +58,12 @@ function baseLayout(title: string, content: string): string {
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color:${COLORS.bg};padding:32px 16px;">
     <tr>
       <td align="center">
-        <!-- Card -->
         <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:${COLORS.white};border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1);">
 
           <!-- Header -->
           <tr>
             <td style="background:${COLORS.brand};padding:24px 32px;">
-              <a href="${appUrl}" style="text-decoration:none;">
+              <a href="${appUrl()}" style="text-decoration:none;">
                 <span style="color:${COLORS.white};font-size:22px;font-weight:700;letter-spacing:-0.5px;">
                   🛒 My Ecommerce
                 </span>
@@ -138,9 +139,7 @@ function orderItemRow(item: {
   </tr>`;
 }
 
-// ── Templates ─────────────────────────────────────────────────────────────────
-
-// 1. Welcome email ─────────────────────────────────────────────────────────────
+// ── 1. Welcome ────────────────────────────────────────────────────────────────
 
 export interface WelcomePayload {
   name: string;
@@ -159,22 +158,22 @@ export function welcomeTemplate(payload: WelcomePayload): {
     <p style="margin:0 0 16px;color:${COLORS.muted};">Selamat bergabung dengan My Ecommerce.</p>
     <p>Akun kamu sudah aktif dengan email <strong>${payload.email}</strong>. Kamu bisa mulai belanja sekarang atau lengkapi profilmu terlebih dahulu.</p>
 
-    ${button("Mulai Belanja", "http://localhost:3010/products")}
+    ${button("Mulai Belanja", appUrl("/products"))}
 
     ${divider()}
 
     <p style="font-size:13px;color:${COLORS.muted};">
-      Ada pertanyaan? Balas email ini atau hubungi tim support kami di
+      Ada pertanyaan? Hubungi tim support kami di
       <a href="mailto:support@my-ecommerce.com" style="color:${COLORS.accent};">support@my-ecommerce.com</a>
     </p>
   `;
 
-  const text = `Hei ${payload.name},\n\nSelamat bergabung dengan My Ecommerce!\nAkun kamu aktif dengan email: ${payload.email}\n\nMulai belanja: http://localhost:3010/products`;
+  const text = `Hei ${payload.name},\n\nSelamat bergabung dengan My Ecommerce!\nAkun kamu aktif dengan email: ${payload.email}\n\nMulai belanja: ${appUrl("/products")}`;
 
   return { subject, html: baseLayout(subject, content), text };
 }
 
-// 2. Order confirmation ────────────────────────────────────────────────────────
+// ── 2. Order confirmation ─────────────────────────────────────────────────────
 
 export interface OrderConfirmationItem {
   name: string;
@@ -216,6 +215,7 @@ export function orderConfirmationTemplate(p: OrderConfirmationPayload): {
   text: string;
 } {
   const subject = `Pesanan ${p.orderNumber} Menunggu Pembayaran`;
+  const payUrl  = appUrl(`/orders/${p.orderNumber}/pay`);
 
   const itemRows = p.items.map(orderItemRow).join("");
 
@@ -240,7 +240,7 @@ export function orderConfirmationTemplate(p: OrderConfirmationPayload): {
 
     <p>Selesaikan pembayaran sebelum <strong>${formatDate(p.expiresAt)}</strong> agar pesanan kamu tidak dibatalkan otomatis.</p>
 
-    ${button("Bayar Sekarang", `http://localhost:3010/orders/${p.orderNumber}/pay`)}
+    ${button("Bayar Sekarang", payUrl)}
 
     ${divider()}
 
@@ -270,12 +270,12 @@ export function orderConfirmationTemplate(p: OrderConfirmationPayload): {
     </p>
   `;
 
-  const text = `Pesanan ${p.orderNumber} berhasil dibuat.\nTotal: ${formatIDR(p.pricing.grandTotal)}\nBayar sebelum: ${formatDate(p.expiresAt)}\nBayar di: http://localhost:3010/orders/${p.orderNumber}/pay`;
+  const text = `Pesanan ${p.orderNumber} berhasil dibuat.\nTotal: ${formatIDR(p.pricing.grandTotal)}\nBayar sebelum: ${formatDate(p.expiresAt)}\nBayar di: ${payUrl}`;
 
   return { subject, html: baseLayout(subject, content), text };
 }
 
-// 3. Order shipped ─────────────────────────────────────────────────────────────
+// ── 3. Order shipped ──────────────────────────────────────────────────────────
 
 export interface OrderShippedPayload {
   orderNumber: string;
@@ -294,7 +294,8 @@ export function orderShippedTemplate(p: OrderShippedPayload): {
   html: string;
   text: string;
 } {
-  const subject = `Pesanan ${p.orderNumber} Sedang Dikirim 🚚`;
+  const subject  = `Pesanan ${p.orderNumber} Sedang Dikirim 🚚`;
+  const trackUrl = appUrl(`/orders/${p.orderNumber}/track`);
 
   const content = `
     <h1 style="margin:0 0 4px;font-size:22px;color:${COLORS.brand};">Pesananmu Sedang Dalam Perjalanan 🚚</h1>
@@ -314,7 +315,7 @@ export function orderShippedTemplate(p: OrderShippedPayload): {
       </tr>` : ""}
     </table>
 
-    ${p.trackingNumber ? button("Lacak Paket", `http://localhost:3010/orders/${p.orderNumber}/track`) : ""}
+    ${p.trackingNumber ? button("Lacak Paket", trackUrl) : ""}
 
     <p style="font-size:13px;color:${COLORS.muted};">
       Pastikan ada orang di rumah untuk menerima paket. Jika ada masalah, hubungi
@@ -327,7 +328,7 @@ export function orderShippedTemplate(p: OrderShippedPayload): {
   return { subject, html: baseLayout(subject, content), text };
 }
 
-// 4. Order cancelled ───────────────────────────────────────────────────────────
+// ── 4. Order cancelled ────────────────────────────────────────────────────────
 
 export interface OrderCancelledPayload {
   orderNumber: string;
@@ -337,11 +338,11 @@ export interface OrderCancelledPayload {
 }
 
 const CANCEL_REASON_LABELS: Record<string, string> = {
-  payment_expired: "Batas waktu pembayaran habis",
+  payment_expired:  "Batas waktu pembayaran habis",
   customer_request: "Permintaan pelanggan",
-  out_of_stock: "Stok habis",
-  fraud_detected: "Terdeteksi aktivitas mencurigakan",
-  admin_action: "Dibatalkan oleh tim kami",
+  out_of_stock:     "Stok habis",
+  fraud_detected:   "Terdeteksi aktivitas mencurigakan",
+  admin_action:     "Dibatalkan oleh tim kami",
 };
 
 export function orderCancelledTemplate(p: OrderCancelledPayload): {
@@ -349,7 +350,7 @@ export function orderCancelledTemplate(p: OrderCancelledPayload): {
   html: string;
   text: string;
 } {
-  const subject = `Pesanan ${p.orderNumber} Dibatalkan`;
+  const subject     = `Pesanan ${p.orderNumber} Dibatalkan`;
   const reasonLabel = p.reason
     ? (CANCEL_REASON_LABELS[p.reason] ?? p.reason)
     : "Tidak disebutkan";
@@ -371,7 +372,7 @@ export function orderCancelledTemplate(p: OrderCancelledPayload): {
 
     <p>Jika kamu melakukan pembayaran dan pesanan dibatalkan karena stok habis atau masalah teknis, dana akan dikembalikan dalam <strong>1–3 hari kerja</strong>.</p>
 
-    ${button("Belanja Lagi", "http://localhost:3010/products")}
+    ${button("Belanja Lagi", appUrl("/products"))}
 
     <p style="font-size:13px;color:${COLORS.muted};">
       Ada pertanyaan? Hubungi kami di
@@ -384,7 +385,7 @@ export function orderCancelledTemplate(p: OrderCancelledPayload): {
   return { subject, html: baseLayout(subject, content), text };
 }
 
-// 5. Password reset ────────────────────────────────────────────────────────────
+// ── 5. Password reset ─────────────────────────────────────────────────────────
 
 export interface PasswordResetPayload {
   email: string;
@@ -397,8 +398,8 @@ export function passwordResetTemplate(p: PasswordResetPayload): {
   html: string;
   text: string;
 } {
-  const subject = "Reset Password My Ecommerce";
-  const resetUrl = `http://localhost:3010/auth/reset-password?token=${p.resetToken}`;
+  const subject  = "Reset Password My Ecommerce";
+  const resetUrl = appUrl(`/auth/reset-password?token=${p.resetToken}`);
 
   const content = `
     <h1 style="margin:0 0 4px;font-size:22px;color:${COLORS.brand};">Reset Password 🔑</h1>
@@ -425,4 +426,3 @@ export function passwordResetTemplate(p: PasswordResetPayload): {
 
   return { subject, html: baseLayout(subject, content), text };
 }
-

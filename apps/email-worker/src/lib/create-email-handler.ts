@@ -3,14 +3,12 @@
 // =============================================================================
 
 import type { Processor, Job } from "@repo/common/events";
-import type {
-  EmailResult,
-  EmailTemplate,
-  EmailPayload,
-} from "@repo/common/types";
+import type { EmailResult, EmailTemplate, EmailPayload } from "@repo/common/types";
 import { z } from "zod";
 import { redis } from "@/config";
 import { sendEmail } from "@/lib/mailer";
+import { logger } from "@/lib/logger";
+import { emailsSent, emailsFailed, emailSendDuration } from "@/metrics";
 
 export interface EmailHandlerResult {
   status: "sent" | "skipped";
@@ -39,47 +37,47 @@ export function createEmailHandler<T extends { email: string }>(
     schema,
     getTemplate,
     rateLimitSec,
-    timeoutMs = 10000,
+    timeoutMs = 10_000,
     checkExpiry,
     getExtraHeaders,
   } = opts;
 
   return async (job: Job<T>): Promise<EmailHandlerResult> => {
-    const jobId = job.id ?? "unknown";
+    const jobId     = job.id ?? "unknown";
+    const jobLogger = logger.child({ jobId, queueName, attempt: job.attemptsMade + 1 });
+
+    jobLogger.info("Processing job");
+    const startMs = Date.now();
 
     try {
       const data = schema.parse(job.data);
 
+      // ── Expiry check ───────────────────────────────────────────────────────
       if (checkExpiry?.(data)) {
-        console.warn(
-          `[${queueName}] Job ${jobId} skipped — expired for ${data.email}`,
-        );
+        jobLogger.warn({ email: data.email }, "Job skipped — expired");
         return { status: "skipped", reason: "expired" };
       }
 
+      // ── Rate limiting (per email address, per queue) ───────────────────────
       if (rateLimitSec) {
         const key = `ratelimit:${queueName}:${data.email}`;
         if (await redis.get(key)) {
-          console.warn(
-            `[${queueName}] Job ${jobId} skipped — rate limited for ${data.email}`,
-          );
+          jobLogger.warn({ email: data.email }, "Job skipped — rate limited");
           return { status: "skipped", reason: "rate_limited" };
         }
         await redis.setex(key, rateLimitSec, "1");
       }
 
-      const template = getTemplate(data);
+      // ── Build & send ───────────────────────────────────────────────────────
+      const template     = getTemplate(data);
       const extraHeaders = getExtraHeaders?.(data);
 
-      // Fix: Build EmailPayload tanpa field undefined
       const emailPayload: EmailPayload = {
-        to: data.email,
+        to:      data.email,
         subject: template.subject,
-        html: template.html,
-        text: template.text,
+        html:    template.html,
+        text:    template.text,
       };
-
-      // Only assign headers kalau ada isinya, biar nggak jadi {}
       if (extraHeaders && Object.keys(extraHeaders).length > 0) {
         emailPayload.headers = extraHeaders;
       }
@@ -88,36 +86,47 @@ export function createEmailHandler<T extends { email: string }>(
         sendEmail(emailPayload),
         new Promise<never>((_, reject) =>
           setTimeout(
-            () =>
-              reject(new Error(`Email provider timeout after ${timeoutMs}ms`)),
+            () => reject(new Error(`Email provider timeout after ${timeoutMs}ms`)),
             timeoutMs,
           ),
         ),
       ]);
 
-      console.info(
-        `[${queueName}] Job ${jobId} — sent to ${data.email} via ${result.provider} (${result.messageId})`,
+      const durationSec = (Date.now() - startMs) / 1000;
+
+      // ── Metrics ────────────────────────────────────────────────────────────
+      emailsSent.inc({ type: queueName, provider: result.provider });
+      emailSendDuration.observe({ type: queueName, provider: result.provider }, durationSec);
+
+      jobLogger.info(
+        { email: data.email, provider: result.provider, messageId: result.messageId, durationSec },
+        "Job completed — email sent",
       );
 
       return {
-        status: "sent",
-        to: data.email,
-        provider: result.provider,
+        status:    "sent",
+        to:        data.email,
+        provider:  result.provider,
         messageId: result.messageId,
-        sentAt: new Date().toISOString(),
+        sentAt:    new Date().toISOString(),
       };
     } catch (err) {
-      const email = (job.data as T)?.email ?? "unknown";
-      console.error(
-        `[${queueName}] Job ${jobId} failed for ${email}:`,
-        err instanceof Error ? err.message : err,
+      const durationSec = (Date.now() - startMs) / 1000;
+      const email       = (job.data as T)?.email ?? "unknown";
+
+      emailsFailed.inc({ type: queueName });
+
+      jobLogger.error(
+        { err, email, durationSec },
+        "Job failed",
       );
 
+      // Prefix error message so BullMQ dashboard shows queue context
       if (err instanceof Error) {
         err.message = `[${queueName}] ${err.message}`;
       }
 
-      throw err;
+      throw err; // Re-throw so BullMQ handles retry/backoff
     }
   };
 }

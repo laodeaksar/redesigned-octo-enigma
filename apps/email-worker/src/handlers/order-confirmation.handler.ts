@@ -3,24 +3,53 @@
 // Queue: email.order-confirmation
 // =============================================================================
 
-import type { Processor } from "@repo/common/events";
+import { z } from "zod";
 import type { OrderConfirmationEmailJobData } from "@repo/common/types";
-import { sendEmail } from "@/lib/mailer";
 import { orderConfirmationTemplate } from "@/lib/templates";
+import { createEmailHandler } from "@/lib/create-email-handler";
+import { QUEUES } from "@repo/common/events";
 
-export const handleOrderConfirmationEmail: Processor<OrderConfirmationEmailJobData> =
-  async (job) => {
-    const template = orderConfirmationTemplate(job.data);
+const orderItemSchema = z.object({
+  name:        z.string(),
+  variantName: z.string(),
+  quantity:    z.number().int().positive(),
+  unitPrice:   z.number().nonnegative(),
+  subtotal:    z.number().nonnegative(),
+});
 
-    const result = await sendEmail({
-      to: job.data.email,
-      subject: template.subject,
-      html: template.html,
-      text: template.text,
-    });
+const schema = z.object({
+  orderId:     z.string().min(1),
+  orderNumber: z.string().min(1),
+  email:       z.string().email(),
+  items:       z.array(orderItemSchema).min(1),
+  pricing: z.object({
+    subtotal:      z.number().nonnegative(),
+    shippingCost:  z.number().nonnegative(),
+    discountTotal: z.number().nonnegative(),
+    taxTotal:      z.number().nonnegative(),
+    grandTotal:    z.number().nonnegative(),
+  }),
+  shipping: z.object({
+    courier: z.string(),
+    service: z.string(),
+    address: z.object({
+      recipientName: z.string(),
+      phone:         z.string(),
+      street:        z.string(),
+      city:          z.string(),
+      province:      z.string(),
+      postalCode:    z.string(),
+    }),
+  }),
+  expiresAt: z.string(),
+});
 
-    console.info(
-      `[order-confirmation] Job ${job.id} — sent for ${job.data.orderNumber} to ${job.data.email} (${result.messageId})`
-    );
-  };
-
+export const handleOrderConfirmationEmail =
+  createEmailHandler<OrderConfirmationEmailJobData>({
+    queueName:   QUEUES.EMAIL_ORDER_CONFIRMATION,
+    schema,
+    getTemplate: (data) => orderConfirmationTemplate(data),
+    getExtraHeaders: (data) => ({
+      "X-Order-Number": data.orderNumber,
+    }),
+  });

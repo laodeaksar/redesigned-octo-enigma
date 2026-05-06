@@ -1,9 +1,7 @@
 // =============================================================================
 // email-worker Prometheus metrics
 //
-// email-worker has no HTTP server, so it uses prom-client's push gateway
-// OR exposes a minimal HTTP server just for /metrics.
-// We use the lightweight approach: a tiny Bun.serve on a separate port.
+// Exposes a minimal HTTP server on METRICS_PORT for /metrics scraping.
 // =============================================================================
 
 import {
@@ -14,8 +12,10 @@ import {
   Counter,
   Histogram,
 } from "@repo/common/metrics";
+import { env } from "@/config";
+import { logger } from "@/lib/logger";
 
-export const registry = createRegistry({ serviceName: "email-worker" });
+export const registry     = createRegistry({ serviceName: "email-worker" });
 export const queueMetrics = createQueueMetrics(registry);
 
 // ── Business metrics ──────────────────────────────────────────────────────────
@@ -23,7 +23,7 @@ export const queueMetrics = createQueueMetrics(registry);
 export const emailsSent = new Counter({
   name:       "email_sent_total",
   help:       "Total emails sent successfully",
-  labelNames: ["type", "provider"],  // type: welcome|order-confirmation|etc, provider: smtp|resend
+  labelNames: ["type", "provider"],
   registers:  [registry],
 });
 
@@ -44,23 +44,19 @@ export const emailSendDuration = new Histogram({
 
 // ── Minimal HTTP server for /metrics scraping ─────────────────────────────────
 
-const METRICS_PORT = parseInt(process.env["METRICS_PORT"] ?? "9091", 10);
-
 export function startMetricsServer(): void {
   Bun.serve({
-    port:     METRICS_PORT,
+    port:     env.METRICS_PORT,
     hostname: "0.0.0.0",
     async fetch(req) {
-      const url = new URL(req.url);
+      const { pathname } = new URL(req.url);
 
-      if (url.pathname === "/metrics") {
+      if (pathname === "/metrics") {
         const output = await getMetricsOutput(registry);
-        return new Response(output, {
-          headers: { "Content-Type": CONTENT_TYPE },
-        });
+        return new Response(output, { headers: { "Content-Type": CONTENT_TYPE } });
       }
 
-      if (url.pathname === "/health") {
+      if (pathname === "/health") {
         return new Response("ok", { status: 200 });
       }
 
@@ -68,6 +64,5 @@ export function startMetricsServer(): void {
     },
   });
 
-  console.info(`✓ Metrics server listening on :${METRICS_PORT}/metrics`);
+  logger.info(`Metrics server listening on :${env.METRICS_PORT}/metrics`);
 }
-

@@ -3,24 +3,24 @@
 // Queue: email.password-reset
 // =============================================================================
 
-import type { Processor } from "@repo/common/events";
+import { z } from "zod";
 import type { PasswordResetEmailJobData } from "@repo/common/types";
-import { sendEmail } from "@/lib/mailer";
 import { passwordResetTemplate } from "@/lib/templates";
+import { createEmailHandler } from "@/lib/create-email-handler";
+import { QUEUES } from "@repo/common/events";
 
-export const handlePasswordResetEmail: Processor<PasswordResetEmailJobData> =
-  async (job) => {
-    const template = passwordResetTemplate(job.data);
+const schema = z.object({
+  userId:     z.string().min(1),
+  email:      z.string().email(),
+  resetToken: z.string().min(1),
+  expiresAt:  z.string(),
+});
 
-    const result = await sendEmail({
-      to: job.data.email,
-      subject: template.subject,
-      html: template.html,
-      text: template.text,
-    });
-
-    console.info(
-      `[password-reset] Job ${job.id} — sent to ${job.data.email} (${result.messageId})`
-    );
-  };
-
+export const handlePasswordResetEmail =
+  createEmailHandler<PasswordResetEmailJobData>({
+    queueName:    QUEUES.EMAIL_PASSWORD_RESET,
+    schema,
+    getTemplate:  (data) => passwordResetTemplate(data),
+    rateLimitSec: 60,
+    checkExpiry:  (data) => new Date(data.expiresAt) < new Date(),
+  });

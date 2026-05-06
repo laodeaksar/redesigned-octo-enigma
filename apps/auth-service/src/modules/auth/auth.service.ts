@@ -95,8 +95,15 @@ export async function login(db: DB, input: LoginInput) {
     throw new EmailNotVerifiedError();
   }
 
-  if (user.status === "banned") {
-    throw new InvalidCredentialsError("Your account has been suspended");
+  // Check ban status via both legacy status field and admin plugin's banned field
+  const isBanned =
+    user.status === "banned" ||
+    (user.banned === true &&
+      (user.banExpires === null || user.banExpires > new Date()));
+
+  if (isBanned) {
+    const reason = user.banReason ? `: ${user.banReason}` : "";
+    throw new InvalidCredentialsError(`Your account has been suspended${reason}`);
   }
 
   const [accessToken, refreshToken] = await Promise.all([

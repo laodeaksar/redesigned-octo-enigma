@@ -1,11 +1,13 @@
 // =============================================================================
 // Better-auth server instance
 // Handles OAuth flows: Google, GitHub
+// Admin plugin: role management, ban/unban, user listing, impersonation
 // Docs: https://www.better-auth.com
 // =============================================================================
 
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { admin } from "better-auth/plugins";
 
 import { env, db } from "@/config";
 import {
@@ -16,25 +18,35 @@ import {
 } from "@repo/database/drizzle/schema";
 
 export const auth = betterAuth({
-  secret:  env.BETTER_AUTH_SECRET,
+  secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL,
 
   // ── Database adapter ───────────────────────────────────────────────────────
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {
-      user:         usersTable,
-      session:      sessionsTable,
-      account:      accountsTable,
+      user: usersTable,
+      session: sessionsTable,
+      account: accountsTable,
       verification: verificationsTable,
     },
   }),
 
+  // ── Plugins ────────────────────────────────────────────────────────────────
+  plugins: [
+    admin({
+      // Both "admin" and "super_admin" can perform admin actions
+      adminRole: ["admin", "super_admin"],
+      // New users are assigned "customer" by default
+      defaultRole: "customer",
+    }),
+  ],
+
   // ── Email + Password ───────────────────────────────────────────────────────
   emailAndPassword: {
-    enabled:              true,
+    enabled: true,
     requireEmailVerification: false, // handled separately by our flow
-    minPasswordLength:    8,
+    minPasswordLength: 8,
   },
 
   // ── Social providers ───────────────────────────────────────────────────────
@@ -42,9 +54,9 @@ export const auth = betterAuth({
     ...(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
       ? {
           google: {
-            clientId:     env.GOOGLE_CLIENT_ID,
+            clientId: env.GOOGLE_CLIENT_ID,
             clientSecret: env.GOOGLE_CLIENT_SECRET,
-            scope:        ["openid", "email", "profile"],
+            scope: ["openid", "email", "profile"],
           },
         }
       : {}),
@@ -52,9 +64,9 @@ export const auth = betterAuth({
     ...(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET
       ? {
           github: {
-            clientId:     env.GITHUB_CLIENT_ID,
+            clientId: env.GITHUB_CLIENT_ID,
             clientSecret: env.GITHUB_CLIENT_SECRET,
-            scope:        ["user:email", "read:user"],
+            scope: ["user:email", "read:user"],
           },
         }
       : {}),
@@ -62,36 +74,11 @@ export const auth = betterAuth({
 
   // ── Session ────────────────────────────────────────────────────────────────
   session: {
-    expiresIn:        60 * 60 * 24 * 7,  // 7 days
-    updateAge:        60 * 60 * 24,       // refresh daily
+    expiresIn: 60 * 60 * 24 * 7, // 7 days
+    updateAge: 60 * 60 * 24, // refresh daily
     cookieCache: {
-      enabled:   true,
-      maxAge:    5 * 60,                  // 5 min client-side cache
-    },
-  },
-
-  // ── User defaults ──────────────────────────────────────────────────────────
-  user: {
-    additionalFields: {
-      role: {
-        type:         "string",
-        defaultValue: "customer",
-        input:        false,              // not settable by user
-      },
-    },
-  },
-
-  // ── Callbacks ─────────────────────────────────────────────────────────────
-  callbacks: {
-    // After OAuth sign-in, send a welcome email the first time
-    async session({ session, user }) {
-      return {
-        ...session,
-        user: {
-          ...session.user,
-          role: (user as { role?: string }).role ?? "customer",
-        },
-      };
+      enabled: true,
+      maxAge: 5 * 60, // 5 min client-side cache
     },
   },
 
@@ -104,4 +91,3 @@ export const auth = betterAuth({
 });
 
 export type Auth = typeof auth;
-

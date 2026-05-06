@@ -5,7 +5,6 @@
 import React, {
   createContext,
   useContext,
-  useState,
   useCallback,
   type ReactNode,
 } from "react";
@@ -54,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const loggedInUser = await apiLogin(email, password);
       queryClient.setQueryData(authKeys.me, loggedInUser);
     },
-    [queryClient]
+    [queryClient],
   );
 
   const logout = useCallback(async () => {
@@ -81,4 +80,3 @@ export function useAuth(): AuthState {
   if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
   return ctx;
 }
-

@@ -2,7 +2,7 @@
 // DataTable — generic table with sort, pagination, empty state, loading state
 // =============================================================================
 
-import React, { type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { ChevronLeft, ChevronRight, ChevronsUpDown, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -33,7 +33,7 @@ export interface PaginationMeta {
 interface DataTableProps<T> {
   columns: Column<T>[];
   data: T[];
-  meta?: PaginationMeta;
+  meta?: PaginationMeta | undefined;
   isLoading?: boolean;
   emptyMessage?: string;
   onPageChange?: (page: number) => void;

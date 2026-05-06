@@ -28,6 +28,8 @@ export const sessionsTable = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     userAgent: text("user_agent"),
     ipAddress: varchar("ip_address", { length: 45 }), // supports IPv6
+    // ── Better-auth admin plugin fields ────────────────────────────────────
+    impersonatedBy: text("impersonated_by"), // admin user ID if impersonating
     ...timestamps(),
   },
   (t) => ({

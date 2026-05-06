@@ -2,8 +2,9 @@
 // Payments proxy routes — forward to payment-service
 //
 // Authenticated (customer+):
-//   POST /payments              — create Midtrans transaction for an order
-//   GET  /payments/:id          — get payment detail
+//   POST /payments                    — create Midtrans transaction for an order
+//   GET  /payments/order/:orderId     — get payment by order ID
+//   GET  /payments/:id                — get payment detail
 //
 // Public (Midtrans webhook — no auth, verified by signature inside service):
 //   POST /payments/webhook
@@ -38,6 +39,14 @@ app.post("/payments/webhook", async (c) => {
 
 // ── Customer: create payment ──────────────────────────────────────────────────
 app.post("/payments", requireAuth, defaultRateLimit, async (c) => {
+  return proxyRequest(c, {
+    target: buildTargetUrl(paymentBase, c),
+    user: c.var.user,
+  });
+});
+
+// ── Customer: get payment by order ID ────────────────────────────────────────
+app.get("/payments/order/:orderId", requireAuth, defaultRateLimit, async (c) => {
   return proxyRequest(c, {
     target: buildTargetUrl(paymentBase, c),
     user: c.var.user,

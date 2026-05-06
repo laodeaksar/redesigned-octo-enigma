@@ -6,13 +6,16 @@
 //   GET  /products/:id/reviews/summary  — rating breakdown summary
 //
 // Authenticated:
-//   POST /products/:id/reviews          — submit a review (verified purchase)
+//   POST   /products/:id/reviews              — submit a review (verified purchase)
+//
+// Admin only:
+//   DELETE /products/:id/reviews/:reviewId   — delete any review (content moderation)
 // =============================================================================
 
 import Elysia, { t } from "elysia";
 
 import { databasePlugin } from "@/plugins/database.plugin";
-import { jwtMiddleware } from "@/middleware/jwt.middleware";
+import { jwtMiddleware, requireRole } from "@/middleware/jwt.middleware";
 import * as controller from "./reviews.controller";
 
 const UUID_PARAM = t.Object({ id: t.String({ format: "uuid" }) });
@@ -65,6 +68,25 @@ export const reviewsRoutes = new Elysia({ prefix: "/products" })
       detail: {
         tags: ["Reviews"],
         summary: "Submit a product review (requires purchase)",
+      },
+    }
+  )
+
+  // ── Admin: delete any review (content moderation) ──────────────────────────
+  .use(requireRole("admin", "super_admin"))
+  .delete(
+    "/:id/reviews/:reviewId",
+    ({ db, redis, params, user }) =>
+      controller.handleDelete(db, redis, params.reviewId, user.id, user.role),
+    {
+      params: t.Object({
+        id: t.String({ format: "uuid" }),
+        reviewId: t.String({ format: "uuid" }),
+      }),
+      detail: {
+        tags: ["Reviews"],
+        summary: "Delete a review (admin — content moderation)",
+        security: [{ bearerAuth: [] }],
       },
     }
   );

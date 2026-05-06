@@ -32,6 +32,15 @@ export {
 export type { SessionRow, NewSessionRow } from "./sessions";
 
 export {
+  accountsTable,
+  accountsRelations,
+} from "./accounts";
+export type { AccountRow, NewAccountRow } from "./accounts";
+
+export { verificationsTable } from "./verifications";
+export type { VerificationRow, NewVerificationRow } from "./verifications";
+
+export {
   oauthAccountsTable,
   oauthAccountsRelations,
 } from "./oauth-accounts";

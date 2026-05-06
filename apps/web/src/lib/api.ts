@@ -132,6 +132,11 @@ export type OrderDetail = Order & {
 export type User = {
   id: string; email: string; name: string; role: string;
   avatarUrl: string | null; emailVerified: boolean;
+  status: string;
+  // Admin plugin fields
+  banned: boolean | null;
+  banReason: string | null;
+  banExpires: string | null;
 };
 
 export type Payment = {

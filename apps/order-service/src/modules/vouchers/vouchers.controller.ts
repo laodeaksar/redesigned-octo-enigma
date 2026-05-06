@@ -35,3 +35,8 @@ export async function handleUpdate(db: DB, id: string, body: unknown) {
   return success(await service.updateVoucher(db, id, body as Parameters<typeof service.updateVoucher>[2]), "Voucher updated");
 }
 
+export async function handleDelete(db: DB, id: string) {
+  await service.deleteVoucher(db, id);
+  return success({ id }, "Voucher deleted");
+}
+

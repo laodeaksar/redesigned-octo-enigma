@@ -66,7 +66,7 @@ export function createQueue<TData = unknown>(
  *   await addJob(emailQueue, { email, name }, { attempts: 5 })
  */
 export async function addJob<TData>(
-  queue: Queue<TData>,
+  queue: Queue,
   data: TData,
   options: JobsOptions = {}
 ) {
@@ -83,7 +83,7 @@ export async function addJob<TData>(
  *   await addUniqueJob(emailQueue, { userId }, `welcome:${userId}`)
  */
 export async function addUniqueJob<TData>(
-  queue: Queue<TData>,
+  queue: Queue,
   data: TData,
   jobId: string,
   options: JobsOptions = {}
@@ -103,7 +103,7 @@ export async function addUniqueJob<TData>(
  *   await addDelayedJob(cancelQueue, { orderId }, 60 * 60 * 1000, `cancel:${orderId}`)
  */
 export async function addDelayedJob<TData>(
-  queue: Queue<TData>,
+  queue: Queue,
   data: TData,
   delayMs: number,
   jobId?: string,

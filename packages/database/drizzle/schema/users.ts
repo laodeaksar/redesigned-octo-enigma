@@ -3,7 +3,7 @@
 // Managed by: auth-service
 // =============================================================================
 
-import { boolean, pgTable, text, varchar } from "drizzle-orm/pg-core";
+import { boolean, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 import {
@@ -28,6 +28,10 @@ export const usersTable = pgTable("users", {
   emailVerified: boolean("email_verified").notNull().default(false),
   emailVerificationToken: text("email_verification_token"),
   passwordResetToken: text("password_reset_token"),
+  // ── Better-auth admin plugin fields ──────────────────────────────────────
+  banned: boolean("banned").default(false),
+  banReason: text("ban_reason"),
+  banExpires: timestamp("ban_expires", { withTimezone: true }),
   ...timestamps(),
   ...softDelete(),
 });

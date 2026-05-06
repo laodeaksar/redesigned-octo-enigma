@@ -138,6 +138,16 @@ app.post("/products/:id/reviews", requireAuth, defaultRateLimit, async (c) => {
   });
 });
 
+// Admin: delete any review (content moderation)
+app.delete(
+  "/products/:id/reviews/:reviewId",
+  requireAuth,
+  requireRole("admin", "super_admin"),
+  defaultRateLimit,
+  async (c) =>
+    proxyRequest(c, { target: buildTargetUrl(productBase, c), user: c.var.user })
+);
+
 // ── Product admin writes ──────────────────────────────────────────────────────
 const adminMiddleware = [requireAuth, requireRole("admin", "super_admin"), defaultRateLimit] as const;
 

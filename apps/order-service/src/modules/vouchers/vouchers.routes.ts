@@ -1,11 +1,12 @@
 // =============================================================================
 // Vouchers routes
 //
-//  POST /vouchers/validate         — validate a voucher (authenticated)
-//  GET  /vouchers                  — list all (admin)
-//  GET  /vouchers/:id              — get by ID (admin)
-//  POST /vouchers                  — create (admin)
-//  PATCH /vouchers/:id             — update (admin)
+//  POST   /vouchers/validate       — validate a voucher (authenticated)
+//  GET    /vouchers                — list all (admin)
+//  GET    /vouchers/:id            — get by ID (admin)
+//  POST   /vouchers                — create (admin)
+//  PATCH  /vouchers/:id            — update (admin)
+//  DELETE /vouchers/:id            — delete (admin)
 // =============================================================================
 
 import Elysia, { t } from "elysia";
@@ -77,5 +78,9 @@ export const vouchersRoutes = new Elysia({ prefix: "/vouchers" })
       expiresAt: t.Nullable(t.String({ format: "date-time" })),
     })),
     detail: { tags: ["Vouchers"], summary: "Update voucher (admin)" },
+  })
+  .delete("/:id", ({ db, params }) => controller.handleDelete(db, params.id), {
+    params: UUID_PARAM,
+    detail: { tags: ["Vouchers"], summary: "Delete voucher (admin)" },
   });
 

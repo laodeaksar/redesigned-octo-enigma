@@ -3,6 +3,7 @@
 // =============================================================================
 
 import { defineMiddleware } from "astro:middleware";
+import { getCurrentUser } from "@/lib/auth";
 
 // Routes that require authentication
 const PROTECTED_PATHS = ["/orders", "/checkout", "/profile"];
@@ -20,6 +21,20 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
       const loginUrl = new URL("/auth/login", ctx.url);
       loginUrl.searchParams.set("redirect", pathname);
       return ctx.redirect(loginUrl.toString());
+    }
+
+    // Check if the logged-in user is banned — redirect them to login with a notice
+    try {
+      const user = await getCurrentUser(ctx.cookies);
+      if (user?.banned === true) {
+        const { clearAuthCookies } = await import("@/lib/auth");
+        clearAuthCookies(ctx.cookies);
+        const loginUrl = new URL("/auth/login", ctx.url);
+        loginUrl.searchParams.set("error", "account_suspended");
+        return ctx.redirect(loginUrl.toString());
+      }
+    } catch {
+      // Ignore — let the page handle auth errors
     }
   }
 

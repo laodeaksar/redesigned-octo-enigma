@@ -3,9 +3,11 @@
 // =============================================================================
 
 import type Redis from "ioredis";
+import { eq } from "drizzle-orm";
 
 import { ConflictError, NotFoundError, ForbiddenError } from "@repo/common/errors";
 import type { CreateReviewInput } from "@repo/common/schemas";
+import { productReviewsTable } from "@repo/database/drizzle/schema";
 
 import * as repo from "./reviews.repository";
 import { CacheKey, cacheWrap, cacheDel } from "@/lib/cache";
@@ -85,3 +87,37 @@ export async function createReview(
   return review;
 }
 
+export async function deleteReview(
+  db: DB,
+  redis: Redis | null,
+  reviewId: string,
+  requesterId: string,
+  requesterRole: string
+) {
+  const isAdmin = requesterRole === "admin" || requesterRole === "super_admin";
+
+  const [existing] = await db
+    .select()
+    .from(productReviewsTable)
+    .where(eq(productReviewsTable.id, reviewId))
+    .limit(1);
+
+  if (!existing) throw new NotFoundError("Review");
+
+  if (!isAdmin && existing.userId !== requesterId) {
+    throw new ForbiddenError("You can only delete your own reviews");
+  }
+
+  const deleted = await repo.deleteReview(db, reviewId);
+
+  // Invalidate rating caches
+  if (deleted) {
+    await cacheDel(
+      redis,
+      CacheKey.ratingSummary(deleted.productId),
+      CacheKey.reviewList(deleted.productId, 1)
+    );
+  }
+
+  return deleted;
+}

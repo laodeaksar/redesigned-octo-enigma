@@ -63,6 +63,17 @@ export async function createReview(
   return row!;
 }
 
+export async function deleteReview(
+  db: DB,
+  reviewId: string
+): Promise<ProductReviewRow | undefined> {
+  const [row] = await db
+    .delete(productReviewsTable)
+    .where(eq(productReviewsTable.id, reviewId))
+    .returning();
+  return row;
+}
+
 export async function getRatingSummary(
   db: DB,
   productId: string

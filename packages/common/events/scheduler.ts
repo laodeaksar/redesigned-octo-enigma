@@ -22,11 +22,11 @@ import { Queue, type JobsOptions } from "bullmq";
  *   await scheduleRecurring(orderCancelQueue, "expire-sweep", 5 * 60_000, {})
  */
 export async function scheduleRecurring<TData>(
-  queue: Queue<TData>,
+  queue: Queue,
   schedulerId: string,
   everyMs: number,
   data: TData,
-  options: Omit<JobsOptions, "repeat"> = {}
+  options: Omit<JobsOptions, "repeat"> = {},
 ): Promise<void> {
   await queue.upsertJobScheduler(
     schedulerId,
@@ -39,7 +39,7 @@ export async function scheduleRecurring<TData>(
         removeOnFail: { age: 86_400 },
         ...options,
       },
-    }
+    },
   );
 }
 
@@ -52,11 +52,11 @@ export async function scheduleRecurring<TData>(
  *   await scheduleCron(reportQueue, "daily-report", "0 8 * * *", { type: "daily" })
  */
 export async function scheduleCron<TData>(
-  queue: Queue<TData>,
+  queue: Queue,
   schedulerId: string,
   cronExpression: string,
   data: TData,
-  options: Omit<JobsOptions, "repeat"> = {}
+  options: Omit<JobsOptions, "repeat"> = {},
 ): Promise<void> {
   await queue.upsertJobScheduler(
     schedulerId,
@@ -69,17 +69,16 @@ export async function scheduleCron<TData>(
         removeOnFail: { age: 86_400 },
         ...options,
       },
-    }
+    },
   );
 }
 
 /**
- * Remove a recurring job scheduler.
+ * Remove a scheduler – no name constraint needed here.
  */
 export async function removeScheduler(
   queue: Queue,
-  schedulerId: string
+  schedulerId: string,
 ): Promise<void> {
   await queue.removeJobScheduler(schedulerId);
 }
-

@@ -1,7 +1,7 @@
 {
   "name": "@repo/common",
- "description": "Shared types, Zod schemas, error classes, and BullMQ queue helpers for the monorepo",
-   "module": "index.ts",
+  "description": "Shared types, Zod schemas, error classes, and BullMQ queue helpers for the monorepo",
+  "module": "index.ts",
   "type": "module",
   "engines": {
     "node": ">=20.0.0",
@@ -17,14 +17,15 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
-        "format": "prettier --write \"**/*.{ts,tsx}\"",
-"clean": "rm -rf .turbo node_modules"
+    "format": "prettier --write \"**/*.{ts,tsx}\"",
+    "clean": "rm -rf .turbo node_modules"
   },
   "dependencies": {
-   "bullmq": "^5.12.0",
-   "hono": "^4.12.14",
-   "prom-client": "^15.1.0",
-   "zod": "^4.3.6"
+    "bullmq": "^5.12.0",
+    "hono": "^4.12.14",
+    "ioredis": "5.10.1",
+    "prom-client": "^15.1.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@repo/tsconfig": "workspace:*",

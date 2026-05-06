@@ -1,71 +1,64 @@
 # My Ecommerce
 
-Indonesian full-stack e-commerce platform (Bun/TypeScript monorepo, Turborepo) with a customer storefront, admin dashboard, and 5 microservices.
+A full-stack Indonesian e-commerce platform with microservices architecture — customer storefront, admin dashboard, and backend services for auth, products, orders, and payments.
 
 ## Run & Operate
 
-```bash
-# Run migrations (must do once after fresh clone)
-cd packages/database && bun run db:migrate
+Key commands (all run from workspace root):
+- `bun install` — install all workspace dependencies
+- `bun run dev` — start all services in parallel via Turbo
+- `cd packages/database && bun run db:migrate` — apply Drizzle migrations
+- `cd packages/database && bun run db:seed` — seed sample data
+- `cd packages/database && bun run db:generate` — generate new migration from schema changes
 
-# Individual services (via workflows, ports set explicitly to override global PORT=3000)
-cd apps/web && bun run dev                        # port 5000
-cd apps/api-gateway && bun run dev                # port 3000
-cd apps/auth-service && PORT=3001 bun run dev     # port 3001
-cd apps/product-service && PORT=3002 bun run dev  # port 3002
-cd apps/order-service && PORT=3003 bun run dev    # port 3003
-cd apps/payment-service && PORT=8000 bun run dev  # port 8000
-```
-
-**Required env vars:** `DATABASE_URL` (auto-provisioned), `JWT_SECRET`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL=http://localhost:3001`
-
-**Optional (degraded without):** `REDIS_URL` (rate limiting + cache), `MONGODB_URL` (order persistence), `RAJAONGKIR_API_KEY`, `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`
+Required env vars (set in `.replit` `[userenv.shared]`):
+- `DATABASE_URL` — set automatically by Replit PostgreSQL
+- `JWT_SECRET`, `BETTER_AUTH_SECRET` — auth secrets (dev values pre-set)
+- `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY` — payment keys (need real values for payments)
+- `MONGODB_URL` — MongoDB connection (not provisioned; order persistence disabled in dev)
+- `REDIS_URL` — Redis connection (not provisioned; caching/queues disabled in dev)
 
 ## Stack
 
-- **Runtime**: Bun 1.3+ / Node.js 22
-- **Monorepo**: Bun workspaces + Turborepo
-- **Storefront**: Astro SSR + React islands + TailwindCSS v4
-- **Admin**: TanStack Start + Vite + shadcn/ui
-- **API layer**: Hono.js (api-gateway) + Elysia.js (microservices)
-- **DB/ORM**: PostgreSQL + Drizzle ORM; MongoDB + Mongoose (orders)
-- **Auth**: BetterAuth (self-hosted) + JWT
-- **Payments**: Midtrans (Indonesian gateway)
-- **Queues**: BullMQ + Redis (gracefully disabled when Redis unavailable)
+- **Runtime**: Node.js 22 / Bun 1.3.x
+- **Monorepo**: Turbo + Bun workspaces
+- **Frontend**: Astro v6 (SSR) + React islands + Tailwind CSS v4
+- **Backend**: Hono.js (API Gateway), Elysia.js (microservices)
+- **ORM**: Drizzle ORM (PostgreSQL), Mongoose (MongoDB)
+- **Auth**: Better-auth (self-hosted)
+- **Payments**: Midtrans
+- **Build**: Turbo, Vite, Bun
 
 ## Where things live
 
-```
-apps/
-  web/              Astro storefront (port 5000)
-  admin/            TanStack Start admin (not in workflows)
-  api-gateway/      Hono reverse proxy (port 3000)
-  auth-service/     BetterAuth + JWT (port 3001)
-  product-service/  Products/variants/stock (port 3002)
-  order-service/    Orders/MongoDB (port 3003)
-  payment-service/  Midtrans payments (port 8000)
-packages/
-  config/env/       Zod env schemas per service  ← source of truth for env
-  database/drizzle/ Drizzle schema + migrations   ← source of truth for DB
-  common/           Shared types, BullMQ helpers, error handlers
-  ui/               shadcn/ui + Base UI components
-```
+- `apps/web` — Astro customer storefront (port 5000)
+- `apps/admin` — TanStack Start admin dashboard
+- `apps/api-gateway` — Hono.js gateway (port 3000, entry point for all clients)
+- `apps/auth-service` — Elysia.js auth service (port 3001)
+- `apps/product-service` — Elysia.js product/category/review service (port 3002)
+- `apps/order-service` — Elysia.js order/voucher service (port 3003)
+- `apps/payment-service` — Elysia.js Midtrans payment service (port 8000)
+- `apps/email-worker` — BullMQ email background worker
+- `packages/database` — Drizzle schema + migrations + Mongoose models → `drizzle/schema/index.ts`
+- `packages/config/env` — Zod-validated env configs per service
+- `packages/common` — shared types, schemas, errors, BullMQ helpers
+- `packages/ui` — shared React components (shadcn/ui)
 
 ## Architecture decisions
 
-- **Global `PORT=3000`** is set in Replit env; each service workflow overrides with explicit `PORT=XXXX bun run dev` to avoid collision.
-- **Redis/MongoDB optional**: All services start without Redis or MongoDB; BullMQ workers are stubbed, event publishers are no-ops. Production needs real Redis + MongoDB.
-- **Payment service on 8000**: Remapped from original 3004 to use a Replit-supported port. `PAYMENT_SERVICE_URL=http://localhost:8000`.
-- **BetterAuth (self-hosted)**: Auth is handled by the custom auth-service, not Supabase/Clerk/Firebase — no external auth replacement needed.
-- **Drizzle `.using()` removed**: `ftsIdx` in `products.ts` used `.using()` which is unsupported in drizzle-orm@0.30. Commented out; use DB-level migration if FTS index needed.
+- All clients talk through the API Gateway (port 3000) — services are internal only
+- Redis/BullMQ and MongoDB are optional in dev; services degrade gracefully without them
+- Drizzle ORM uses PostgreSQL for relational data; Mongoose/MongoDB for orders only
+- Better-auth is self-hosted (not a third-party SaaS) — no external auth provider needed
+- Env validation via `@t3-oss/env-core` + Zod per service; `SKIP_ENV_VALIDATION=true` bypasses in dev
 
 ## Product
 
-- Customer storefront: product listing, product detail, cart, checkout, wishlist, order tracking
-- Admin dashboard: product/order/user management
-- Auth: register, login, JWT refresh, Google/GitHub OAuth (configured via env)
-- Payments: Midtrans payment gateway with webhook support
-- Shipping: RajaOngkir cost calculation
+- Customer storefront: browse products, categories, search, cart, checkout, order tracking, wishlist
+- User auth: email/password + OAuth (Google, GitHub), JWT sessions
+- Admin dashboard: product/category/order/user management, analytics
+- Payments: Midtrans integration (Indonesian payment gateway — bank transfer, e-wallets, credit card)
+- Shipping: RajaOngkir shipping cost calculation
 
 ## User preferences
 
@@ -73,15 +66,13 @@ _Populate as you build_
 
 ## Gotchas
 
-- Always run `cd packages/database && bun run db:migrate` after a fresh setup before starting services
-- `PORT=XXXX` must be set explicitly in each service's workflow command (global `PORT=3000` overrides defaults)
-- Redis unavailable → rate limiting disabled (gateway), cache disabled (product service), queues disabled (all services) — expected in dev
-- MongoDB unavailable → order persistence disabled — expected in dev
-- `SKIP_ENV_VALIDATION=true` is set globally to bypass strict env validation in dev
+- Astro v6 requires Node.js 22+ — the project uses the `nodejs-22` module
+- `DATABASE_URL` must use `postgresql://` prefix (not `postgres://`) for env validation
+- Order service env had a syntax error (missing comma + `PRODUCT_SERVICE_URL`) — fixed in migration
+- MongoDB and Redis are not provisioned in Replit dev env — services handle this gracefully
+- BullMQ workers are disabled when Redis is unavailable
 
 ## Pointers
 
-- DB schema: `packages/database/drizzle/schema/`
-- Env schemas: `packages/config/env/`
-- Migrations: `packages/database/drizzle/migrations/`
-- Workflows skill: `.local/skills/workflows/SKILL.md`
+- DB migrations skill: `.local/skills/database/SKILL.md`
+- Package management: `.local/skills/package-management/SKILL.md`

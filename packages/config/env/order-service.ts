@@ -18,8 +18,10 @@ export const env = createEnv({
     MONGODB_DB_NAME: z.string().min(1).default("orders"),
 
     // ── Auth (for internal JWT verification) ──────────────────────────────────
-    JWT_SECRET: jwtSecretSchema   PAYMENT_SERVICE_URL: z.url(),
-    AUTH_SERVICE_URL:    z.url(),
+    JWT_SECRET: jwtSecretSchema,
+    PRODUCT_SERVICE_URL: z.url(),
+    PAYMENT_SERVICE_URL: z.url(),
+    AUTH_SERVICE_URL: z.url(),
 
     // ── RajaOngkir (shipping cost calculation) ────────────────────────────────
     RAJAONGKIR_API_KEY:  z.string().min(1),

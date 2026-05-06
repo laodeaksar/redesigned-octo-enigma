@@ -10,6 +10,12 @@ import { jwtMiddleware } from "@/middleware/jwt.middleware";
 export const wishlistController = new Elysia({ prefix: "/wishlist" })
   .use(jwtMiddleware)
 
+  // GET /wishlist/count
+  .get("/count", async ({ user }) => {
+    const result = await wishlistService.getCount(user.id);
+    return success(result);
+  })
+
   // GET /wishlist?page=1&limit=20
   .get(
     "/",

@@ -28,4 +28,9 @@ export const wishlistService = {
   async getWishlist(userId: string, page: number, limit: number) {
     return wishlistRepository.findByUser(userId, { page, limit });
   },
+
+  async getCount(userId: string) {
+    const count = await wishlistRepository.getCount(userId);
+    return { count };
+  },
 };

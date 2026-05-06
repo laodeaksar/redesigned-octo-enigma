@@ -108,6 +108,15 @@ export const wishlistRepository = {
     return Object.fromEntries(productIds.map((id) => [id, wishlisted.has(id)]));
   },
 
+  /** Total number of items in a user's wishlist (for count badge) */
+  async getCount(userId: string): Promise<number> {
+    const [{ total }] = await db
+      .select({ total: sql<number>`count(*)::int` })
+      .from(wishlistsTable)
+      .where(eq(wishlistsTable.userId, userId));
+    return total;
+  },
+
   /** User's wishlist with product summary data (for /wishlist page) */
   async findByUser(
     userId: string,

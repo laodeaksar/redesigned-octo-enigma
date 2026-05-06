@@ -1,6 +1,7 @@
 ---
 import Navbar from "./Navbar.astro";
 import Footer from "./Footer.astro";
+import BottomNav from "./BottomNav.astro";
 import CartDrawer from "@/components/islands/CartDrawer";
 import { getCurrentUser } from "@/lib/auth";
 import "@/styles/global.css";
@@ -41,11 +42,13 @@ const user = await getCurrentUser(Astro.cookies);
 
     <Navbar user={user} />
 
-    <main>
+    <main class="pb-16 md:pb-0">
       <slot />
     </main>
 
     <Footer />
+
+    <BottomNav />
 
     <!-- Hydrate cart from localStorage on mount -->
     <script>

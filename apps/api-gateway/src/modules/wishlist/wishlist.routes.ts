@@ -2,6 +2,7 @@
 // Wishlist proxy routes — forward to product-service
 //
 // All endpoints require authentication (customer+):
+//   GET    /wishlist/count                 — total count (lightweight badge fetch)
 //   GET    /wishlist                       — paginated wishlist
 //   GET    /wishlist/status/:productId     — single product status
 //   POST   /wishlist/status/bulk           — bulk status check
@@ -19,6 +20,10 @@ import { SERVICES } from "@/config";
 
 const app = new Hono();
 const productBase = SERVICES.product;
+
+app.get("/wishlist/count", requireAuth, defaultRateLimit, async (c) =>
+  proxyRequest(c, { target: buildTargetUrl(productBase, c), user: c.var.user })
+);
 
 app.get("/wishlist", requireAuth, defaultRateLimit, async (c) =>
   proxyRequest(c, { target: buildTargetUrl(productBase, c), user: c.var.user })

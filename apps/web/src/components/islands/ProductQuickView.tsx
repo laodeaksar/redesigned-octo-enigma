@@ -1,0 +1,336 @@
+// =============================================================================
+// ProductQuickView — React island, client:load
+// Opens as a bottom sheet on mobile, centred modal on desktop.
+// Triggered by: window.dispatchEvent(new CustomEvent("open-quick-view", { detail: { slug } }))
+// =============================================================================
+
+import React, { useState, useEffect, useCallback } from "react";
+import { addToCart } from "@/stores/cart.store";
+import { formatIDR } from "@/lib/utils";
+import type { ProductDetail } from "@/lib/api";
+
+const BASE = import.meta.env.PUBLIC_API_URL ?? "http://localhost:3000";
+
+export default function ProductQuickView() {
+  const [open, setOpen]               = useState(false);
+  const [mounted, setMounted]         = useState(false);
+  const [slug, setSlug]               = useState<string | null>(null);
+  const [product, setProduct]         = useState<ProductDetail | null>(null);
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState<string | null>(null);
+  const [imageIdx, setImageIdx]       = useState(0);
+  const [selected, setSelected]       = useState<Record<string, string>>({});
+  const [qty, setQty]                 = useState(1);
+  const [added, setAdded]             = useState(false);
+
+  // ── Listen for trigger ───────────────────────────────────────────────────────
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { slug: s } = (e as CustomEvent<{ slug: string }>).detail;
+      setSlug(s);
+      setProduct(null);
+      setError(null);
+      setImageIdx(0);
+      setQty(1);
+      setAdded(false);
+      setMounted(true);
+      // Small delay so the mount transition renders before open
+      requestAnimationFrame(() => requestAnimationFrame(() => setOpen(true)));
+    };
+    window.addEventListener("open-quick-view", handler);
+    return () => window.removeEventListener("open-quick-view", handler);
+  }, []);
+
+  // ── Fetch product detail when slug is set ────────────────────────────────────
+  useEffect(() => {
+    if (!slug) return;
+    setLoading(true);
+    fetch(`${BASE}/products/slug/${slug}`)
+      .then((r) => r.json())
+      .then((body: { data: ProductDetail }) => {
+        const p = body.data;
+        setProduct(p);
+        // Pre-select first active variant's attributes
+        const first = p.variants.find((v) => v.isActive);
+        if (first) setSelected({ ...first.attributes });
+        // Find primary image index
+        const primaryIdx = p.images.findIndex((i) => i.isPrimary);
+        setImageIdx(primaryIdx >= 0 ? primaryIdx : 0);
+      })
+      .catch(() => setError("Gagal memuat produk."))
+      .finally(() => setLoading(false));
+  }, [slug]);
+
+  // ── Close helpers ────────────────────────────────────────────────────────────
+  const close = useCallback(() => {
+    setOpen(false);
+    setTimeout(() => { setMounted(false); setSlug(null); }, 320);
+  }, []);
+
+  // Lock body scroll + Escape key while open
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open, close]);
+
+  // ── Variant logic ────────────────────────────────────────────────────────────
+  const activeVariants = product?.variants.filter((v) => v.isActive) ?? [];
+  const attrKeys = Object.keys(activeVariants[0]?.attributes ?? {});
+  const attrValues = (key: string) =>
+    [...new Set(activeVariants.map((v) => v.attributes[key]).filter(Boolean) as string[])];
+  const matchedVariant =
+    activeVariants.find((v) => attrKeys.every((k) => v.attributes[k] === selected[k])) ??
+    activeVariants[0] ??
+    null;
+  const isOutOfStock = !matchedVariant || matchedVariant.stock === 0;
+  const maxQty = matchedVariant?.stock ?? 1;
+
+  const handleAdd = () => {
+    if (!matchedVariant || isOutOfStock || !product) return;
+    const coverImage =
+      product.images.find((i) => i.isPrimary)?.url ??
+      product.images[0]?.url ??
+      null;
+    addToCart({
+      variantId: matchedVariant.id,
+      productName: product.name,
+      variantName: matchedVariant.name,
+      sku: matchedVariant.id,
+      imageUrl: coverImage,
+      price: matchedVariant.price,
+      quantity: qty,
+    });
+    setAdded(true);
+    setTimeout(() => setAdded(false), 2000);
+  };
+
+  if (!mounted) return null;
+
+  const discountPct =
+    matchedVariant?.compareAtPrice && matchedVariant.compareAtPrice > matchedVariant.price
+      ? Math.round((1 - matchedVariant.price / matchedVariant.compareAtPrice) * 100)
+      : 0;
+
+  return (
+    <>
+      {/* ── Backdrop ─────────────────────────────────────────────────────────── */}
+      <div
+        className={`fixed inset-0 z-[80] bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${
+          open ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+        onClick={close}
+        aria-hidden="true"
+      />
+
+      {/* ── Modal / sheet ────────────────────────────────────────────────────── */}
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={product?.name ?? "Quick view"}
+        className={`fixed inset-x-0 bottom-0 z-[90] flex flex-col sm:inset-0 sm:items-center sm:justify-center sm:p-4 transition-all duration-300 ${
+          open
+            ? "opacity-100 pointer-events-auto"
+            : "opacity-0 pointer-events-none"
+        }`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          className={`relative w-full bg-white shadow-2xl rounded-t-2xl sm:rounded-2xl sm:max-w-3xl overflow-hidden transition-transform duration-300 ${
+            open ? "translate-y-0 sm:scale-100" : "translate-y-full sm:translate-y-0 sm:scale-95"
+          }`}
+          style={{ maxHeight: "92dvh" }}
+        >
+          {/* Close */}
+          <button
+            onClick={close}
+            aria-label="Tutup"
+            className="absolute right-3 top-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-gray-500 shadow ring-1 ring-gray-100 hover:bg-gray-100 hover:text-gray-700"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          {/* Drag handle (mobile) */}
+          <div className="flex justify-center pt-3 pb-1 sm:hidden">
+            <div className="h-1 w-10 rounded-full bg-gray-200" />
+          </div>
+
+          <div className="overflow-y-auto" style={{ maxHeight: "calc(92dvh - 1rem)" }}>
+            {/* Loading */}
+            {loading && (
+              <div className="flex h-64 items-center justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-500 border-t-transparent" />
+              </div>
+            )}
+
+            {/* Error */}
+            {error && !loading && (
+              <div className="flex h-40 flex-col items-center justify-center gap-3 p-6">
+                <p className="text-sm text-gray-500">{error}</p>
+                <button onClick={close} className="text-sm text-accent hover:underline">Tutup</button>
+              </div>
+            )}
+
+            {/* Content */}
+            {product && !loading && (
+              <div className="flex flex-col sm:flex-row">
+
+                {/* Left — image gallery */}
+                <div className="w-full sm:w-2/5 shrink-0 bg-gray-50">
+                  <div className="aspect-square overflow-hidden">
+                    {product.images.length > 0 ? (
+                      <img
+                        key={imageIdx}
+                        src={product.images[imageIdx]?.url ?? product.images[0].url}
+                        alt={product.images[imageIdx]?.altText ?? product.name}
+                        className="h-full w-full object-cover transition-opacity duration-200"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-6xl text-gray-200">📦</div>
+                    )}
+                  </div>
+                  {product.images.length > 1 && (
+                    <div className="flex gap-2 overflow-x-auto p-3">
+                      {product.images.map((img, i) => (
+                        <button
+                          key={img.id}
+                          onClick={() => setImageIdx(i)}
+                          className={`h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 transition-colors ${
+                            imageIdx === i
+                              ? "border-brand-500"
+                              : "border-transparent hover:border-gray-300"
+                          }`}
+                        >
+                          <img src={img.url} alt={img.altText ?? ""} className="h-full w-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Right — details */}
+                <div className="flex flex-1 flex-col gap-4 p-5">
+                  {/* Name + short desc */}
+                  <div>
+                    <h2 className="text-lg font-bold leading-snug text-gray-900">{product.name}</h2>
+                    {product.shortDescription && (
+                      <p className="mt-1 line-clamp-2 text-sm text-gray-500">{product.shortDescription}</p>
+                    )}
+                  </div>
+
+                  {/* Price */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-2xl font-bold text-gray-900">
+                      {matchedVariant ? formatIDR(matchedVariant.price) : "—"}
+                    </span>
+                    {matchedVariant?.compareAtPrice && (
+                      <span className="text-base text-gray-400 line-through">
+                        {formatIDR(matchedVariant.compareAtPrice)}
+                      </span>
+                    )}
+                    {discountPct > 0 && (
+                      <span className="rounded-md bg-red-100 px-2 py-0.5 text-xs font-bold text-red-600">
+                        -{discountPct}%
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Variant selectors */}
+                  {attrKeys.map((key) => (
+                    <div key={key}>
+                      <p className="mb-2 text-sm font-medium capitalize text-gray-700">{key}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {attrValues(key).map((val) => {
+                          const available = activeVariants.some(
+                            (v) => v.attributes[key] === val && v.stock > 0
+                          );
+                          return (
+                            <button
+                              key={val}
+                              onClick={() => setSelected((s) => ({ ...s, [key]: val }))}
+                              disabled={!available}
+                              className={`rounded-md border px-3 py-1.5 text-sm font-medium transition-colors ${
+                                selected[key] === val
+                                  ? "border-brand-500 bg-brand-500 text-white"
+                                  : available
+                                    ? "border-gray-200 text-gray-700 hover:border-gray-400"
+                                    : "cursor-not-allowed border-gray-100 text-gray-300 line-through"
+                              }`}
+                            >
+                              {val}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Low stock warning */}
+                  {matchedVariant && matchedVariant.stock > 0 && matchedVariant.stock <= 5 && (
+                    <p className="text-sm font-medium text-yellow-600">
+                      ⚡ Sisa {matchedVariant.stock} item
+                    </p>
+                  )}
+
+                  {/* Quantity */}
+                  {!isOutOfStock && (
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-gray-600">Jumlah:</span>
+                      <div className="flex items-center rounded-md border border-gray-200">
+                        <button
+                          onClick={() => setQty((q) => Math.max(1, q - 1))}
+                          className="flex h-9 w-9 items-center justify-center text-gray-500 hover:bg-gray-50"
+                        >−</button>
+                        <span className="w-10 text-center text-sm font-medium">{qty}</span>
+                        <button
+                          onClick={() => setQty((q) => Math.min(maxQty, q + 1))}
+                          className="flex h-9 w-9 items-center justify-center text-gray-500 hover:bg-gray-50"
+                        >+</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="mt-auto flex flex-col gap-2 pt-2">
+                    <button
+                      onClick={handleAdd}
+                      disabled={isOutOfStock}
+                      className={`w-full rounded-lg py-3 text-sm font-semibold transition-all ${
+                        isOutOfStock
+                          ? "cursor-not-allowed bg-gray-100 text-gray-400"
+                          : added
+                            ? "bg-green-500 text-white"
+                            : "bg-accent text-white hover:opacity-90 active:scale-[0.98]"
+                      }`}
+                    >
+                      {isOutOfStock
+                        ? "Stok Habis"
+                        : added
+                          ? "✓ Ditambahkan!"
+                          : "Tambah ke Keranjang"}
+                    </button>
+                    <a
+                      href={`/products/${product.slug}`}
+                      onClick={close}
+                      className="block w-full rounded-lg border border-gray-200 py-2.5 text-center text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                      Lihat Detail Lengkap →
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}

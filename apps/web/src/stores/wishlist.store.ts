@@ -1,79 +1,87 @@
-import { atom, action } from "nanostores";
+// =============================================================================
+// Wishlist store — nanostores (shared between React islands client-side)
+// =============================================================================
 
-// Set berisi productId yang sudah di-wishlist
+import { atom, computed } from "nanostores";
+
+// ── State ─────────────────────────────────────────────────────────────────────
+
 export const $wishlistedIds = atom<Set<string>>(new Set());
 
-const API = "/api/wishlist"; // melalui Astro server route → api-gateway
+// ── Computed ──────────────────────────────────────────────────────────────────
 
-/** Hydrate dari server setelah login */
-export const hydrateWishlist = action(
+export const $wishlistCount = computed(
   $wishlistedIds,
-  "hydrateWishlist",
-  async (store) => {
-    try {
-      const cached = localStorage.getItem("wishlist");
-      if (cached) {
-        store.set(new Set(JSON.parse(cached)));
-      }
-    } catch {}
-
-    try {
-      const res = await fetch(API);
-      if (!res.ok) return;
-      const { data } = await res.json();
-      const ids = (data.items as { product: { id: string } }[]).map(
-        (i) => i.product.id
-      );
-      const next = new Set(ids);
-      store.set(next);
-      localStorage.setItem("wishlist", JSON.stringify(ids));
-    } catch {}
-  }
+  (ids) => ids.size
 );
 
-/** Optimistic toggle — rollback jika server gagal */
-export const toggleWishlist = action(
-  $wishlistedIds,
-  "toggleWishlist",
-  async (store, productId: string) => {
-    const prev = new Set(store.get());
-    const next = new Set(prev);
+// ── Actions ───────────────────────────────────────────────────────────────────
 
-    // Optimistic update
-    if (next.has(productId)) {
-      next.delete(productId);
-    } else {
-      next.add(productId);
-    }
-    store.set(next);
-    persist(next);
+const API = "/api/wishlist";
 
-    try {
-      const res = await fetch(`${API}/${productId}/toggle`, {
-        method: "POST",
-      });
-      if (!res.ok) throw new Error("toggle failed");
-      const { data } = await res.json();
-
-      // Reconcile dengan server truth
-      const reconciled = new Set(store.get());
-      if (data.wishlisted) {
-        reconciled.add(productId);
-      } else {
-        reconciled.delete(productId);
-      }
-      store.set(reconciled);
-      persist(reconciled);
-    } catch {
-      // Rollback
-      store.set(prev);
-      persist(prev);
-    }
-  }
-);
-
-function persist(ids: Set<string>) {
+/** Hydrate wishlist IDs — first from localStorage, then reconcile with server */
+export async function hydrateWishlist() {
   try {
+    const cached = localStorage.getItem("wishlist");
+    if (cached) {
+      $wishlistedIds.set(new Set(JSON.parse(cached) as string[]));
+    }
+  } catch {
+    // ignore corrupt storage
+  }
+
+  try {
+    const res = await fetch(API);
+    if (!res.ok) return;
+    const { data } = await res.json() as { data: { items: { product: { id: string } }[] } };
+    const ids = data.items.map((i) => i.product.id);
+    const next = new Set(ids);
+    $wishlistedIds.set(next);
+    persistWishlist(next);
+  } catch {
+    // ignore server errors — use cached state
+  }
+}
+
+/** Optimistic toggle — rolls back if server request fails */
+export async function toggleWishlist(productId: string) {
+  const prev = new Set($wishlistedIds.get());
+  const next = new Set(prev);
+
+  if (next.has(productId)) {
+    next.delete(productId);
+  } else {
+    next.add(productId);
+  }
+
+  $wishlistedIds.set(next);
+  persistWishlist(next);
+
+  try {
+    const res = await fetch(`${API}/${productId}/toggle`, { method: "POST" });
+    if (!res.ok) throw new Error("toggle failed");
+    const { data } = await res.json() as { data: { wishlisted: boolean } };
+
+    // Reconcile with server truth
+    const reconciled = new Set($wishlistedIds.get());
+    if (data.wishlisted) {
+      reconciled.add(productId);
+    } else {
+      reconciled.delete(productId);
+    }
+    $wishlistedIds.set(reconciled);
+    persistWishlist(reconciled);
+  } catch {
+    // Rollback on error
+    $wishlistedIds.set(prev);
+    persistWishlist(prev);
+  }
+}
+
+// ── Persistence (localStorage) ────────────────────────────────────────────────
+
+function persistWishlist(ids: Set<string>) {
+  if (typeof localStorage !== "undefined") {
     localStorage.setItem("wishlist", JSON.stringify([...ids]));
-  } catch {}
+  }
 }

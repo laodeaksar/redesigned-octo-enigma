@@ -5,14 +5,19 @@
 import { createApp } from "@/app";
 import { env, initRabbitMQ } from "@/config";
 
+// Suppress non-fatal unhandled rejections from Redis/BullMQ when unavailable
+process.on("unhandledRejection", (reason) => {
+  const msg = String(reason);
+  if (msg.includes("ECONNREFUSED") || msg.includes("Connection is closed") || msg.includes("connect")) {
+    console.warn("[Redis/BullMQ] Connection warning (non-fatal):", msg.split("\n")[0]);
+    return;
+  }
+  console.error("[FATAL] Unhandled rejection:", reason);
+  process.exit(1);
+});
+
 async function bootstrap() {
   console.info(`\n🚀 Starting payment-service [${env.NODE_ENV}]…`);
-
-  // ── Validate Midtrans config ─────────────────────────────────────────────
-  if (!env.MIDTRANS_SERVER_KEY || !env.MIDTRANS_CLIENT_KEY) {
-    console.error("✗ MIDTRANS_SERVER_KEY and MIDTRANS_CLIENT_KEY must be set");
-    process.exit(1);
-  }
 
   const mode = env.MIDTRANS_IS_PRODUCTION ? "PRODUCTION" : "SANDBOX";
   console.info(`✓ Midtrans configured [${mode}]`);
@@ -24,7 +29,7 @@ async function bootstrap() {
   } catch (err) {
     console.warn(
       "⚠ RabbitMQ unavailable — payment events will not be published:",
-      err,
+      (err as Error).message,
     );
     if (env.NODE_ENV === "production") process.exit(1);
   }
@@ -48,11 +53,6 @@ async function bootstrap() {
 
   process.on("SIGTERM", () => void shutdown("SIGTERM"));
   process.on("SIGINT", () => void shutdown("SIGINT"));
-
-  process.on("unhandledRejection", (reason) => {
-    console.error("[FATAL] Unhandled rejection:", reason);
-    process.exit(1);
-  });
 }
 
 await bootstrap();

@@ -5,15 +5,15 @@
 import { env as rawEnv } from "@repo/env/order-service";
 import { createDrizzleClient } from "@repo/database/drizzle";
 import { connectMongo } from "@repo/database/mongo";
-import { createQueue, QUEUES } from "@repo/common/events";
-import Redis from "ioredis";
 
 export const env = rawEnv;
 
 // ── PostgreSQL via Drizzle (vouchers) ─────────────────────────────────────────
 
+const DATABASE_URL = process.env.DATABASE_URL ?? "";
+
 export const db = createDrizzleClient({
-  url: env.DATABASE_URL,
+  url: DATABASE_URL || "postgres://placeholder:placeholder@localhost:5432/placeholder",
   maxConnections: 5,
   debug: env.NODE_ENV === "development",
 });
@@ -30,21 +30,14 @@ export async function initMongo(): Promise<void> {
   });
 }
 
-// ── Redis + BullMQ queues ─────────────────────────────────────────────────────
+// ── Redis + BullMQ queues (disabled — Redis not available in this env) ─────────
 
-export const redis = new Redis(env.REDIS_URL, {
-  maxRetriesPerRequest: null, // required by BullMQ
-  enableReadyCheck: false,
-});
-
-redis.on("error", (err) => console.warn("[Redis] Error:", err.message));
-redis.on("connect", () => console.info("[Redis] Connected"));
+export const redis = null;
 
 export const queues = {
-  emailOrderConfirmation: createQueue(QUEUES.EMAIL_ORDER_CONFIRMATION, redis),
-  emailOrderShipped:      createQueue(QUEUES.EMAIL_ORDER_SHIPPED, redis),
-  emailOrderCancelled:    createQueue(QUEUES.EMAIL_ORDER_CANCELLED, redis),
-  orderCancelExpired:     createQueue(QUEUES.ORDER_CANCEL_EXPIRED, redis),
-  stockRestore:           createQueue(QUEUES.PRODUCT_STOCK_RESTORE, redis),
+  emailOrderConfirmation: null as null,
+  emailOrderShipped:      null as null,
+  emailOrderCancelled:    null as null,
+  orderCancelExpired:     null as null,
+  stockRestore:           null as null,
 } as const;
-

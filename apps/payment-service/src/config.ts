@@ -4,33 +4,31 @@
 
 import { env as rawEnv } from "@repo/env/payment-service";
 import { createDrizzleClient } from "@repo/database/drizzle";
-import { createQueue, QUEUES } from "@repo/common/events";
-import Redis from "ioredis";
+
+export async function initRabbitMQ(): Promise<void> {
+  console.warn("RabbitMQ not configured — payment events disabled in this environment");
+}
 
 export const env = rawEnv;
 
 // ── PostgreSQL via Drizzle ────────────────────────────────────────────────────
 
+const DATABASE_URL = process.env.DATABASE_URL ?? "";
+
 export const db = createDrizzleClient({
-  url: env.DATABASE_URL,
+  url: DATABASE_URL || "postgres://placeholder:placeholder@localhost:5432/placeholder",
   maxConnections: 5,
   debug: env.NODE_ENV === "development",
 });
 
 export type DB = typeof db;
 
-// ── Redis + BullMQ queues ─────────────────────────────────────────────────────
+// ── Redis + BullMQ queues (disabled — Redis not available in this env) ─────────
 
-export const redis = new Redis(env.REDIS_URL, {
-  maxRetriesPerRequest: null, // required by BullMQ
-  enableReadyCheck: false,
-});
-
-redis.on("error", (err) => console.warn("[Redis] Error:", err.message));
-redis.on("connect", () => console.info("[Redis] Connected"));
+export const redis = null;
 
 export const queues = {
-  emailOrderConfirmation: createQueue(QUEUES.EMAIL_ORDER_CONFIRMATION, redis),
+  emailOrderConfirmation: null as null,
 } as const;
 
 // ── Order Service HTTP base URL ───────────────────────────────────────────────

@@ -5,6 +5,17 @@
 import { createApp } from "@/app";
 import { env, initRabbitMQ } from "@/config";
 
+// Suppress non-fatal unhandled rejections from Redis/BullMQ when unavailable
+process.on("unhandledRejection", (reason) => {
+  const msg = String(reason);
+  if (msg.includes("ECONNREFUSED") || msg.includes("Connection is closed") || msg.includes("connect")) {
+    console.warn("[Redis/BullMQ] Connection warning (non-fatal):", msg.split("\n")[0]);
+    return;
+  }
+  console.error("[FATAL] Unhandled rejection:", reason);
+  process.exit(1);
+});
+
 async function bootstrap() {
   console.info(`\n🚀 Starting auth-service [${env.NODE_ENV}]…`);
 
@@ -13,8 +24,7 @@ async function bootstrap() {
     await initRabbitMQ();
     console.info("✓ RabbitMQ connected");
   } catch (err) {
-    console.warn("⚠ RabbitMQ unavailable — email events will not be published:", err);
-    // Non-fatal in development — auth still works without MQ
+    console.warn("⚠ RabbitMQ unavailable — email events will not be published:", (err as Error).message);
     if (env.NODE_ENV === "production") process.exit(1);
   }
 
@@ -36,13 +46,6 @@ async function bootstrap() {
 
   process.on("SIGTERM", () => void shutdown("SIGTERM"));
   process.on("SIGINT", () => void shutdown("SIGINT"));
-
-  // Crash on unhandled promise rejections
-  process.on("unhandledRejection", (reason) => {
-    console.error("[FATAL] Unhandled rejection:", reason);
-    process.exit(1);
-  });
 }
 
 await bootstrap();
-

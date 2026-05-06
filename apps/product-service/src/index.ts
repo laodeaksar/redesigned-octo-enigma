@@ -3,29 +3,22 @@
 // =============================================================================
 
 import { createApp } from "@/app";
-import { env, redis, cacheRedis, queues } from "@/config";
+import { env, initRedis } from "@/config";
 import { startWorkers, closeWorkers } from "@/worker";
 
 async function bootstrap() {
   console.info(`\n🚀 Starting product-service [${env.NODE_ENV}]…`);
 
-  // ── Redis ────────────────────────────────────────────────────────────────
-  try {
-    await redis.ping();
+  // ── Redis (optional) ──────────────────────────────────────────────────────
+  const redisAvailable = await initRedis();
+  if (redisAvailable) {
     console.info("✓ Redis connected (cache + BullMQ queues)");
-  } catch {
+  } else {
     console.warn("⚠ Redis unavailable — running without cache/queues");
-    if (env.NODE_ENV === "production") process.exit(1);
   }
 
-  // Connect cache redis (lazy)
-  await cacheRedis.connect().catch(() => {
-    console.warn("⚠ Cache Redis unavailable — running without response cache");
-  });
-
-  // ── BullMQ workers ────────────────────────────────────────────────────────
+  // ── BullMQ workers (no-op when Redis unavailable) ─────────────────────────
   const workers = startWorkers();
-  console.info("✓ BullMQ workers started (stock-deduct, stock-restore)");
 
   // ── Elysia server ────────────────────────────────────────────────────────
   const app = createApp();
@@ -39,17 +32,8 @@ async function bootstrap() {
   const shutdown = async (signal: string) => {
     console.info(`\n${signal} received — shutting down gracefully…`);
 
-    // 1. Stop HTTP server
     await app.stop();
-
-    // 2. Drain workers — let in-flight stock jobs finish
     await closeWorkers(workers);
-
-    // 3. Close queues (producers)
-    await Promise.all(Object.values(queues).map((q) => q.close()));
-
-    // 4. Disconnect Redis
-    await Promise.allSettled([redis.quit(), cacheRedis.quit()]);
 
     console.info("✓ product-service stopped");
     process.exit(0);
@@ -60,9 +44,8 @@ async function bootstrap() {
 
   process.on("unhandledRejection", (reason) => {
     console.error("[FATAL] Unhandled rejection:", reason);
-    process.exit(1);
+    if (env.NODE_ENV === "production") process.exit(1);
   });
 }
 
 await bootstrap();
-

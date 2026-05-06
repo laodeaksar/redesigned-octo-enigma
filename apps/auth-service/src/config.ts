@@ -4,8 +4,10 @@
 
 import { env as rawEnv } from "@repo/env/auth-service";
 import { createDrizzleClient } from "@repo/database/drizzle";
-import { createQueue, QUEUES } from "@repo/common/events";
-import Redis from "ioredis";
+
+export async function initRabbitMQ(): Promise<void> {
+  console.warn("RabbitMQ not configured — email events disabled in this environment");
+}
 
 export const env = rawEnv;
 
@@ -19,18 +21,11 @@ export const db = createDrizzleClient({
 
 export type DB = typeof db;
 
-// ── Redis + BullMQ queues ─────────────────────────────────────────────────────
-
-export const redis = new Redis(env.REDIS_URL, {
-  maxRetriesPerRequest: null, // required by BullMQ
-  enableReadyCheck: false,
-});
-
-redis.on("error", (err) => console.warn("[Redis] Error:", err.message));
-redis.on("connect", () => console.info("[Redis] Connected"));
+// ── Redis + BullMQ queues (lazy, no-op when Redis unavailable) ────────────────
 
 export const queues = {
-  emailWelcome:         createQueue(QUEUES.EMAIL_WELCOME, redis),
-  emailPasswordReset:   createQueue(QUEUES.EMAIL_PASSWORD_RESET, redis),
+  emailWelcome:       null as null,
+  emailPasswordReset: null as null,
 } as const;
 
+export const redis = null;

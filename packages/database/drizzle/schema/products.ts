@@ -54,12 +54,8 @@ export const productsTable = pgTable(
     deletedAtIdx: index("products_deleted_at_idx")
       .on(t.deletedAt)
       .where(sql`${t.deletedAt} IS NULL`),
-    // Full-text search index pakai GIN
-    //@ts-ignore
-    ftsIdx: index("products_fts_idx").using(
-      "gin",
-      sql`to_tsvector('english', ${t.name} || ' ' || ${t.description})`,
-    ),
+    // Full-text search index (GIN) — commented out; .using() not supported in this drizzle-orm version
+    // ftsIdx: index("products_fts_idx").using("gin", sql`to_tsvector('english', ${t.name} || ' ' || ${t.description})`),
   }),
 );
 

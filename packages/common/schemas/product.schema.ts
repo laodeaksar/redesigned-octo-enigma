@@ -86,9 +86,21 @@ export const productVariantSchema = z
 
 export type ProductVariantInput = z.infer<typeof productVariantSchema>;
 
-export const updateVariantSchema = productVariantSchema
-  .omit({ sku: true })
-  .partial();
+export const updateVariantSchema = z
+  .object({
+    name: shortStringSchema.max(200).optional(),
+    attributes: z
+      .record(z.string(), z.string())
+      .refine((v) => Object.keys(v).length > 0, {
+        message: "At least one attribute is required",
+      })
+      .optional(),
+    price: positiveIdrAmountSchema.optional(),
+    compareAtPrice: positiveIdrAmountSchema.nullable().optional(),
+    stock: nonNegativeIntSchema.optional(),
+    weight: weightSchema.nullable().optional(),
+    isActive: z.boolean().optional(),
+  });
 export type UpdateVariantInput = z.infer<typeof updateVariantSchema>;
 
 // ── Create Product ────────────────────────────────────────────────────────────
@@ -128,9 +140,22 @@ export type CreateProductInput = z.infer<typeof createProductSchema>;
 
 // ── Update Product ────────────────────────────────────────────────────────────
 
-export const updateProductSchema = createProductSchema
-  .omit({ variants: true, images: true })
-  .partial();
+export const updateProductSchema = z.object({
+  name: shortStringSchema
+    .min(3, { message: "Product name must be at least 3 characters" })
+    .max(255)
+    .optional(),
+  slug: slugSchema.optional(),
+  description: longStringSchema.optional(),
+  shortDescription: z.string().max(500).nullable().optional(),
+  status: productStatusSchema.optional(),
+  categoryId: uuidSchema.optional(),
+  tags: z
+    .array(z.string().max(50).trim())
+    .max(20, { message: "Cannot have more than 20 tags" })
+    .optional(),
+  weight: weightSchema.nullable().optional(),
+});
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 
 // ── Stock Adjustment ──────────────────────────────────────────────────────────

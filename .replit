@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web", "bun"]
+modules = ["web", "nodejs-22", "python-3.11"]
 [agent]
 expertMode = true
 stack = "BEST_EFFORT_FALLBACK"
@@ -19,7 +19,7 @@ PAYMENT_SERVICE_PORT = "3004"
 AUTH_SERVICE_URL = "http://localhost:3001"
 PRODUCT_SERVICE_URL = "http://localhost:3002"
 ORDER_SERVICE_URL = "http://localhost:3003"
-PAYMENT_SERVICE_URL = "http://localhost:3004"
+PAYMENT_SERVICE_URL = "http://localhost:8000"
 CORS_ORIGINS = "http://localhost:5000,http://localhost:3000"
 SKIP_ENV_VALIDATION = "true"
 JWT_SECRET = "d82ecaee72ac636091c2d635513de8ad7a8dfbdc9c74f2b8442e8d5e938ab84c"
@@ -56,21 +56,121 @@ author = "agent"
 task = "workflow.run"
 args = "Start application"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "API Gateway"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Auth Service"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Product Service"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Order Service"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Payment Service"
+
 [[workflows.workflow]]
 name = "Start application"
 author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd apps/web && bun run dev"
 waitForPort = 5000
 
+[[workflows.workflow]]
+name = "API Gateway"
+author = "agent"
+
 [workflows.workflow.metadata]
-outputType = "webview"
+outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd apps/api-gateway && bun run dev"
+waitForPort = 3000
+
+[[workflows.workflow]]
+name = "Auth Service"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd apps/auth-service && PORT=3001 bun run dev"
+waitForPort = 3001
+
+[[workflows.workflow]]
+name = "Product Service"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd apps/product-service && PORT=3002 bun run dev"
+waitForPort = 3002
+
+[[workflows.workflow]]
+name = "Order Service"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd apps/order-service && PORT=3003 bun run dev"
+waitForPort = 3003
+
+[[workflows.workflow]]
+name = "Payment Service"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd apps/payment-service && PORT=8000 bun run dev"
+waitForPort = 8000
 
 [[ports]]
-localPort = 5000
-externalPort = 80
+localPort = 3000
+externalPort = 3000
+
+[[ports]]
+localPort = 3001
+externalPort = 3001
+
+[[ports]]
+localPort = 3002
+externalPort = 3002
+
+[[ports]]
+localPort = 3003
+externalPort = 3003
+
+[[ports]]
+localPort = 5001
+externalPort = 5173
+
+[[ports]]
+localPort = 8000
+externalPort = 8000
 
 [deployment]
 deploymentTarget = "autoscale"

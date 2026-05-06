@@ -4,7 +4,7 @@
 // Uses MongoDB to count orders created on the same calendar day.
 // =============================================================================
 
-import { OrderModel } from "@repo/database/mongo/models/order.model";
+import { OrderModel } from "@repo/database/mongo/models";
 
 /**
  * Generate the next sequential order number for today (UTC).

@@ -10,7 +10,7 @@
 
 import Elysia, { t } from "elysia";
 import { success } from "@repo/common/schemas";
-import { OrderModel } from "@repo/database/mongo/models/order.model";
+import { OrderModel } from "@repo/database/mongo/models";
 
 export const analyticsRoutes = new Elysia({ prefix: "/analytics" })
 

@@ -399,5 +399,5 @@ export async function expireStaleOrders() {
 }
 
 // ── Local type alias needed for updateOrderStatus ─────────────────────────────
-import type { IOrder } from "@repo/database/mongo/models/order.model";
+import type { IOrder } from "@repo/database/mongo/models";
 

@@ -39,6 +39,8 @@ export async function handleSearch(
   });
   return paginated(items, { total, page, limit });
 }
+
+export async function handleGetById(db: DB, redis: Redis | null, id: string) {
   return success(await service.getProductById(db, redis, id));
 }
 

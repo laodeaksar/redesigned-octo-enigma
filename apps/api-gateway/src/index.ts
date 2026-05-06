@@ -9,12 +9,11 @@ async function bootstrap() {
   console.info(`\n🚀 Starting api-gateway [${env.NODE_ENV}]…`);
 
   // ── Redis ─────────────────────────────────────────────────────────────────
-  try {
-    await initRedis();
+  const redisAvailable = await initRedis();
+  if (redisAvailable) {
     console.info("✓ Redis connected (rate limiting active)");
-  } catch (err) {
-    console.warn("⚠ Redis unavailable — rate limiting disabled:", err);
-    // Non-fatal: rate limiter degrades gracefully (allow-all mode)
+  } else {
+    console.warn("⚠ Redis unavailable — rate limiting disabled");
     if (env.NODE_ENV === "production") process.exit(1);
   }
 

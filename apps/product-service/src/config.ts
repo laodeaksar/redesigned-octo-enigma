@@ -4,9 +4,7 @@
 
 import { env as rawEnv } from "@repo/env/product-service";
 import { createDrizzleClient } from "@repo/database/drizzle";
-import { createQueue, QUEUES } from "@repo/common/events";
 import { S3Client } from "@aws-sdk/client-s3";
-import Redis from "ioredis";
 
 export const env = rawEnv;
 
@@ -20,35 +18,75 @@ export const db = createDrizzleClient({
 
 export type DB = typeof db;
 
-// ── Redis (cache + BullMQ) ────────────────────────────────────────────────────
+// ── Redis (cache + BullMQ) — optional, gracefully disabled if unavailable ─────
 
-export const redis = new Redis(env.REDIS_URL, {
-  maxRetriesPerRequest: null, // required by BullMQ
-  enableReadyCheck: false,
-  retryStrategy: (times) => Math.min(times * 200, 2000),
-});
+let _redis: import("ioredis").default | null = null;
+let _cacheRedis: import("ioredis").default | null = null;
 
-redis.on("error", (err) => console.warn("[Redis] Error:", err.message));
-redis.on("connect", () => console.info("[Redis] Connected"));
+export async function initRedis(): Promise<boolean> {
+  try {
+    const Redis = (await import("ioredis")).default;
 
-/** Separate ioredis instance for cache (maxRetriesPerRequest must be a number for cache) */
-export const cacheRedis = new Redis(env.REDIS_URL, {
-  maxRetriesPerRequest: 3,
-  enableReadyCheck: true,
-  retryStrategy: (times) => Math.min(times * 200, 2000),
-  lazyConnect: true,
-});
+    _redis = new Redis(env.REDIS_URL, {
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+      retryStrategy: () => null, // don't retry on startup probe
+    });
 
-cacheRedis.on("error", (err) => console.warn("[Redis:cache] Error:", err.message));
+    _redis.on("error", (err) => console.warn("[Redis] Error:", err.message));
+
+    await _redis.ping();
+
+    // Switch to retry strategy after successful connect
+    _redis = new Redis(env.REDIS_URL, {
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+      retryStrategy: (times) => Math.min(times * 200, 2000),
+    });
+    _redis.on("error", (err) => console.warn("[Redis] Error:", err.message));
+    _redis.on("connect", () => console.info("[Redis] Connected"));
+
+    _cacheRedis = new Redis(env.REDIS_URL, {
+      maxRetriesPerRequest: 3,
+      enableReadyCheck: true,
+      retryStrategy: (times) => Math.min(times * 200, 2000),
+      lazyConnect: true,
+    });
+    _cacheRedis.on("error", (err) => console.warn("[Redis:cache] Error:", err.message));
+    await _cacheRedis.connect().catch(() => {});
+
+    return true;
+  } catch {
+    console.warn("⚠ Redis unavailable — running without cache/queues");
+    _redis = null;
+    _cacheRedis = null;
+    return false;
+  }
+}
+
+export function getRedisClient(): import("ioredis").default | null {
+  return _redis;
+}
 
 /** Get the cache redis instance (used by cache helpers) */
-export function getRedis(): Redis { return cacheRedis; }
+export function getRedis(): import("ioredis").default | null {
+  return _cacheRedis;
+}
 
-// ── BullMQ queues ─────────────────────────────────────────────────────────────
+/** No-op publisher — stock events not emitted in this environment */
+export function getPublisher() {
+  return {
+    emit: async (_event: string, _data: unknown) => {
+      console.debug(`[publisher] event skipped (no RabbitMQ): ${_event}`);
+    },
+  };
+}
+
+// ── Null-safe queue stubs ─────────────────────────────────────────────────────
 
 export const queues = {
-  stockDeduct:  createQueue(QUEUES.PRODUCT_STOCK_DEDUCT, redis),
-  stockRestore: createQueue(QUEUES.PRODUCT_STOCK_RESTORE, redis),
+  stockDeduct:  null as null,
+  stockRestore: null as null,
 } as const;
 
 // ── S3 / Object Storage ───────────────────────────────────────────────────────
@@ -64,4 +102,3 @@ export const s3Client = env.S3_ENDPOINT
       forcePathStyle: true,
     })
   : null;
-

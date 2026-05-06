@@ -9,7 +9,7 @@ import {
   type IOrder,
   type IOrderDocument,
   type IOrderStatusEvent,
-} from "@repo/database/mongo/models/order.model";
+} from "@repo/database/mongo/models";
 import type { ListOrdersQuery } from "@repo/common/schemas";
 
 // ── Queries ───────────────────────────────────────────────────────────────────

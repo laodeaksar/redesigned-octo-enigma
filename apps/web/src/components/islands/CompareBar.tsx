@@ -270,6 +270,12 @@ export default function CompareBar() {
             >
               Hapus semua
             </button>
+            <a
+              href="/compare"
+              className="hidden rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 sm:block"
+            >
+              Halaman penuh
+            </a>
             <button
               onClick={() => $compareOpen.set(true)}
               disabled={count < 2}

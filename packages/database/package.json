@@ -42,7 +42,6 @@
     "typescript": "^6.0.3"
   },
   "peerDependencies": {
-    "drizzle-orm": "^0.30.10",
     "mongoose": "^8.4.0"
   }
 }

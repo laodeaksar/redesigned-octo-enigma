@@ -7,6 +7,7 @@ import TrackProductView from "@/components/islands/TrackProductView";
 import RecentlyViewed from "@/components/islands/RecentlyViewed";
 import CompareToggle from "@/components/islands/CompareToggle";
 import Badge from "@/components/shared/Badge.astro";
+import ProductReviews from "@/components/islands/ProductReviews";
 import { api, type ProductDetail } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 
@@ -179,6 +180,16 @@ const sortedImages = [...product.images].sort((a, b) => a.sortOrder - b.sortOrde
         <p>{product.description}</p>
       </div>
     </div>
+  </div>
+
+  <!-- Reviews section -->
+  <div class="border-t border-gray-100">
+    <ProductReviews
+      client:load
+      productId={product.id}
+      productName={product.name}
+      isLoggedIn={!!user}
+    />
   </div>
 
   <!-- Track this view (fires once on mount, writes to localStorage) -->

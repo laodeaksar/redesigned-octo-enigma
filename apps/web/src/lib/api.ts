@@ -159,3 +159,22 @@ export type WishlistItem = {
   createdAt: string;
 };
 
+export type Review = {
+  id: string;
+  userId: string;
+  productId: string;
+  orderId: string;
+  rating: number;
+  title: string | null;
+  body: string | null;
+  imageUrls: string[];
+  isVerifiedPurchase: boolean;
+  createdAt: string;
+};
+
+export type RatingSummary = {
+  average: number;
+  count: number;
+  breakdown: Record<string, number>;
+};
+

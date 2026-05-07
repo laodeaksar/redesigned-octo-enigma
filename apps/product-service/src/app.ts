@@ -10,7 +10,7 @@ import { elysiaErrorHandler } from "@repo/common/errors";
 import { swaggerPlugin } from "@/plugins/swagger.plugin";
 import { healthRoutes } from "@/modules/health/health.routes";
 import { categoriesRoutes } from "@/modules/categories/categories.routes";
-import { productsRoutes } from "@/modules/products/products.routes";
+import { productsRoutes, productsInternalRoutes } from "@/modules/products/products.routes";
 import { reviewsRoutes } from "@/modules/reviews/reviews.routes";
 import { metricsRoutes } from "@/metrics";
 import { wishlistRoutes } from "@/modules/wishlist/wishlist.routes";
@@ -22,14 +22,14 @@ export function createApp() {
     .use(
       cors({
         origin: env.NODE_ENV === "development" ? true : false,
-        // In production, product-service is only called by api-gateway
-        // (no direct browser access needed)
         allowedHeaders: [
           "Content-Type",
           "x-user-id",
           "x-user-email",
           "x-user-role",
           "x-request-id",
+          "x-internal-key",
+          "x-internal-service",
         ],
         methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
       })
@@ -50,10 +50,10 @@ export function createApp() {
     .use(healthRoutes)
     .use(metricsRoutes)
     .use(categoriesRoutes)
+    .use(productsInternalRoutes)
     .use(productsRoutes)
     .use(wishlistRoutes)
     .use(reviewsRoutes);
 }
 
 export type App = ReturnType<typeof createApp>;
-

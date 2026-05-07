@@ -34,6 +34,12 @@ export const env = createEnv({
     // ── Order settings ────────────────────────────────────────────────────────
     /** Duration in minutes before an unpaid order is auto-cancelled */
     ORDER_EXPIRY_MINUTES: z.coerce.number().int().positive().default(60),
+
+    // ── Internal service key — shared secret for service-to-service calls ─────
+    INTERNAL_SERVICE_KEY: z
+      .string()
+      .min(32)
+      .default("internal-svc-key-dev-change-in-production-!!secret!!"),
   },
   runtimeEnv: process.env,
 });

@@ -28,6 +28,12 @@ export const env = createEnv({
     // ── Internal service URLs ─────────────────────────────────────────────────
     ORDER_SERVICE_URL: z.url(),
 
+    // ── Internal service key — shared secret for service-to-service calls ─────
+    INTERNAL_SERVICE_KEY: z
+      .string()
+      .min(32)
+      .default("internal-svc-key-dev-change-in-production-!!secret!!"),
+
     // ── Redis (BullMQ job queues) ──────────────────────────────────────────────
     REDIS_URL: redisUrlSchema,
   },

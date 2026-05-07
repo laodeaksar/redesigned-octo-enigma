@@ -39,14 +39,13 @@ import { logger } from "@/lib/logger";
 const app = new Hono();
 const orderBase = SERVICES.order;
 
-// ── Block internal endpoints from external clients ────────────────────────────
-app.post("/orders/:id/paid", (c) =>
-  c.json({ success: false, error: { code: "FORBIDDEN", message: "Access denied" } }, 403)
-);
+// ── Block internal-only endpoints from external clients ───────────────────────
+const internalBlocked = (c: any) =>
+  c.json({ success: false, error: { code: "FORBIDDEN", message: "Access denied" } }, 403);
 
-app.post("/orders/expire", (c) =>
-  c.json({ success: false, error: { code: "FORBIDDEN", message: "Access denied" } }, 403)
-);
+app.post("/orders/:id/paid", internalBlocked);
+app.post("/orders/expire",   internalBlocked);
+app.get("/orders/:id/verify-purchase", internalBlocked);
 
 // ── Customer: create order ────────────────────────────────────────────────────
 app.post("/orders", requireAuth, checkoutRateLimit, async (c) => {

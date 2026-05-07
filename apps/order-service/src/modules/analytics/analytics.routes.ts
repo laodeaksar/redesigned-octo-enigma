@@ -1,5 +1,5 @@
 // =============================================================================
-// Analytics routes (admin only — called internally)
+// Analytics routes (admin only)
 //
 //  GET /analytics/summary           — KPI totals (today, this week, this month)
 //  GET /analytics/revenue?period=   — daily revenue series for a date range
@@ -11,8 +11,10 @@
 import Elysia, { t } from "elysia";
 import { success } from "@repo/common/schemas";
 import { OrderModel } from "@repo/database/mongo/models";
+import { requireRole } from "@/middleware/jwt.middleware";
 
 export const analyticsRoutes = new Elysia({ prefix: "/analytics" })
+  .use(requireRole("admin", "super_admin"))
 
   // ── Summary KPIs ────────────────────────────────────────────────────────────
   .get("/summary", async () => {
@@ -159,4 +161,3 @@ async function aggregatePeriod(from: Date, to: Date) {
 
   return result ?? { orders: 0, revenue: 0, avgOrderValue: 0 };
 }
-

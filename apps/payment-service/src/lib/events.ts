@@ -23,6 +23,7 @@ export async function notifyOrderPaid(
       headers: {
         "Content-Type": "application/json",
         "x-internal-service": "payment-service",
+        "x-internal-key": env.INTERNAL_SERVICE_KEY,
       },
       body: JSON.stringify({
         paymentId,

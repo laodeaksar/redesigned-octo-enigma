@@ -11,7 +11,8 @@
 //   GET    /orders                    — list all orders
 //   PATCH  /orders/:id/status         — update status (ship, deliver, etc.)
 //
-// Internal (called by payment-service, scheduler):
+// Internal (requires x-internal-key — called by payment-service, scheduler):
+//   GET    /orders/:id/verify-purchase — verify a user purchased a product
 //   POST   /orders/:id/paid           — mark as paid + transition to processing
 //   POST   /orders/expire             — expire stale pending orders
 // =============================================================================
@@ -19,17 +20,18 @@
 import Elysia, { t } from "elysia";
 
 import { databasePlugin } from "@/plugins/database.plugin";
-import { jwtMiddleware, requireRole } from "@/middleware/jwt.middleware";
+import { jwtMiddleware, requireRole, internalMiddleware } from "@/middleware/jwt.middleware";
 import * as controller from "./orders.controller";
 import * as repo from "./orders.repository";
 
 const MONGO_ID = t.String({ minLength: 24, maxLength: 24 });
 const ID_PARAM = t.Object({ id: MONGO_ID });
 
-export const ordersRoutes = new Elysia({ prefix: "/orders" })
+// ── Internal routes (service-to-service only, protected by x-internal-key) ───
+export const ordersInternalRoutes = new Elysia({ prefix: "/orders" })
   .use(databasePlugin)
+  .use(internalMiddleware)
 
-  // ── Internal: verify a user purchased a product (called by product-service) ─
   .get(
     "/:id/verify-purchase",
     async ({ params, query }) => {
@@ -49,13 +51,11 @@ export const ordersRoutes = new Elysia({ prefix: "/orders" })
       params: t.Object({ id: t.String({ minLength: 1 }) }),
       detail: {
         tags: ["Orders"],
-        summary: "Verify user purchased a product (internal, called by product-service)",
+        summary: "Verify user purchased a product (internal — requires x-internal-key)",
       },
     }
   )
 
-  // ── Internal: mark order as paid ─────────────────────────────────────────
-  // ── Internal endpoints (no user auth — called service-to-service) ──────────
   .post(
     "/:id/paid",
     ({ params, body }) => controller.handleMarkPaid(params.id, body),
@@ -64,22 +64,25 @@ export const ordersRoutes = new Elysia({ prefix: "/orders" })
       body: t.Object({ paymentId: t.String({ minLength: 1 }) }),
       detail: {
         tags: ["Orders"],
-        summary: "Mark order as paid (called by payment-service)",
+        summary: "Mark order as paid (internal — requires x-internal-key)",
       },
     }
   )
+
   .post(
     "/expire",
     () => controller.handleExpireOrders(),
     {
       detail: {
         tags: ["Orders"],
-        summary: "Expire stale pending-payment orders (called by scheduler)",
+        summary: "Expire stale pending-payment orders (internal — requires x-internal-key)",
       },
     }
-  )
+  );
 
-  // ── Authenticated routes ───────────────────────────────────────────────────
+// ── Customer + admin routes (user JWT required) ───────────────────────────────
+export const ordersRoutes = new Elysia({ prefix: "/orders" })
+  .use(databasePlugin)
   .use(jwtMiddleware)
 
   .post(
@@ -136,7 +139,6 @@ export const ordersRoutes = new Elysia({ prefix: "/orders" })
     async ({ params, user }) => {
       const TERMINAL = new Set(["completed", "cancelled", "refunded"]);
 
-      // Verify access & load initial order
       let order: Awaited<ReturnType<typeof repo.findOrderById>>;
       try {
         order = await repo.findOrderById(params.id);
@@ -324,4 +326,3 @@ export const ordersRoutes = new Elysia({ prefix: "/orders" })
       detail: { tags: ["Orders"], summary: "Update order status (admin)" },
     }
   );
-

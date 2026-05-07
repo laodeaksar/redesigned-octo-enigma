@@ -1,18 +1,22 @@
 // =============================================================================
-// Health routes — GET /health
-// Pings all downstream services and returns aggregated status.
+// Health routes
+//
+//  GET  /health                          — public: ping all services
+//  GET  /health/circuit-breakers         — admin: circuit breaker states
+//  POST /health/circuit-breakers/reset   — admin: reset all circuit breakers
 // =============================================================================
 
 import { Hono } from "hono";
 import { SERVICES, getRedis } from "@/config";
 import { CircuitBreakerManager } from "@/lib/circuit-breaker";
+import { requireAuth, requireRole } from "@/middleware/auth.middleware";
 
 const app = new Hono();
 
 async function pingService(url: string): Promise<"ok" | "error"> {
   try {
     const res = await fetch(`${url}/health`, {
-      signal: AbortSignal.timeout(3000), // 3 second timeout
+      signal: AbortSignal.timeout(3000),
     });
     return res.ok ? "ok" : "error";
   } catch {
@@ -20,19 +24,18 @@ async function pingService(url: string): Promise<"ok" | "error"> {
   }
 }
 
+// ── Public: basic liveness check ──────────────────────────────────────────────
 app.get("/health", async (c) => {
   const checks: Record<string, "ok" | "error"> = {};
 
-  // ── Redis ──────────────────────────────────────────────────────────────────
   try {
     const redis = getRedis();
-    await redis.ping();
+    await redis?.ping();
     checks["redis"] = "ok";
   } catch {
     checks["redis"] = "error";
   }
 
-  // ── Downstream services (parallel) ─────────────────────────────────────────
   const [authStatus, productStatus, orderStatus, paymentStatus] =
     await Promise.all([
       pingService(SERVICES.auth),
@@ -61,28 +64,38 @@ app.get("/health", async (c) => {
   }, allOk ? 200 : 207);
 });
 
-app.get("/health/circuit-breakers", async (c) => {
-  const metrics = CircuitBreakerManager.getAllMetrics();
-  
-  const allCircuitsOk = Object.values(metrics).every(m => m.state === "closed");
-  
-  return c.json({
-    success: true,
-    data: {
-      status: allCircuitsOk ? "ok" : "degraded",
-      timestamp: new Date(),
-      circuitBreakers: metrics
-    }
-  }, allCircuitsOk ? 200 : 207);
-});
+// ── Admin: circuit breaker states ─────────────────────────────────────────────
+app.get(
+  "/health/circuit-breakers",
+  requireAuth,
+  requireRole("admin", "super_admin"),
+  async (c) => {
+    const metrics = CircuitBreakerManager.getAllMetrics();
+    const allCircuitsOk = Object.values(metrics).every(m => m.state === "closed");
 
-app.post("/health/circuit-breakers/reset", async (c) => {
-  CircuitBreakerManager.resetAll();
-  return c.json({
-    success: true,
-    message: "All circuit breakers have been reset to closed state"
-  });
-});
+    return c.json({
+      success: true,
+      data: {
+        status: allCircuitsOk ? "ok" : "degraded",
+        timestamp: new Date(),
+        circuitBreakers: metrics,
+      },
+    }, allCircuitsOk ? 200 : 207);
+  }
+);
+
+// ── Admin: reset all circuit breakers ────────────────────────────────────────
+app.post(
+  "/health/circuit-breakers/reset",
+  requireAuth,
+  requireRole("admin", "super_admin"),
+  async (c) => {
+    CircuitBreakerManager.resetAll();
+    return c.json({
+      success: true,
+      message: "All circuit breakers have been reset to closed state",
+    });
+  }
+);
 
 export { app as healthRoutes };
-

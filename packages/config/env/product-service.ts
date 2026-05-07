@@ -28,6 +28,12 @@ export const env = createEnv({
     // ── Auth (for internal JWT verification) ──────────────────────────────────
     JWT_SECRET: jwtSecretSchema,
 
+    // ── Internal service key — shared secret for service-to-service calls ─────
+    INTERNAL_SERVICE_KEY: z
+      .string()
+      .min(32)
+      .default("internal-svc-key-dev-change-in-production-!!secret!!"),
+
     // ── Storage (product images) ──────────────────────────────────────────────
     S3_ENDPOINT: z.url().optional(),
     S3_BUCKET: z.string().min(1).optional(),

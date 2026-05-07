@@ -42,6 +42,7 @@ async function internalFetch<T>(
       headers: {
         "Content-Type": "application/json",
         "x-internal-service": "order-service",
+        "x-internal-key": env.INTERNAL_SERVICE_KEY,
         ...options.headers,
       },
     });

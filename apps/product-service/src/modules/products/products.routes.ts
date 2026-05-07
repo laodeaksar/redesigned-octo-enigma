@@ -16,7 +16,7 @@
 //   POST   /products/:id/images
 //   DELETE /products/:id/images/:iid
 //
-// Internal (called by order-service):
+// Internal (requires x-internal-key — called by order-service):
 //   POST  /products/stock/adjust
 //   POST  /products/stock/batch-deduct
 // =============================================================================
@@ -24,12 +24,39 @@
 import Elysia, { t } from "elysia";
 
 import { databasePlugin } from "@/plugins/database.plugin";
-import { requireRole, jwtMiddleware } from "@/middleware/jwt.middleware";
+import { requireRole, internalMiddleware } from "@/middleware/jwt.middleware";
 import * as controller from "./products.controller";
 
 const UUID = t.String({ format: "uuid" });
 const UUID_PARAM = t.Object({ id: UUID });
 
+// ── Internal routes (service-to-service only, protected by x-internal-key) ───
+export const productsInternalRoutes = new Elysia({ prefix: "/products" })
+  .use(databasePlugin)
+  .use(internalMiddleware)
+
+  .post("/stock/adjust",
+    ({ db, redis, body }) => controller.handleAdjustStock(db, redis, body), {
+    body: t.Object({
+      variantId: UUID,
+      delta: t.Number(),
+      reason: t.String(),
+      referenceId: t.Optional(t.Nullable(t.String())),
+      note: t.Optional(t.Nullable(t.String())),
+    }),
+    detail: { tags: ["Stock"], summary: "Adjust stock for a single variant (internal — requires x-internal-key)" },
+  })
+
+  .post("/stock/batch-deduct",
+    ({ db, redis, body }) => controller.handleBatchDeduct(db, redis, body), {
+    body: t.Object({
+      orderId: t.String(),
+      items: t.Array(t.Object({ variantId: UUID, quantity: t.Number() })),
+    }),
+    detail: { tags: ["Stock"], summary: "Batch deduct stock (internal — requires x-internal-key)" },
+  });
+
+// ── Public + admin routes ────────────────────────────────────────────────────
 export const productsRoutes = new Elysia({ prefix: "/products" })
   .use(databasePlugin)
 
@@ -58,27 +85,6 @@ export const productsRoutes = new Elysia({ prefix: "/products" })
     controller.handleGetById(db, redis, params.id), {
     params: UUID_PARAM,
     detail: { tags: ["Products"], summary: "Get product by ID" },
-  })
-
-  // ── Internal routes (no role check — api-gateway restricts by caller) ───────
-  .post("/stock/adjust",
-    ({ db, redis, body }) => controller.handleAdjustStock(db, redis, body), {
-    body: t.Object({
-      variantId: UUID,
-      delta: t.Number(),
-      reason: t.String(),
-      referenceId: t.Optional(t.Nullable(t.String())),
-      note: t.Optional(t.Nullable(t.String())),
-    }),
-    detail: { tags: ["Stock"], summary: "Adjust stock for a single variant (internal)" },
-  })
-  .post("/stock/batch-deduct",
-    ({ db, redis, body }) => controller.handleBatchDeduct(db, redis, body), {
-    body: t.Object({
-      orderId: t.String(),
-      items: t.Array(t.Object({ variantId: UUID, quantity: t.Number() })),
-    }),
-    detail: { tags: ["Stock"], summary: "Batch deduct stock (called by order-service)" },
   })
 
   // ── Admin routes ────────────────────────────────────────────────────────────
@@ -137,4 +143,3 @@ export const productsRoutes = new Elysia({ prefix: "/products" })
     params: t.Object({ id: UUID, iid: UUID }),
     detail: { tags: ["Images"], summary: "Delete image (admin)" },
   });
-

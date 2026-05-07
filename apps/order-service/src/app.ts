@@ -9,7 +9,7 @@ import { elysiaErrorHandler } from "@repo/common/errors";
 
 import { swaggerPlugin } from "@/plugins/swagger.plugin";
 import { healthRoutes } from "@/modules/health/health.routes";
-import { ordersRoutes } from "@/modules/orders/orders.routes";
+import { ordersRoutes, ordersInternalRoutes } from "@/modules/orders/orders.routes";
 import { vouchersRoutes } from "@/modules/vouchers/vouchers.routes";
 import { shippingRoutes } from "@/modules/shipping/shipping.routes";
 import { analyticsRoutes } from "@/modules/analytics/analytics.routes";
@@ -27,6 +27,8 @@ export function createApp() {
           "x-user-email",
           "x-user-role",
           "x-request-id",
+          "x-internal-key",
+          "x-internal-service",
         ],
         methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
       })
@@ -40,6 +42,7 @@ export function createApp() {
     })
     .use(healthRoutes)
     .use(metricsRoutes)
+    .use(ordersInternalRoutes)
     .use(ordersRoutes)
     .use(vouchersRoutes)
     .use(shippingRoutes)
@@ -47,4 +50,3 @@ export function createApp() {
 }
 
 export type App = ReturnType<typeof createApp>;
-

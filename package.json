@@ -47,6 +47,7 @@
     "amqplib": "^1.0.6",
     "bullmq": "^5.76.5",
     "drizzle-orm": "^0.45.2",
+    "install": "^0.13.0",
     "ioredis": "^5.10.1",
     "mongoose": "^9.6.1",
     "prom-client": "^15.1.3"

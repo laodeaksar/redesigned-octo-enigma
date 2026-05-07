@@ -39,6 +39,7 @@ const user = await getCurrentUser(Astro.cookies);
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <slot name="head" />
   </head>
   <body class="min-h-screen bg-white text-gray-900 antialiased">
     <!-- Always-mounted React islands -->

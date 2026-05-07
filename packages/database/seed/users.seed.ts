@@ -6,11 +6,9 @@
 import type { DrizzleClient } from "../drizzle/client";
 import { usersTable, addressesTable } from "../drizzle/schema";
 
-// In production you would hash these — here we pre-hash "Password123"
-// using Argon2id so seed data is ready without running auth-service.
-// Replace with real hash if needed: import { hash } from "@node-rs/argon2"
+// Pre-hashed "Password123!" using Argon2id (same params as auth-service)
 const HASHED_PASSWORD =
-  "$argon2id$v=19$m=65536,t=3,p=4$c2FsdHNhbHRzYWx0c2FsdA$placeholder";
+  "$argon2id$v=19$m=19456,t=2,p=1$QoVlhQPsihqNTTX5u8DlrA$8gi03yJNs9/VjGAQOC/LLufjvSAq3h9f5J52D5XC4yk";
 
 const USERS = [
   {

@@ -1,0 +1,138 @@
+---
+import BaseLayout from "@/components/layout/BaseLayout.astro";
+import { requireAuth, getTokenFromCookies } from "@/lib/auth";
+import { api, type Order } from "@/lib/api";
+import { formatIDR, formatDateTime, ORDER_STATUS_LABELS, ORDER_STATUS_COLORS } from "@/lib/utils";
+
+await requireAuth(Astro, "/auth/login?redirect=/orders");
+const token = getTokenFromCookies(Astro.cookies)!;
+
+const page = Number(Astro.url.searchParams.get("page") ?? 1);
+const limit = 10;
+
+let orders: Order[] = [];
+let totalPages = 1;
+let total = 0;
+
+try {
+  const res = await api.get<{
+    success: true;
+    data: Order[];
+    meta: { total: number; page: number; limit: number; totalPages: number };
+  }>("/orders/me", { token, params: { page, limit } });
+  orders = res.data;
+  totalPages = res.meta.totalPages;
+  total = res.meta.total;
+} catch {
+  // Silently show empty state
+}
+---
+
+<BaseLayout title="Pesanan Saya">
+  <div class="container mx-auto max-w-3xl px-4 py-8">
+
+    <!-- Header -->
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold text-gray-900">Pesanan Saya</h1>
+      {total > 0 && (
+        <p class="mt-1 text-sm text-gray-500">{total} pesanan ditemukan</p>
+      )}
+    </div>
+
+    <!-- Empty state -->
+    {orders.length === 0 && (
+      <div class="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-gray-50 py-20 text-center">
+        <span class="mb-4 text-6xl">🛍️</span>
+        <h2 class="text-lg font-semibold text-gray-700">Belum ada pesanan</h2>
+        <p class="mt-2 text-sm text-gray-500">Yuk mulai belanja dan temukan produk favoritmu!</p>
+        <a
+          href="/produk"
+          class="mt-6 inline-flex items-center gap-2 rounded-xl bg-green-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-green-700 transition"
+        >
+          Belanja Sekarang
+        </a>
+      </div>
+    )}
+
+    <!-- Order list -->
+    {orders.length > 0 && (
+      <div class="space-y-4">
+        {orders.map((order) => {
+          const statusColor = ORDER_STATUS_COLORS[order.status] ?? "bg-gray-100 text-gray-600";
+          return (
+            <a
+              href={`/orders/${order.id}`}
+              class="group block rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition hover:border-green-200 hover:shadow-md"
+            >
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <!-- Left -->
+                <div class="min-w-0">
+                  <p class="font-mono text-sm font-bold text-gray-900 group-hover:text-green-700 transition-colors">
+                    {order.orderNumber}
+                  </p>
+                  <p class="mt-0.5 text-xs text-gray-400">{formatDateTime(order.createdAt)}</p>
+                </div>
+
+                <!-- Status badge -->
+                <span class:list={["inline-flex shrink-0 items-center rounded-full px-3 py-1 text-xs font-semibold", statusColor]}>
+                  {ORDER_STATUS_LABELS[order.status] ?? order.status}
+                </span>
+              </div>
+
+              <!-- Footer row -->
+              <div class="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-gray-50 pt-3">
+                <p class="text-xs text-gray-500">
+                  {order.itemCount} {order.itemCount === 1 ? "item" : "item"}
+                </p>
+                <div class="flex items-center gap-3">
+                  <span class="font-semibold text-gray-900">{formatIDR(order.grandTotal)}</span>
+                  <span class="inline-flex items-center gap-1 text-xs font-medium text-green-700 group-hover:underline">
+                    Lihat Detail
+                    <svg class="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                    </svg>
+                  </span>
+                </div>
+              </div>
+            </a>
+          );
+        })}
+      </div>
+    )}
+
+    <!-- Pagination -->
+    {totalPages > 1 && (
+      <div class="mt-8 flex items-center justify-center gap-2">
+        {page > 1 && (
+          <a
+            href={`/orders?page=${page - 1}`}
+            class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-sm text-gray-600 hover:border-green-300 hover:text-green-700 transition"
+          >
+            ‹
+          </a>
+        )}
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+          <a
+            href={`/orders?page=${p}`}
+            class:list={[
+              "inline-flex h-9 w-9 items-center justify-center rounded-lg text-sm font-medium transition",
+              p === page
+                ? "bg-green-600 text-white shadow-sm"
+                : "border border-gray-200 text-gray-600 hover:border-green-300 hover:text-green-700",
+            ]}
+          >
+            {p}
+          </a>
+        ))}
+        {page < totalPages && (
+          <a
+            href={`/orders?page=${page + 1}`}
+            class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-sm text-gray-600 hover:border-green-300 hover:text-green-700 transition"
+          >
+            ›
+          </a>
+        )}
+      </div>
+    )}
+  </div>
+</BaseLayout>

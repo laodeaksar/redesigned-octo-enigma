@@ -116,16 +116,22 @@ export type Order = {
 };
 
 export type OrderDetail = Order & {
+  userId: string;
   items: Array<{
-    product: { name: string; variantName: string; sku: string; imageUrl: string | null; price: number };
+    product: { productId?: string; name: string; variantName: string; sku: string; imageUrl: string | null; price: number };
     quantity: number; unitPrice: number; subtotal: number;
   }>;
   shipping: {
-    courier: string; service: string; trackingNumber: string | null; cost: number;
+    courier: string; service: string; trackingNumber: string | null; estimatedDays?: number; cost: number;
     address: { recipientName: string; phone: string; street: string; city: string; province: string; postalCode: string };
-    shippedAt: string | null;
+    shippedAt: string | null; deliveredAt: string | null;
   };
   pricing: { subtotal: number; shippingCost: number; discountTotal: number; taxTotal: number; grandTotal: number };
+  discounts?: Array<{ code: string; type: string; value: number; amount: number }>;
+  statusHistory?: Array<{ status: string; timestamp: string; note?: string }>;
+  cancellationReason?: string | null;
+  cancellationNote?: string | null;
+  customerNote?: string | null;
   paymentId: string | null; expiresAt: string; updatedAt: string;
 };
 

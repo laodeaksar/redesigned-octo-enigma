@@ -1,0 +1,51 @@
+---
+import BaseLayout from "@/components/layout/BaseLayout.astro";
+import AddressManager from "@/components/islands/AddressManager";
+import { requireAuth, getTokenFromCookies } from "@/lib/auth";
+import { api } from "@/lib/api";
+
+await requireAuth(Astro, `/auth/login?redirect=/profile/addresses`);
+const token = getTokenFromCookies(Astro.cookies)!;
+
+interface Address {
+  id: string;
+  label: string;
+  recipientName: string;
+  phone: string;
+  street: string;
+  city: string;
+  province: string;
+  postalCode: string;
+  country: string;
+  cityId: string | null;
+  isDefault: boolean;
+  createdAt: string;
+}
+
+let addresses: Address[] = [];
+
+try {
+  const res = await api.get<{ success: true; data: Address[] }>(
+    "/users/me/addresses",
+    { token }
+  );
+  addresses = res.data;
+} catch {
+  // show empty state in island
+}
+---
+
+<BaseLayout title="Alamat Pengiriman">
+  <div class="max-w-2xl mx-auto px-4 py-8">
+    <!-- Breadcrumb -->
+    <nav class="mb-6 flex items-center gap-2 text-sm text-gray-500">
+      <a href="/" class="hover:text-gray-800 transition-colors">Beranda</a>
+      <span>/</span>
+      <span class="text-gray-800 font-medium">Alamat Pengiriman</span>
+    </nav>
+
+    <h1 class="text-2xl font-bold text-gray-900 mb-6">Alamat Pengiriman</h1>
+
+    <AddressManager client:load initialAddresses={addresses} token={token} />
+  </div>
+</BaseLayout>

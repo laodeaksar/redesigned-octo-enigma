@@ -1,6 +1,9 @@
 {
   "extends": "@repo/tsconfig/base",
   "compilerOptions": {
-    "types": ["node"]
+    "types": [
+      "node"
+    ],
+    "strictNullChecks": true
   }
 }

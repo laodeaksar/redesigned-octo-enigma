@@ -1,3 +1,6 @@
 {
-  "extends": "@repo/tsconfig/base"
+  "extends": "@repo/tsconfig/base",
+  "compilerOptions": {
+    "strictNullChecks": true
+  }
 }

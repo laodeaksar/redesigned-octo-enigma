@@ -7,7 +7,8 @@
     "moduleResolution": "Bundler",
     "paths": {
       "@repo/common/*": ["./*"]
-    }
+    },
+    "strictNullChecks": true
   },
   "include": [
     "types/**/*.ts",

@@ -9,5 +9,6 @@
       "@/*": ["./src/*"],
       "@repo/ui/*": ["../../packages/ui/src/*"]
     },
+    "strictNullChecks": true,
   },
 }

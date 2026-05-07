@@ -30,6 +30,11 @@ export default defineConfig({
     server: {
       allowedHosts: true,
     },
+    ssr: {
+      // These are Node.js-only packages — tell Vite not to bundle them
+      external: ["web-push", "postgres", "drizzle-orm"],
+      noExternal: [],
+    },
   },
 
   // Allow prefetch on hover for faster navigation

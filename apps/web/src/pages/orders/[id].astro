@@ -3,6 +3,7 @@ import BaseLayout from "@/components/layout/BaseLayout.astro";
 import Card from "@/components/shared/Card.astro";
 import ReorderButton from "@/components/islands/ReorderButton";
 import OrderStatusTracker from "@/components/islands/OrderStatusTracker";
+import PushNotificationManager from "@/components/islands/PushNotificationManager";
 import { requireAuth, getTokenFromCookies } from "@/lib/auth";
 import { api, type OrderDetail, type Payment } from "@/lib/api";
 import { formatIDR, formatDateTime } from "@/lib/utils";
@@ -93,6 +94,11 @@ const PAYMENT_STATUS_COLORS: Record<string, string> = {
         <p class="mt-0.5 text-sm text-gray-500">Dipesan {formatDateTime(order.createdAt)}</p>
       </div>
       <div class="flex flex-wrap items-center gap-3">
+        <PushNotificationManager
+          client:load
+          orderId={order.id}
+          orderNumber={order.orderNumber}
+        />
         <ReorderButton client:load items={order.items} />
       </div>
     </div>

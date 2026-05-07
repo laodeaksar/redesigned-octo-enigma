@@ -126,14 +126,36 @@ app.get(
     proxyRequest(c, { target: buildTargetUrl(orderBase, c), user: c.var.user })
 );
 
-// ── Admin: update order status ────────────────────────────────────────────────
+// ── Admin: update order status (+ fire push notification) ─────────────────────
 app.patch(
   "/orders/:id/status",
   requireAuth,
   requireRole("admin", "super_admin"),
   defaultRateLimit,
-  async (c) =>
-    proxyRequest(c, { target: buildTargetUrl(orderBase, c), user: c.var.user })
+  async (c) => {
+    const id       = c.req.param("id");
+    const response = await proxyRequest(c, { target: buildTargetUrl(orderBase, c), user: c.var.user });
+
+    if (response.ok) {
+      // Clone response to read status without consuming the original stream
+      response.clone().json().then((body: any) => {
+        const newStatus   = body?.data?.status   as string | undefined;
+        const orderNumber = body?.data?.orderNumber as string | undefined;
+        if (newStatus) {
+          fetch("http://localhost:5000/api/push/notify", {
+            method:  "POST",
+            headers: {
+              "Content-Type":   "application/json",
+              "x-internal-key": process.env.INTERNAL_NOTIFY_KEY ?? "push-notify-internal",
+            },
+            body: JSON.stringify({ orderId: id, status: newStatus, orderNumber }),
+          }).catch(() => {});
+        }
+      }).catch(() => {});
+    }
+
+    return response;
+  }
 );
 
 // ── Vouchers: validate (authenticated customer) ───────────────────────────────

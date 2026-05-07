@@ -102,3 +102,7 @@ export type { VoucherRow, NewVoucherRow } from "./vouchers";
 
 export { wishlistsTable } from "./wishlist";
 export type { Wishlist, NewWishlist } from "./wishlist";
+
+// ── Push notifications ────────────────────────────────────────────────────────
+export { pushSubscriptionsTable } from "./push-subscriptions";
+export type { PushSubscriptionRow, NewPushSubscriptionRow } from "./push-subscriptions";

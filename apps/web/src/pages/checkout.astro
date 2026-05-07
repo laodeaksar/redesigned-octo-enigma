@@ -12,7 +12,7 @@ const token = getTokenFromCookies(Astro.cookies)!;
 let addresses: Array<{
   id: string; label: string; recipientName: string;
   phone: string; street: string; city: string;
-  province: string; postalCode: string;
+  province: string; postalCode: string; cityId?: string;
 }> = [];
 
 try {

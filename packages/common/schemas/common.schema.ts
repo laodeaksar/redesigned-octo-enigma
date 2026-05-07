@@ -161,6 +161,7 @@ export const addressSchema = z.object({
     .string()
     .regex(/^\d{5}$/, { message: "Postal code must be exactly 5 digits" }),
   country: z.string().length(2).default("ID").describe("ISO 3166-1 alpha-2"),
+  cityId: z.string().max(20).optional().describe("RajaOngkir city ID for shipping rate calculation"),
   isDefault: z.boolean().default(false),
 });
 

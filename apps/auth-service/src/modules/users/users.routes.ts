@@ -74,6 +74,7 @@ export const usersRoutes = new Elysia({ prefix: "/users" })
         province: t.String({ minLength: 1, maxLength: 100 }),
         postalCode: t.String({ pattern: "^\\d{5}$" }),
         country: t.Optional(t.String({ default: "ID" })),
+        cityId: t.Optional(t.String({ maxLength: 20 })),
         isDefault: t.Optional(t.Boolean({ default: false })),
       }),
       detail: {
@@ -98,6 +99,7 @@ export const usersRoutes = new Elysia({ prefix: "/users" })
         city: t.Optional(t.String({ minLength: 1, maxLength: 100 })),
         province: t.Optional(t.String({ minLength: 1, maxLength: 100 })),
         postalCode: t.Optional(t.String({ pattern: "^\\d{5}$" })),
+        cityId: t.Optional(t.String({ maxLength: 20 })),
         isDefault: t.Optional(t.Boolean()),
       }),
       detail: {

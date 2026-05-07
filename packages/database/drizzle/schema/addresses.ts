@@ -12,6 +12,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+
 import { relations } from "drizzle-orm";
 
 import { primaryId, timestamps } from "./_helpers";
@@ -32,6 +33,7 @@ export const addressesTable = pgTable(
     province: varchar("province", { length: 100 }).notNull(),
     postalCode: char("postal_code", { length: 5 }).notNull(),
     country: char("country", { length: 2 }).notNull().default("ID"),
+    cityId: varchar("city_id", { length: 20 }), // RajaOngkir city ID for shipping
     isDefault: boolean("is_default").notNull().default(false),
     ...timestamps(),
   },

@@ -23,6 +23,7 @@ import { defaultRateLimit, strictRateLimit } from "@/middleware/rate-limit.middl
 import { proxyRequest, buildTargetUrl } from "@/lib/proxy";
 import { auditLogsRoutes } from "./audit-logs.routes";
 import { blockedIpsRoutes } from "./blocked-ips.routes";
+import { securityOverviewRoutes } from "./security-overview.routes";
 import { SERVICES } from "@/config";
 
 const app = new Hono();
@@ -34,6 +35,9 @@ app.route("/", auditLogsRoutes);
 
 // ── Blocked IPs endpoints (served locally — not proxied) ──────────────────────
 app.route("/", blockedIpsRoutes);
+
+// ── Security overview dashboard (served locally — not proxied) ────────────────
+app.route("/", securityOverviewRoutes);
 
 // ── Better-auth built-in admin endpoints (/api/auth/admin/*) ──────────────────
 app.all(

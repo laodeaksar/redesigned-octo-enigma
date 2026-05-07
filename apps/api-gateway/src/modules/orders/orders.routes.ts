@@ -64,6 +64,42 @@ app.get("/orders/me", requireAuth, defaultRateLimit, async (c) => {
   });
 });
 
+// ── Customer: SSE order status stream (bypasses circuit-breaker timeout) ─────
+app.get("/orders/:id/stream", requireAuth, async (c) => {
+  const user = c.var.user!;
+  const id = c.req.param("id");
+
+  const headers = new Headers();
+  headers.set("x-user-id", user.id);
+  headers.set("x-user-email", user.email);
+  headers.set("x-user-role", user.role);
+  headers.set("x-request-id", c.req.header("x-request-id") ?? crypto.randomUUID());
+  headers.set("Accept", "text/event-stream");
+  headers.set("Cache-Control", "no-cache");
+
+  try {
+    const upstream = await fetch(`${orderBase}/orders/${id}/stream`, {
+      headers,
+      signal: c.req.raw.signal,
+    });
+
+    return new Response(upstream.body, {
+      status: upstream.status,
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no",
+      },
+    });
+  } catch {
+    return c.json(
+      { success: false, error: { code: "SERVICE_UNAVAILABLE", message: "Order service unavailable" } },
+      503
+    );
+  }
+});
+
 // ── Customer: get order detail ────────────────────────────────────────────────
 app.get("/orders/:id", requireAuth, defaultRateLimit, async (c) => {
   return proxyRequest(c, {

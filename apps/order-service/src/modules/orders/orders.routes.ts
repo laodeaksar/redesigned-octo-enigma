@@ -21,6 +21,7 @@ import Elysia, { t } from "elysia";
 import { databasePlugin } from "@/plugins/database.plugin";
 import { jwtMiddleware, requireRole } from "@/middleware/jwt.middleware";
 import * as controller from "./orders.controller";
+import * as repo from "./orders.repository";
 
 const MONGO_ID = t.String({ minLength: 24, maxLength: 24 });
 const ID_PARAM = t.Object({ id: MONGO_ID });
@@ -126,6 +127,130 @@ export const ordersRoutes = new Elysia({ prefix: "/orders" })
     {
       params: ID_PARAM,
       detail: { tags: ["Orders"], summary: "Get order by ID" },
+    }
+  )
+
+  // ── SSE: stream order status updates ─────────────────────────────────────
+  .get(
+    "/:id/stream",
+    async ({ params, user }) => {
+      const TERMINAL = new Set(["completed", "cancelled", "refunded"]);
+
+      // Verify access & load initial order
+      let order: Awaited<ReturnType<typeof repo.findOrderById>>;
+      try {
+        order = await repo.findOrderById(params.id);
+      } catch {
+        return new Response("data: {\"error\":\"db_unavailable\"}\n\n", {
+          status: 200,
+          headers: {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+          },
+        });
+      }
+
+      if (!order) {
+        return new Response(
+          `event: error\ndata: ${JSON.stringify({ code: "NOT_FOUND" })}\n\n`,
+          { status: 404, headers: { "Content-Type": "text/event-stream" } }
+        );
+      }
+
+      if (user.role === "customer" && order.userId !== user.id) {
+        return new Response(
+          `event: error\ndata: ${JSON.stringify({ code: "FORBIDDEN" })}\n\n`,
+          { status: 403, headers: { "Content-Type": "text/event-stream" } }
+        );
+      }
+
+      const encoder = new TextEncoder();
+      let timerId: ReturnType<typeof setInterval> | null = null;
+      let closed = false;
+
+      const stream = new ReadableStream({
+        start(controller) {
+          const send = (event: string, data: unknown) => {
+            if (closed) return;
+            try {
+              controller.enqueue(
+                encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
+              );
+            } catch {
+              closed = true;
+              if (timerId) { clearInterval(timerId); timerId = null; }
+            }
+          };
+
+          const extractUpdate = (o: NonNullable<typeof order>) => ({
+            status: o.status,
+            statusHistory: o.statusHistory ?? [],
+            shipping: o.shipping ?? null,
+            updatedAt: o.updatedAt,
+          });
+
+          send("connected", { orderId: params.id });
+          send("order-update", extractUpdate(order!));
+
+          if (TERMINAL.has(order!.status)) {
+            controller.close();
+            return;
+          }
+
+          let lastStatus = order!.status;
+          let lastUpdatedAt = String(order!.updatedAt);
+
+          timerId = setInterval(async () => {
+            if (closed) return;
+            try {
+              const fresh = await repo.findOrderById(params.id);
+              if (!fresh) {
+                if (timerId) { clearInterval(timerId); timerId = null; }
+                if (!closed) { closed = true; try { controller.close(); } catch {} }
+                return;
+              }
+
+              const freshStatus = fresh.status;
+              const freshUpdated = String(fresh.updatedAt);
+
+              if (freshStatus !== lastStatus || freshUpdated !== lastUpdatedAt) {
+                lastStatus = freshStatus;
+                lastUpdatedAt = freshUpdated;
+                send("order-update", extractUpdate(fresh));
+
+                if (TERMINAL.has(freshStatus)) {
+                  if (timerId) { clearInterval(timerId); timerId = null; }
+                  setTimeout(() => {
+                    if (!closed) { closed = true; try { controller.close(); } catch {} }
+                  }, 500);
+                }
+              } else {
+                send("heartbeat", { ts: Date.now() });
+              }
+            } catch {
+              if (timerId) { clearInterval(timerId); timerId = null; }
+              if (!closed) { closed = true; try { controller.close(); } catch {} }
+            }
+          }, 3000);
+        },
+        cancel() {
+          closed = true;
+          if (timerId) { clearInterval(timerId); timerId = null; }
+        },
+      });
+
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          "Connection": "keep-alive",
+          "X-Accel-Buffering": "no",
+        },
+      });
+    },
+    {
+      params: ID_PARAM,
+      detail: { tags: ["Orders"], summary: "Stream order status updates via SSE (authenticated)" },
     }
   )
 

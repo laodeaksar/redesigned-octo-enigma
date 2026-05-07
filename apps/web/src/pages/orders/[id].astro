@@ -2,12 +2,10 @@
 import BaseLayout from "@/components/layout/BaseLayout.astro";
 import Card from "@/components/shared/Card.astro";
 import ReorderButton from "@/components/islands/ReorderButton";
+import OrderStatusTracker from "@/components/islands/OrderStatusTracker";
 import { requireAuth, getTokenFromCookies } from "@/lib/auth";
 import { api, type OrderDetail, type Payment } from "@/lib/api";
-import {
-  formatIDR, formatDateTime,
-  ORDER_STATUS_LABELS, ORDER_STATUS_COLORS,
-} from "@/lib/utils";
+import { formatIDR, formatDateTime } from "@/lib/utils";
 
 const { id } = Astro.params;
 await requireAuth(Astro, `/auth/login?redirect=/orders/${id}`);
@@ -30,23 +28,8 @@ try {
 if (!order) return Astro.redirect("/orders");
 
 const qsStatus = Astro.url.searchParams.get("status"); // "success" | "pending" from Midtrans redirect
+const showPayButton = payment?.status === "pending" && payment?.snapToken && order.status === "pending_payment";
 
-const statusColor = ORDER_STATUS_COLORS[order.status] ?? "bg-gray-100 text-gray-600";
-
-// Timeline steps — map order status to progress stage
-const TIMELINE_STEPS = [
-  { key: "pending_payment", label: "Menunggu Pembayaran", icon: "💳" },
-  { key: "processing",      label: "Diproses",            icon: "📦" },
-  { key: "shipped",         label: "Dikirim",             icon: "🚚" },
-  { key: "delivered",       label: "Terkirim",            icon: "📬" },
-  { key: "completed",       label: "Selesai",             icon: "✅" },
-];
-
-const STATUS_ORDER = ["pending_payment","processing","shipped","delivered","completed"];
-const isCancelled = ["cancelled","refund_requested","refunded"].includes(order.status);
-const currentStepIdx = STATUS_ORDER.indexOf(order.status);
-
-// Payment status badge
 const PAYMENT_STATUS_LABELS: Record<string, string> = {
   pending:  "Menunggu",
   paid:     "Lunas",
@@ -61,8 +44,6 @@ const PAYMENT_STATUS_COLORS: Record<string, string> = {
   refunded: "bg-gray-100 text-gray-600",
   expired:  "bg-red-100 text-red-800",
 };
-
-const showPayButton = payment?.status === "pending" && payment?.snapToken && order.status === "pending_payment";
 ---
 
 <BaseLayout title={`Pesanan ${order.orderNumber}`}>
@@ -100,7 +81,7 @@ const showPayButton = payment?.status === "pending" && payment?.snapToken && ord
     )}
 
     <!-- Header -->
-    <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
+    <div class="mb-4 flex flex-wrap items-start justify-between gap-4">
       <div>
         <a href="/orders" class="mb-2 inline-flex items-center gap-1 text-sm text-gray-400 hover:text-gray-700 transition-colors">
           <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -112,76 +93,21 @@ const showPayButton = payment?.status === "pending" && payment?.snapToken && ord
         <p class="mt-0.5 text-sm text-gray-500">Dipesan {formatDateTime(order.createdAt)}</p>
       </div>
       <div class="flex flex-wrap items-center gap-3">
-        <span class:list={["inline-flex items-center rounded-full px-4 py-1.5 text-sm font-semibold", statusColor]}>
-          {ORDER_STATUS_LABELS[order.status] ?? order.status}
-        </span>
         <ReorderButton client:load items={order.items} />
       </div>
     </div>
 
-    <!-- Status timeline (skip for cancelled/refunded) -->
-    {!isCancelled && (
-      <Card class="mb-6">
-        <div class="relative flex items-start justify-between gap-2">
-          {TIMELINE_STEPS.map((step, i) => {
-            const done  = currentStepIdx >= i;
-            const active = currentStepIdx === i;
-            return (
-              <div class="relative z-10 flex flex-1 flex-col items-center gap-1 text-center">
-                {/* connector line */}
-                {i < TIMELINE_STEPS.length - 1 && (
-                  <div
-                    class:list={[
-                      "absolute left-1/2 top-4 h-0.5 w-full -translate-y-1/2 transition-colors",
-                      done && currentStepIdx > i ? "bg-green-400" : "bg-gray-200",
-                    ]}
-                  />
-                )}
-                <div
-                  class:list={[
-                    "relative z-10 flex h-9 w-9 items-center justify-center rounded-full text-lg ring-2 ring-offset-2 transition-all",
-                    done
-                      ? "bg-green-500 ring-green-200"
-                      : "bg-gray-100 ring-transparent",
-                    active && "ring-green-300 scale-110 shadow-md",
-                  ]}
-                >
-                  {done
-                    ? (active ? <span>{step.icon}</span> : <svg class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>)
-                    : <span class="text-base opacity-40">{step.icon}</span>
-                  }
-                </div>
-                <p class:list={["mt-1 text-xs leading-tight", done ? "font-semibold text-gray-800" : "text-gray-400"]}>
-                  {step.label}
-                </p>
-                {/* timestamp from statusHistory */}
-                {order.statusHistory?.find(e => e.status === step.key) && (
-                  <p class="text-[10px] text-gray-400">
-                    {formatDateTime(order.statusHistory.find(e => e.status === step.key)!.timestamp)}
-                  </p>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </Card>
-    )}
-
-    <!-- Cancelled banner -->
-    {isCancelled && (
-      <div class="mb-6 flex items-start gap-3 rounded-xl border border-red-100 bg-red-50 px-5 py-4 text-red-800">
-        <span class="text-2xl">❌</span>
-        <div>
-          <p class="font-semibold">{ORDER_STATUS_LABELS[order.status] ?? order.status}</p>
-          {order.cancellationReason && (
-            <p class="mt-0.5 text-sm">Alasan: {order.cancellationReason}</p>
-          )}
-          {order.cancellationNote && (
-            <p class="text-sm text-red-600">{order.cancellationNote}</p>
-          )}
-        </div>
-      </div>
-    )}
+    <!-- Live status tracker island: badge + timeline + cancelled banner -->
+    <div class="mb-6">
+      <OrderStatusTracker
+        client:load
+        orderId={order.id}
+        initialStatus={order.status}
+        initialStatusHistory={(order as any).statusHistory ?? []}
+        cancellationReason={(order as any).cancellationReason ?? null}
+        cancellationNote={(order as any).cancellationNote ?? null}
+      />
+    </div>
 
     <div class="grid gap-6 lg:grid-cols-3">
 

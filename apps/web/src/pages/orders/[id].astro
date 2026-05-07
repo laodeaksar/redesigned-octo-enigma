@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "@/components/layout/BaseLayout.astro";
 import Card from "@/components/shared/Card.astro";
+import ReorderButton from "@/components/islands/ReorderButton";
 import { requireAuth, getTokenFromCookies } from "@/lib/auth";
 import { api, type OrderDetail, type Payment } from "@/lib/api";
 import {
@@ -110,9 +111,12 @@ const showPayButton = payment?.status === "pending" && payment?.snapToken && ord
         <h1 class="font-mono text-xl font-bold text-gray-900">{order.orderNumber}</h1>
         <p class="mt-0.5 text-sm text-gray-500">Dipesan {formatDateTime(order.createdAt)}</p>
       </div>
-      <span class:list={["inline-flex items-center rounded-full px-4 py-1.5 text-sm font-semibold", statusColor]}>
-        {ORDER_STATUS_LABELS[order.status] ?? order.status}
-      </span>
+      <div class="flex flex-wrap items-center gap-3">
+        <span class:list={["inline-flex items-center rounded-full px-4 py-1.5 text-sm font-semibold", statusColor]}>
+          {ORDER_STATUS_LABELS[order.status] ?? order.status}
+        </span>
+        <ReorderButton client:load items={order.items} />
+      </div>
     </div>
 
     <!-- Status timeline (skip for cancelled/refunded) -->

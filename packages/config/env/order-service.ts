@@ -14,7 +14,7 @@ export const env = createEnv({
     PORT: portSchema.default(3003),
 
     // ── MongoDB ───────────────────────────────────────────────────────────────
-    MONGODB_URL: z.string().url().startsWith("mongodb"),
+    MONGODB_URL: z.url().startsWith("mongodb"),
     MONGODB_DB_NAME: z.string().min(1).default("orders"),
 
     // ── Auth (for internal JWT verification) ──────────────────────────────────

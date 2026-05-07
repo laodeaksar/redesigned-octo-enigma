@@ -15,6 +15,7 @@ import { normalizeError } from "@repo/common/errors";
 import { env } from "@/config";
 import { requestIdMiddleware } from "@/middleware/request-id.middleware";
 import { auditMiddleware } from "@/middleware/audit.middleware";
+import { ipBlocklistMiddleware } from "@/middleware/ip-blocklist.middleware";
 import { healthRoutes } from "@/modules/health/health.routes";
 import { authRoutes } from "@/modules/auth/auth.routes";
 import { adminRoutes } from "@/modules/admin/admin.routes";
@@ -62,7 +63,10 @@ export function createApp() {
   // ── Request ID ────────────────────────────────────────────────────────────
   app.use("*", requestIdMiddleware);
 
-  // ── Audit log — captures 401/403 responses ────────────────────────────────
+  // ── IP blocklist — reject blocked IPs early (before any auth work) ────────
+  app.use("*", ipBlocklistMiddleware);
+
+  // ── Audit log — captures 401/403, increments failure counter per IP ───────
   app.use("*", auditMiddleware);
 
   // ── Pretty JSON in development ────────────────────────────────────────────

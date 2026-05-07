@@ -106,3 +106,7 @@ export type { Wishlist, NewWishlist } from "./wishlist";
 // ── Push notifications ────────────────────────────────────────────────────────
 export { pushSubscriptionsTable } from "./push-subscriptions";
 export type { PushSubscriptionRow, NewPushSubscriptionRow } from "./push-subscriptions";
+
+// ── Security audit log ────────────────────────────────────────────────────────
+export { auditLogsTable } from "./audit-logs";
+export type { AuditLogRow, NewAuditLogRow } from "./audit-logs";

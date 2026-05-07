@@ -3,6 +3,7 @@
 // =============================================================================
 
 import { env as rawEnv } from "@repo/env/api-gateway";
+import { createDrizzleClient } from "@repo/database/drizzle";
 import Redis from "ioredis";
 
 export const env = rawEnv;
@@ -17,6 +18,22 @@ export const SERVICES = {
 } as const;
 
 export type ServiceName = keyof typeof SERVICES;
+
+// ── PostgreSQL via Drizzle (audit logs) ───────────────────────────────────────
+
+const DATABASE_URL = process.env.DATABASE_URL ?? "";
+
+/**
+ * Drizzle client for writing audit logs.
+ * Null when DATABASE_URL is not available (gateway degrades gracefully).
+ */
+export const db = DATABASE_URL
+  ? createDrizzleClient({
+      url: DATABASE_URL,
+      maxConnections: 3,
+      debug: false,
+    })
+  : null;
 
 // ── Redis ─────────────────────────────────────────────────────────────────────
 

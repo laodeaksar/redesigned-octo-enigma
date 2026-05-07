@@ -14,6 +14,7 @@ import { normalizeError } from "@repo/common/errors";
 
 import { env } from "@/config";
 import { requestIdMiddleware } from "@/middleware/request-id.middleware";
+import { auditMiddleware } from "@/middleware/audit.middleware";
 import { healthRoutes } from "@/modules/health/health.routes";
 import { authRoutes } from "@/modules/auth/auth.routes";
 import { adminRoutes } from "@/modules/admin/admin.routes";
@@ -60,6 +61,9 @@ export function createApp() {
 
   // ── Request ID ────────────────────────────────────────────────────────────
   app.use("*", requestIdMiddleware);
+
+  // ── Audit log — captures 401/403 responses ────────────────────────────────
+  app.use("*", auditMiddleware);
 
   // ── Pretty JSON in development ────────────────────────────────────────────
   if (env.NODE_ENV === "development") {

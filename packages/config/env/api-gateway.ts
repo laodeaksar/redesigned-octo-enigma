@@ -15,6 +15,15 @@ export const env = createEnv({
 
     REDIS_URL: redisUrlSchema,
 
+    // ── Database (audit logs) ─────────────────────────────────────────────────
+    DATABASE_URL: z
+      .string()
+      .min(1)
+      .refine((v) => v.startsWith("postgresql://") || v.startsWith("postgres://"), {
+        message: "DATABASE_URL must start with postgresql:// or postgres://",
+      })
+      .optional(),
+
     AUTH_SERVICE_URL: z.url(),
     PRODUCT_SERVICE_URL: z.url(),
     ORDER_SERVICE_URL: z.url(),

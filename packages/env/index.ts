@@ -12,7 +12,14 @@ export const jwtSecretSchema = z.string().min(32, "JWT secret must be at least 3
 export const portSchema = z.coerce.number().int().min(1024).max(65535);
 
 /** Standard database URL */
-export const postgresUrlSchema = z.url().startsWith("postgresql://");
+export const postgresUrlSchema = z
+  .string()
+  .min(1)
+  .refine((v) => v.startsWith("postgresql://") || v.startsWith("postgres://"), {
+    message: "DATABASE_URL must start with postgresql:/     / or postgres://",
+  })
+  .optional(),
+//z.url().startsWith("postgresql://");
 
 /** Standard Redis URL */
 export const redisUrlSchema = z.url().startsWith("redis");

@@ -11,7 +11,7 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["src/**", "package.json", "tsconfig.json"],
-      "outputs": ["dist/**", ".next/**", ".vinxi/**", ".astro/**"]
+      "outputs": ["dist/**", ".next/**", ".astro/**"]
     },
 
     "dev": {

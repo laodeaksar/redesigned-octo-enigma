@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createEnv } from "@t3-oss/env-core";
-import { jwtSecretSchema, portSchema, redisUrlSchema } from ".";
+import { jwtSecretSchema, portSchema, redisUrlSchema, postgresUrlSchema } from ".";
 
 export const env = createEnv({
   server: {
@@ -16,13 +16,14 @@ export const env = createEnv({
     REDIS_URL: redisUrlSchema,
 
     // ── Database (audit logs) ─────────────────────────────────────────────────
-    DATABASE_URL: z
+    DATABASE_URL: postgresUrlSchema,
+      /*z
       .string()
       .min(1)
       .refine((v) => v.startsWith("postgresql://") || v.startsWith("postgres://"), {
         message: "DATABASE_URL must start with postgresql:// or postgres://",
       })
-      .optional(),
+      .optional(),*/
 
     AUTH_SERVICE_URL: z.url(),
     PRODUCT_SERVICE_URL: z.url(),

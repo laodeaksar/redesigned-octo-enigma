@@ -10,7 +10,7 @@
     "build": "bun build src/index.ts --outdir dist --target bun",
     "start": "bun run dist/index.js",
     "typecheck": "tsc --noEmit",
-"clean": "rm -rf .turbo dist node_modules"
+    "clean": "rm -rf .turbo dist node_modules"
   },
   "dependencies": {
     "@bull-board/api": "^5.19.0",

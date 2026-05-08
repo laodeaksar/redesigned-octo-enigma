@@ -1,5 +1,5 @@
 // =============================================================================
-// @my-ecommerce/database — top-level barrel
+// @repo/database — top-level barrel
 //
 // Prefer sub-path imports for better tree-shaking:
 //   import { createDrizzleClient } from "@repo/database/drizzle"

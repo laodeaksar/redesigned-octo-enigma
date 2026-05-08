@@ -30,11 +30,15 @@ export interface RateLimitResult {
  *  3. If count < limit: ZADD + EXPIRE, return allowed=true
  *  4. Else: return allowed=false with retry-after info
  *
- * @param redis  Redis client
+ * Accepts `Redis | null` — if Redis is unavailable the call fails open
+ * (allowed=true) via the catch block, matching the graceful-degradation
+ * contract described in the module header.
+ *
+ * @param redis  Redis client, or null when Redis is not provisioned
  * @param key    Unique key for this caller (e.g. "rl:ip:192.168.1.1")
  */
 export async function checkRateLimit(
-  redis: Redis,
+  redis: Redis | null,
   key: string,
   config: RateLimitConfig
 ): Promise<RateLimitResult> {
@@ -45,6 +49,7 @@ export async function checkRateLimit(
   const windowStart = now - windowMs;
 
   try {
+    if (!redis) throw new Error("Redis unavailable");
     const pipeline = redis.pipeline();
 
     // Remove entries outside the window
@@ -81,5 +86,21 @@ export const RATE_LIMITS = {
   checkout: { limit: 10, windowSec: 60, prefix: "rl:checkout" },
   /** Strict: 5 req / 60s (forgot-password, etc.) */
   strict: { limit: 5, windowSec: 60, prefix: "rl:strict" },
+  /**
+   * Webhook: 20 deliveries / 60s per IP.
+   *
+   * Midtrans delivers at most a handful of state-change notifications per
+   * transaction (pending → settlement → refund, etc.) and retries are spaced
+   * minutes apart, so 20/min is generous for any legitimate sender while still
+   * shutting down a bot flooding the endpoint with spoofed payloads before
+   * those requests reach signature verification or the database.
+   *
+   * Tune WEBHOOK_RATE_LIMIT_MAX via env if you need a different threshold.
+   */
+  webhook: {
+    limit:     Number(process.env["WEBHOOK_RATE_LIMIT_MAX"] ?? 20),
+    windowSec: 60,
+    prefix:    "rl:webhook",
+  },
 } as const satisfies Record<string, RateLimitConfig>;
 

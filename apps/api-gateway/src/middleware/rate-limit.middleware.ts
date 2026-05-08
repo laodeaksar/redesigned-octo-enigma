@@ -57,10 +57,55 @@ export function rateLimitMiddleware(config: RateLimitConfig = RATE_LIMITS.defaul
   });
 }
 
+/**
+ * IP-only rate limiter — always keys by client IP, never by user ID.
+ *
+ * Use this for unauthenticated public endpoints (e.g. webhooks) where
+ * `c.var.user` is always null and the identifier must always be the IP.
+ */
+export function ipRateLimitMiddleware(config: RateLimitConfig) {
+  return createMiddleware(async (c, next) => {
+    const redis = getRedis();
+
+    const ip =
+      c.req.header("cf-connecting-ip") ??
+      c.req.header("x-real-ip") ??
+      c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ??
+      "unknown";
+
+    const result = await checkRateLimit(redis, ip, config);
+
+    c.header("X-RateLimit-Limit",     String(result.limit));
+    c.header("X-RateLimit-Remaining", String(result.remaining));
+    c.header("X-RateLimit-Reset",     String(result.resetAt));
+
+    if (!result.allowed) {
+      c.header(
+        "Retry-After",
+        String(result.resetAt - Math.floor(Date.now() / 1000))
+      );
+      return c.json(
+        failure("RATE_LIMIT_EXCEEDED", "Too many requests — please slow down"),
+        429
+      );
+    }
+
+    await next();
+  });
+}
+
 // ── Pre-wired presets ─────────────────────────────────────────────────────────
 
-export const defaultRateLimit = rateLimitMiddleware(RATE_LIMITS.default);
-export const authRateLimit = rateLimitMiddleware(RATE_LIMITS.auth);
+export const defaultRateLimit  = rateLimitMiddleware(RATE_LIMITS.default);
+export const authRateLimit     = rateLimitMiddleware(RATE_LIMITS.auth);
 export const checkoutRateLimit = rateLimitMiddleware(RATE_LIMITS.checkout);
-export const strictRateLimit = rateLimitMiddleware(RATE_LIMITS.strict);
+export const strictRateLimit   = rateLimitMiddleware(RATE_LIMITS.strict);
+
+/**
+ * Webhook rate limiter — IP-keyed, 20 deliveries / 60s by default.
+ * Applied before signature verification so spoofed floods are dropped
+ * before any crypto work or DB writes.
+ * Override the ceiling with WEBHOOK_RATE_LIMIT_MAX env var.
+ */
+export const webhookRateLimit = ipRateLimitMiddleware(RATE_LIMITS.webhook);
 

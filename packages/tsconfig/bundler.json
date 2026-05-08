@@ -7,10 +7,13 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "noEmit": false,
-    "outDir": "dist",
-    "types": ["bun"],
+    "outDir": "./dist",
+    "types": ["bun", "node"],
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["src", "**/*.ts"],
   "exclude": ["node_modules", "dist"]

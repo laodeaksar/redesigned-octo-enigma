@@ -1,7 +1,13 @@
 {
   "extends": "@repo/tsconfig/base",
   "compilerOptions": {
-    "types": ["node"],
-    "strictNullChecks": true
-  }
+    "types": ["node", "bun"],
+    "strictNullChecks": true,
+    "outDir": "./dist",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
+  },
+  "include": ["src", "drizzle"],
+  "exclude": ["node_modules", "dist", "drizzle/migrations"]
 }

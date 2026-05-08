@@ -3,9 +3,13 @@
   "compilerOptions": {
     "rootDir": "./src",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@/config": ["./src/config.ts"],
+      "@/lib": ["./src/lib/*"]
     },
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "types": ["bun", "node"]
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
 }

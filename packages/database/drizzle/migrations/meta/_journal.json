@@ -29,6 +29,13 @@
       "when": 1778194741803,
       "tag": "0003_glorious_storm",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1778224981499,
+      "tag": "0004_exotic_redwing",
+      "breakpoints": true
     }
   ]
 }

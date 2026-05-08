@@ -110,3 +110,7 @@ export type { PushSubscriptionRow, NewPushSubscriptionRow } from "./push-subscri
 // ── Security audit log ────────────────────────────────────────────────────────
 export { auditLogsTable } from "./audit-logs";
 export type { AuditLogRow, NewAuditLogRow } from "./audit-logs";
+
+// ── Webhook event log ─────────────────────────────────────────────────────────
+export { webhookEventsTable } from "./webhook-events";
+export type { WebhookEventRow, NewWebhookEventRow } from "./webhook-events";

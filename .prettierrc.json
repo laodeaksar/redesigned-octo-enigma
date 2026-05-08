@@ -1,0 +1,30 @@
+{
+  "tabWidth": 2,
+  "semi": true,
+  "singleQuote": true,
+  "trailingComma": "es5",
+  "printWidth": 80,
+  "bracketSpacing": true,
+  "arrowParens": "avoid",
+  "endOfLine": "lf",
+  "plugins": ["prettier-plugin-sort-imports"],
+  "importOrder": {
+    "groups": [
+      "type",
+      "external",
+      "internal",
+      "parent",
+      "sibling",
+      "index"
+    ],
+    "alphabetize": {
+      "order": "asc",
+      "caseInsensitive": true
+    },
+    "newlines": {
+      "before": "always",
+      "after": "never",
+      "between": "always"
+    }
+  }
+}

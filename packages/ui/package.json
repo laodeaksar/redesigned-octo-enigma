@@ -4,7 +4,11 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\""
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
@@ -34,8 +38,10 @@
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",
+    "@repo/eslint-config": "workspace:*",
     "@repo/tsconfig": "workspace:*",
-    "tailwindcss": "^4.1.18",
+    "eslint": "^9.0.0",
+    "tailwindcss": "^4.2.4",
     "typescript": "^6.0.3"
   },
   "exports": {

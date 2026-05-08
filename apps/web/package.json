@@ -10,6 +10,10 @@
     "build": "astro build",
     "preview": "astro preview",
     "typecheck": "astro check && tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
     "clean": "rm -rf .turbo dist node_modules"
   },
   "dependencies": {
@@ -29,6 +33,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
+    "@repo/eslint-config": "workspace:*",
     "@repo/tsconfig": "workspace:*",
     "@tailwindcss/vite": "^4.2.4",
     "@types/web-push": "^3.6.4",
@@ -36,6 +41,7 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "autoprefixer": "^10.4.19",
+    "eslint": "^9.0.0",
     "postcss": "^8.4.39",
     "tailwindcss": "^4.2.4",
     "typescript": "^6.0.3",

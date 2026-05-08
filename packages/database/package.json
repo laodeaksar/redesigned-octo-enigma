@@ -21,6 +21,10 @@
     "db:seed:categories": "bun run seed/categories.seed.ts",
     "db:seed:products": "bun run seed/products.seed.ts",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint drizzle --ext .ts",
+    "lint:fix": "eslint drizzle --ext .ts --fix",
+    "format": "prettier --write \"drizzle/**/*.ts\"",
+    "format:check": "prettier --check \"drizzle/**/*.ts\"",
     "clean": "rm -rf .turbo node_modules drizzle/migrations/*.sql"
   },
   "dependencies": {
@@ -29,9 +33,11 @@
     "postgres": "^3.4.9"
   },
   "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
     "@repo/tsconfig": "workspace:*",
     "@types/node": "^25.6.0",
     "drizzle-kit": "^0.31.0",
+    "eslint": "^9.0.0",
     "typescript": "^6.0.3"
   }
 }

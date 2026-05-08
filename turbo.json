@@ -2,6 +2,11 @@
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
   "globalEnv": ["NODE_ENV", "DATABASE_URL", "REDIS_URL", "MONGODB_URL"],
+  "pipeline": {
+    "typecheck": ["^build"],
+    "lint": ["^build"],
+    "format": ["^build"]
+  },
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -18,6 +23,32 @@
     "typecheck": {
       "dependsOn": ["^build"],
       "inputs": ["src/**", "tsconfig.json"],
+      "outputs": []
+    },
+
+    "lint": {
+      "dependsOn": ["^build"],
+      "inputs": ["src/**", ".eslintrc.js", "eslint.config.js"],
+      "outputs": []
+    },
+
+    "lint:fix": {
+      "cache": false,
+      "dependsOn": ["^build"],
+      "inputs": ["src/**", ".eslintrc.js", "eslint.config.js"],
+      "outputs": []
+    },
+
+    "format": {
+      "dependsOn": ["^build"],
+      "inputs": ["src/**", ".prettierrc", ".prettierrc.json", ".prettierignore"],
+      "outputs": []
+    },
+
+    "format:check": {
+      "cache": false,
+      "dependsOn": ["^build"],
+      "inputs": ["src/**", ".prettierrc", ".prettierrc.json", ".prettierignore"],
       "outputs": []
     },
 

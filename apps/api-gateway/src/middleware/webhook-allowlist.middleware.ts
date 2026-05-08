@@ -32,6 +32,8 @@
 
 import { createMiddleware } from "hono/factory";
 import { logger } from "@/lib/logger";
+import { db } from "@/config";
+import { webhookEventsTable } from "@repo/database/drizzle/schema";
 
 // ── CIDR helpers (IPv4-only — Midtrans uses IPv4) ────────────────────────────
 
@@ -183,6 +185,22 @@ export const midtransAllowlistMiddleware = createMiddleware(async (c, next) => {
     path: c.req.path,
     hint: "Add to MIDTRANS_WEBHOOK_EXTRA_CIDR if this is a legitimate sender",
   });
+
+  // Write to webhook_events so blocked deliveries appear in the audit log
+  // alongside forwarded/duplicate/signature-invalid events.
+  // Fire-and-forget — never delays the response.
+  if (db) {
+    db.insert(webhookEventsTable)
+      .values({
+        provider:      "midtrans",
+        ip,
+        outcome:       "not_allowed",
+        outcomeDetail: "Source IP is not within any configured Midtrans CIDR range",
+      })
+      .catch((err: unknown) => {
+        logger.warn("[webhook-allowlist] Failed to write audit row", { err });
+      });
+  }
 
   // Return 200 so the provider does not retry — same convention as the
   // signature verifier (Midtrans retries any non-2xx indefinitely).

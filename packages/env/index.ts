@@ -16,10 +16,9 @@ export const postgresUrlSchema = z
   .string()
   .min(1)
   .refine((v) => v.startsWith("postgresql://") || v.startsWith("postgres://"), {
-    message: "DATABASE_URL must start with postgresql:/     / or postgres://",
+    message: "DATABASE_URL must start with postgresql:// or postgres://",
   })
-  .optional(),
-//z.url().startsWith("postgresql://");
+  .optional();
 
 /** Standard Redis URL */
 export const redisUrlSchema = z.url().startsWith("redis");

@@ -173,6 +173,10 @@ externalPort = 80
 localPort = 8000
 externalPort = 8000
 
+[[ports]]
+localPort = 9876
+externalPort = 5000
+
 [deployment]
 deploymentTarget = "autoscale"
 run = ["bun", "run", "--cwd", "apps/web", "preview", "--host", "0.0.0.0", "--port", "5000"]

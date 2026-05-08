@@ -9,6 +9,7 @@ export const QUEUES = {
   EMAIL_ORDER_SHIPPED:       "email.order-shipped",
   EMAIL_ORDER_CANCELLED:     "email.order-cancelled",
   EMAIL_PASSWORD_RESET:      "email.password-reset",
+  EMAIL_SECURITY_ALERT:      "email.security-alert",
 
   // ── Product ────────────────────────────────────────────────────────────────
   PRODUCT_STOCK_DEDUCT:      "product.stock-deduct",

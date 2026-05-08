@@ -33,6 +33,22 @@ export const env = createEnv({
     CORS_ORIGINS: z
       .string()
       .transform((val) => val.split(",").map((s) => s.trim())),
+
+    // ── Security alerting (all optional) ─────────────────────────────────────
+    /** Webhook URL — POST JSON alert payload (Slack / Discord / Teams / custom) */
+    ALERT_WEBHOOK_URL: z.url().optional(),
+    /** Comma-separated email addresses to notify (requires email-worker + SMTP) */
+    ALERT_EMAIL_TO: z.string().optional(),
+    /** Minimum threat level that triggers an alert: LOW | MEDIUM | HIGH | CRITICAL */
+    ALERT_THRESHOLD_LEVEL: z
+      .enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"])
+      .default("HIGH"),
+    /** How often the threat monitor polls (seconds) */
+    ALERT_MONITOR_INTERVAL_SECONDS: z.coerce.number().int().min(10).default(60),
+    /** Minimum gap between alerts for the same level (minutes) */
+    ALERT_COOLDOWN_MINUTES: z.coerce.number().int().min(1).default(15),
+    /** Human-readable environment name shown in alert payloads */
+    ALERT_ENV_NAME: z.string().default("production"),
   },
   runtimeEnv: process.env,
 });

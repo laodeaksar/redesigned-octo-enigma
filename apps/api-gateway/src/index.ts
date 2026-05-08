@@ -4,6 +4,7 @@
 
 import { createApp } from "@/app";
 import { env, initRedis } from "@/config";
+import { startThreatMonitor, stopThreatMonitor } from "@/jobs/threat-monitor";
 
 async function bootstrap() {
   console.info(`\n🚀 Starting api-gateway [${env.NODE_ENV}]…`);
@@ -16,6 +17,9 @@ async function bootstrap() {
     console.warn("⚠ Redis unavailable — rate limiting disabled");
     if (env.NODE_ENV === "production") process.exit(1);
   }
+
+  // ── Threat monitor (background security polling) ──────────────────────────
+  startThreatMonitor();
 
   // ── Hono app ──────────────────────────────────────────────────────────────
   const app = createApp();
@@ -40,6 +44,8 @@ async function bootstrap() {
   const shutdown = async (signal: string) => {
     console.info(`\n${signal} received — shutting down gracefully…`);
     server.stop(true);
+
+    stopThreatMonitor();
 
     const { getRedis } = await import("@/config");
     await getRedis()?.quit();

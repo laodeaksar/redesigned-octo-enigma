@@ -24,6 +24,7 @@ import { proxyRequest, buildTargetUrl } from "@/lib/proxy";
 import { auditLogsRoutes } from "./audit-logs.routes";
 import { blockedIpsRoutes } from "./blocked-ips.routes";
 import { securityOverviewRoutes } from "./security-overview.routes";
+import { securityAlertsRoutes } from "./security-alerts.routes";
 import { SERVICES } from "@/config";
 
 const app = new Hono();
@@ -38,6 +39,9 @@ app.route("/", blockedIpsRoutes);
 
 // ── Security overview dashboard (served locally — not proxied) ────────────────
 app.route("/", securityOverviewRoutes);
+
+// ── Security alerts config + test (served locally — not proxied) ──────────────
+app.route("/", securityAlertsRoutes);
 
 // ── Better-auth built-in admin endpoints (/api/auth/admin/*) ──────────────────
 app.all(

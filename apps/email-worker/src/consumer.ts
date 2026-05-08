@@ -16,6 +16,7 @@ import { handleOrderConfirmationEmail } from "@/handlers/order-confirmation.hand
 import { handleOrderShippedEmail } from "@/handlers/order-shipped.handler";
 import { handleOrderCancelledEmail } from "@/handlers/order-cancelled.handler";
 import { handlePasswordResetEmail } from "@/handlers/password-reset.handler";
+import { handleSecurityAlertEmail } from "@/handlers/security-alert.handler";
 
 const DEFAULT_WORKER_OPTS = {
   concurrency:      5,
@@ -31,6 +32,7 @@ const BINDINGS: WorkerBinding[] = [
   { queue: QUEUES.EMAIL_ORDER_SHIPPED,      processor: handleOrderShippedEmail,        options: DEFAULT_WORKER_OPTS },
   { queue: QUEUES.EMAIL_ORDER_CANCELLED,    processor: handleOrderCancelledEmail,      options: DEFAULT_WORKER_OPTS },
   { queue: QUEUES.EMAIL_PASSWORD_RESET,     processor: handlePasswordResetEmail,       options: DEFAULT_WORKER_OPTS },
+  { queue: QUEUES.EMAIL_SECURITY_ALERT,    processor: handleSecurityAlertEmail,       options: DEFAULT_WORKER_OPTS },
 ];
 
 /**

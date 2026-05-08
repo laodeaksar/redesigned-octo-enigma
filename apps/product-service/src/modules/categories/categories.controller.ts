@@ -2,16 +2,15 @@
 // Categories controller
 // =============================================================================
 
-import { success } from "@repo/common/schemas";
 import { safeParse } from "@repo/common/errors";
 import {
   createCategorySchema,
+  success,
   updateCategorySchema,
 } from "@repo/common/schemas";
 import type Redis from "ioredis";
-
-import * as service from "./categories.service";
 import type { DB } from "@/config";
+import * as service from "./categories.service";
 
 export async function handleGetTree(db: DB, redis: Redis | null) {
   return success(await service.getCategoryTree(db, redis));
@@ -27,7 +26,10 @@ export async function handleGetById(db: DB, redis: Redis | null, id: string) {
 
 export async function handleCreate(db: DB, redis: Redis | null, body: unknown) {
   const input = safeParse(createCategorySchema, body);
-  return success(await service.createCategory(db, redis, input), "Category created");
+  return success(
+    await service.createCategory(db, redis, input),
+    "Category created"
+  );
 }
 
 export async function handleUpdate(
@@ -37,10 +39,12 @@ export async function handleUpdate(
   body: unknown
 ) {
   const input = safeParse(updateCategorySchema, body);
-  return success(await service.updateCategory(db, redis, id, input), "Category updated");
+  return success(
+    await service.updateCategory(db, redis, id, input),
+    "Category updated"
+  );
 }
 
 export async function handleDelete(db: DB, redis: Redis | null, id: string) {
   return success(await service.deleteCategory(db, redis, id));
 }
-

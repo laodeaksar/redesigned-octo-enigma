@@ -2,16 +2,20 @@
 // Vouchers service
 // =============================================================================
 
-import { NotFoundError, InvalidVoucherError, ConflictError } from "@repo/common/errors";
+import {
+  ConflictError,
+  InvalidVoucherError,
+  NotFoundError,
+} from "@repo/common/errors";
 import type { VoucherRow } from "@repo/database/drizzle/schema";
-import * as repo from "./vouchers.repository";
 import type { DB } from "@/config";
+import * as repo from "./vouchers.repository";
 
 // ── Validation ────────────────────────────────────────────────────────────────
 
 export interface VoucherValidationResult {
-  voucher: VoucherRow;
   discountAmount: number;
+  voucher: VoucherRow;
 }
 
 export async function validateVoucher(
@@ -22,7 +26,7 @@ export async function validateVoucher(
 ): Promise<VoucherValidationResult> {
   const voucher = await repo.findVoucherByCode(db, code);
 
-  if (!voucher || !voucher.isActive) {
+  if (!(voucher && voucher.isActive)) {
     throw new InvalidVoucherError("not_found");
   }
 
@@ -36,10 +40,7 @@ export async function validateVoucher(
     throw new InvalidVoucherError("expired");
   }
 
-  if (
-    voucher.usageLimit !== null &&
-    voucher.usageCount >= voucher.usageLimit
-  ) {
+  if (voucher.usageLimit !== null && voucher.usageCount >= voucher.usageLimit) {
     throw new InvalidVoucherError("usage_limit");
   }
 
@@ -70,9 +71,9 @@ export function calculateDiscount(
   switch (voucher.type) {
     case "percentage": {
       const raw = Math.floor((subtotal * voucher.value) / 100);
-      return voucher.maximumDiscountAmount !== null
-        ? Math.min(raw, voucher.maximumDiscountAmount)
-        : raw;
+      return voucher.maximumDiscountAmount === null
+        ? raw
+        : Math.min(raw, voucher.maximumDiscountAmount);
     }
     case "fixed_amount":
       return Math.min(voucher.value, subtotal);
@@ -91,13 +92,23 @@ export async function listVouchers(db: DB) {
 
 export async function getVoucherById(db: DB, id: string) {
   const voucher = await repo.findVoucherById(db, id);
-  if (!voucher) throw new NotFoundError("Voucher");
+  if (!voucher) {
+    throw new NotFoundError("Voucher");
+  }
   return voucher;
 }
 
-export async function createVoucher(db: DB, data: Parameters<typeof repo.createVoucher>[1]) {
+export async function createVoucher(
+  db: DB,
+  data: Parameters<typeof repo.createVoucher>[1]
+) {
   const existing = await repo.findVoucherByCode(db, data.code!);
-  if (existing) throw new ConflictError(`Voucher code '${data.code}' already exists`, "CONFLICT");
+  if (existing) {
+    throw new ConflictError(
+      `Voucher code '${data.code}' already exists`,
+      "CONFLICT"
+    );
+  }
   return repo.createVoucher(db, data);
 }
 
@@ -107,13 +118,16 @@ export async function updateVoucher(
   data: Parameters<typeof repo.updateVoucher>[2]
 ) {
   const voucher = await repo.findVoucherById(db, id);
-  if (!voucher) throw new NotFoundError("Voucher");
+  if (!voucher) {
+    throw new NotFoundError("Voucher");
+  }
   return repo.updateVoucher(db, id, data);
 }
 
 export async function deleteVoucher(db: DB, id: string) {
   const voucher = await repo.findVoucherById(db, id);
-  if (!voucher) throw new NotFoundError("Voucher");
+  if (!voucher) {
+    throw new NotFoundError("Voucher");
+  }
   return repo.deleteVoucher(db, id);
 }
-

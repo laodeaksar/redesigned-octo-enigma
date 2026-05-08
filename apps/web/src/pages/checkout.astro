@@ -1,18 +1,24 @@
 ---
-import BaseLayout from "@/components/layout/BaseLayout.astro";
 import CheckoutForm from "@/components/islands/CheckoutForm";
-import { requireAuth, getTokenFromCookies } from "@/lib/auth";
+import BaseLayout from "@/components/layout/BaseLayout.astro";
 import { api } from "@/lib/api";
+import { getTokenFromCookies, requireAuth } from "@/lib/auth";
 
 // Requires auth — redirects to login if not logged in
-const user = await requireAuth(Astro.cookies, `/auth/login?redirect=/checkout`);
+const user = await requireAuth(Astro.cookies, "/auth/login?redirect=/checkout");
 const token = getTokenFromCookies(Astro.cookies)!;
 
 // Fetch saved addresses
 let addresses: Array<{
-  id: string; label: string; recipientName: string;
-  phone: string; street: string; city: string;
-  province: string; postalCode: string; cityId?: string;
+  id: string;
+  label: string;
+  recipientName: string;
+  phone: string;
+  street: string;
+  city: string;
+  province: string;
+  postalCode: string;
+  cityId?: string;
 }> = [];
 
 try {
@@ -26,9 +32,10 @@ try {
 }
 
 // Load Midtrans Snap.js
-const midtransScriptUrl = import.meta.env.PUBLIC_MIDTRANS_IS_PRODUCTION === "true"
-  ? "https://app.midtrans.com/snap/snap.js"
-  : "https://app.sandbox.midtrans.com/snap/snap.js";
+const midtransScriptUrl =
+  import.meta.env.PUBLIC_MIDTRANS_IS_PRODUCTION === "true"
+    ? "https://app.midtrans.com/snap/snap.js"
+    : "https://app.sandbox.midtrans.com/snap/snap.js";
 ---
 
 <BaseLayout title="Checkout">

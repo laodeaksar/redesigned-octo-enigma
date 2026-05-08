@@ -8,14 +8,16 @@ import { setAuthCookies } from "@/lib/auth";
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
-    const { accessToken, refreshToken, expiresIn } = await request.json() as {
+    const { accessToken, refreshToken, expiresIn } = (await request.json()) as {
       accessToken: string;
       refreshToken: string;
       expiresIn: number;
     };
 
-    if (!accessToken || !refreshToken) {
-      return new Response(JSON.stringify({ error: "Missing tokens" }), { status: 400 });
+    if (!(accessToken && refreshToken)) {
+      return new Response(JSON.stringify({ error: "Missing tokens" }), {
+        status: 400,
+      });
     }
 
     setAuthCookies(cookies, accessToken, refreshToken, expiresIn);
@@ -25,7 +27,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       headers: { "Content-Type": "application/json" },
     });
   } catch {
-    return new Response(JSON.stringify({ error: "Invalid request" }), { status: 400 });
+    return new Response(JSON.stringify({ error: "Invalid request" }), {
+      status: 400,
+    });
   }
 };
-

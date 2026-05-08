@@ -15,19 +15,15 @@
 // =============================================================================
 
 import { Hono } from "hono";
-
-import {
-  requireAuth,
-  requireRole,
-} from "@/middleware/auth.middleware";
+import { SERVICES } from "@/config";
+import { buildTargetUrl, proxyRequest } from "@/lib/proxy";
+import { requireAuth, requireRole } from "@/middleware/auth.middleware";
 import {
   defaultRateLimit,
   webhookRateLimit,
 } from "@/middleware/rate-limit.middleware";
-import { proxyRequest, buildTargetUrl } from "@/lib/proxy";
-import { verifyMidtransWebhook } from "@/middleware/webhook-verify.middleware";
 import { midtransAllowlistMiddleware } from "@/middleware/webhook-allowlist.middleware";
-import { SERVICES } from "@/config";
+import { verifyMidtransWebhook } from "@/middleware/webhook-verify.middleware";
 
 const app = new Hono();
 const paymentBase = SERVICES.payment;
@@ -54,38 +50,37 @@ app.post(
   midtransAllowlistMiddleware,
   webhookRateLimit,
   verifyMidtransWebhook,
-  async (c) => {
-    return proxyRequest(c, {
+  async (c) =>
+    proxyRequest(c, {
       target: buildTargetUrl(paymentBase, c),
       user: null,
       extraHeaders: { "x-webhook-source": "midtrans" },
-    });
-  }
+    })
 );
 
 // ── Customer: create payment ──────────────────────────────────────────────────
-app.post("/payments", requireAuth, defaultRateLimit, async (c) => {
-  return proxyRequest(c, {
+app.post("/payments", requireAuth, defaultRateLimit, async (c) =>
+  proxyRequest(c, {
     target: buildTargetUrl(paymentBase, c),
     user: c.var.user,
-  });
-});
+  })
+);
 
 // ── Customer: get payment by order ID ────────────────────────────────────────
-app.get("/payments/order/:orderId", requireAuth, defaultRateLimit, async (c) => {
-  return proxyRequest(c, {
+app.get("/payments/order/:orderId", requireAuth, defaultRateLimit, async (c) =>
+  proxyRequest(c, {
     target: buildTargetUrl(paymentBase, c),
     user: c.var.user,
-  });
-});
+  })
+);
 
 // ── Customer: get payment detail ──────────────────────────────────────────────
-app.get("/payments/:id", requireAuth, defaultRateLimit, async (c) => {
-  return proxyRequest(c, {
+app.get("/payments/:id", requireAuth, defaultRateLimit, async (c) =>
+  proxyRequest(c, {
     target: buildTargetUrl(paymentBase, c),
     user: c.var.user,
-  });
-});
+  })
+);
 
 // ── Admin: list all payments ──────────────────────────────────────────────────
 app.get(
@@ -94,7 +89,10 @@ app.get(
   requireRole("admin", "super_admin"),
   defaultRateLimit,
   async (c) =>
-    proxyRequest(c, { target: buildTargetUrl(paymentBase, c), user: c.var.user })
+    proxyRequest(c, {
+      target: buildTargetUrl(paymentBase, c),
+      user: c.var.user,
+    })
 );
 
 // ── Admin: refund ─────────────────────────────────────────────────────────────
@@ -104,8 +102,10 @@ app.post(
   requireRole("admin", "super_admin"),
   defaultRateLimit,
   async (c) =>
-    proxyRequest(c, { target: buildTargetUrl(paymentBase, c), user: c.var.user })
+    proxyRequest(c, {
+      target: buildTargetUrl(paymentBase, c),
+      user: c.var.user,
+    })
 );
 
 export { app as paymentsRoutes };
-

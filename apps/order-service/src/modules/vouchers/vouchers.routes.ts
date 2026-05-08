@@ -10,9 +10,8 @@
 // =============================================================================
 
 import Elysia, { t } from "elysia";
-
-import { databasePlugin } from "@/plugins/database.plugin";
 import { jwtMiddleware, requireRole } from "@/middleware/jwt.middleware";
+import { databasePlugin } from "@/plugins/database.plugin";
 import * as controller from "./vouchers.controller";
 
 const UUID_PARAM = t.Object({ id: t.String({ format: "uuid" }) });
@@ -64,23 +63,27 @@ export const vouchersRoutes = new Elysia({ prefix: "/vouchers" })
     }),
     detail: { tags: ["Vouchers"], summary: "Create voucher (admin)" },
   })
-  .patch("/:id", ({ db, params, body }) =>
-    controller.handleUpdate(db, params.id, body), {
-    params: UUID_PARAM,
-    body: t.Partial(t.Object({
-      description: t.String({ maxLength: 255 }),
-      value: t.Number({ minimum: 0 }),
-      minimumOrderAmount: t.Number({ minimum: 0 }),
-      maximumDiscountAmount: t.Nullable(t.Number()),
-      usageLimit: t.Nullable(t.Number()),
-      isActive: t.Boolean(),
-      startsAt: t.Nullable(t.String({ format: "date-time" })),
-      expiresAt: t.Nullable(t.String({ format: "date-time" })),
-    })),
-    detail: { tags: ["Vouchers"], summary: "Update voucher (admin)" },
-  })
+  .patch(
+    "/:id",
+    ({ db, params, body }) => controller.handleUpdate(db, params.id, body),
+    {
+      params: UUID_PARAM,
+      body: t.Partial(
+        t.Object({
+          description: t.String({ maxLength: 255 }),
+          value: t.Number({ minimum: 0 }),
+          minimumOrderAmount: t.Number({ minimum: 0 }),
+          maximumDiscountAmount: t.Nullable(t.Number()),
+          usageLimit: t.Nullable(t.Number()),
+          isActive: t.Boolean(),
+          startsAt: t.Nullable(t.String({ format: "date-time" })),
+          expiresAt: t.Nullable(t.String({ format: "date-time" })),
+        })
+      ),
+      detail: { tags: ["Vouchers"], summary: "Update voucher (admin)" },
+    }
+  )
   .delete("/:id", ({ db, params }) => controller.handleDelete(db, params.id), {
     params: UUID_PARAM,
     detail: { tags: ["Vouchers"], summary: "Delete voucher (admin)" },
   });
-

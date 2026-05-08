@@ -4,21 +4,25 @@
 // injects x-user-* headers, and streams the response back.
 // =============================================================================
 
-import type { Context } from "hono";
 import { ServiceUnavailableError } from "@repo/common/errors";
+import type { Context } from "hono";
 import type { VerifiedUser } from "@/lib/jwt";
-import { CircuitBreakerManager, CircuitBreakerOpenError, CircuitTimeoutError } from "./circuit-breaker";
+import {
+  CircuitBreakerManager,
+  CircuitBreakerOpenError,
+  CircuitTimeoutError,
+} from "./circuit-breaker";
 import { logger } from "./logger";
 
 export interface ProxyOptions {
-  /** Full target URL (service base + path) */
-  target: string;
-  /** Authenticated user — injected as x-user-* headers if provided */
-  user?: VerifiedUser | null;
   /** Extra headers to forward */
   extraHeaders?: Record<string, string>;
   /** Override the request method */
   method?: string;
+  /** Full target URL (service base + path) */
+  target: string;
+  /** Authenticated user — injected as x-user-* headers if provided */
+  user?: VerifiedUser | null;
 }
 
 /**
@@ -40,9 +44,14 @@ export async function proxyRequest(
 
   // Copy safe incoming headers
   const HOP_BY_HOP = new Set([
-    "connection", "keep-alive", "proxy-authenticate",
-    "proxy-authorization", "te", "trailers",
-    "transfer-encoding", "upgrade",
+    "connection",
+    "keep-alive",
+    "proxy-authenticate",
+    "proxy-authorization",
+    "te",
+    "trailers",
+    "transfer-encoding",
+    "upgrade",
     // Strip auth header — downstream services use x-user-* instead
     "authorization",
   ]);
@@ -66,8 +75,7 @@ export async function proxyRequest(
   }
 
   // Forward request ID for tracing
-  const requestId = c.req.header("x-request-id") ??
-    crypto.randomUUID();
+  const requestId = c.req.header("x-request-id") ?? crypto.randomUUID();
   headers.set("x-request-id", requestId);
   headers.set("x-forwarded-for", getClientIp(c));
   headers.set("x-forwarded-host", c.req.header("host") ?? "");
@@ -93,65 +101,84 @@ export async function proxyRequest(
 
   try {
     upstreamResponse = await circuitBreaker.execute(
-      (signal) => fetch(target, {
-        method: requestMethod,
-        headers,
-        body,
-        signal,
-        // @ts-expect-error — Bun supports duplex for streaming
-        duplex: "half",
-      }),
+      (signal) =>
+        fetch(target, {
+          method: requestMethod,
+          headers,
+          body,
+          signal,
+          // @ts-expect-error — Bun supports duplex for streaming
+          duplex: "half",
+        }),
       // Fallback response untuk GET request yang aman
-      requestMethod === "GET" ? async () => {
-        logger.info(`Serving fallback response for ${serviceHostname}`, {
-          path: c.req.path,
-          method: requestMethod
-        });
-        
-        return new Response(JSON.stringify({
-          success: false,
-          error: "Layanan sedang dalam pemeliharaan",
-          message: "Data mungkin tidak terbaru, silakan coba lagi nanti",
-          fallback: true
-        }), {
-          status: 503,
-          headers: {
-            "Content-Type": "application/json",
-            "X-Circuit-Breaker": "fallback",
-            "Retry-After": String(circuitBreaker.getMetrics().lastFailureTime
-              ? Math.ceil((circuitBreaker.getMetrics().lastFailureTime + 30000 - Date.now()) / 1000)
-              : 30)
+      requestMethod === "GET"
+        ? async () => {
+            logger.info(`Serving fallback response for ${serviceHostname}`, {
+              path: c.req.path,
+              method: requestMethod,
+            });
+
+            return new Response(
+              JSON.stringify({
+                success: false,
+                error: "Layanan sedang dalam pemeliharaan",
+                message: "Data mungkin tidak terbaru, silakan coba lagi nanti",
+                fallback: true,
+              }),
+              {
+                status: 503,
+                headers: {
+                  "Content-Type": "application/json",
+                  "X-Circuit-Breaker": "fallback",
+                  "Retry-After": String(
+                    circuitBreaker.getMetrics().lastFailureTime
+                      ? Math.ceil(
+                          (circuitBreaker.getMetrics().lastFailureTime +
+                            30_000 -
+                            Date.now()) /
+                            1000
+                        )
+                      : 30
+                  ),
+                },
+              }
+            );
           }
-        });
-      } : undefined
+        : undefined
     );
   } catch (err) {
     if (err instanceof CircuitBreakerOpenError) {
-      return new Response(JSON.stringify({
-        success: false,
-        error: err.message,
-        service: err.serviceName
-      }), {
-        status: 503,
-        headers: {
-          "Content-Type": "application/json",
-          "Retry-After": String(Math.ceil(err.retryAfter / 1000))
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: err.message,
+          service: err.serviceName,
+        }),
+        {
+          status: 503,
+          headers: {
+            "Content-Type": "application/json",
+            "Retry-After": String(Math.ceil(err.retryAfter / 1000)),
+          },
         }
-      });
+      );
     }
 
     if (err instanceof CircuitTimeoutError) {
-      return new Response(JSON.stringify({
-        success: false,
-        error: "Permintaan memakan waktu terlalu lama",
-        message: "Silakan coba lagi",
-        service: err.serviceName
-      }), {
-        status: 504,
-        headers: {
-          "Content-Type": "application/json"
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Permintaan memakan waktu terlalu lama",
+          message: "Silakan coba lagi",
+          service: err.serviceName,
+        }),
+        {
+          status: 504,
+          headers: {
+            "Content-Type": "application/json",
+          },
         }
-      });
+      );
     }
 
     throw new ServiceUnavailableError(
@@ -199,10 +226,9 @@ export function buildTargetUrl(
 
 function getClientIp(c: Context): string {
   return (
-    c.req.header("cf-connecting-ip") ??      // Cloudflare
-    c.req.header("x-real-ip") ??             // nginx
+    c.req.header("cf-connecting-ip") ?? // Cloudflare
+    c.req.header("x-real-ip") ?? // nginx
     c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ??
     "unknown"
   );
 }
-

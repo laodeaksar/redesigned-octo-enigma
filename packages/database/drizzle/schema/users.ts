@@ -3,8 +3,14 @@
 // Managed by: auth-service
 // =============================================================================
 
-import { boolean, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
+import {
+  boolean,
+  pgTable,
+  text,
+  timestamp,
+  varchar,
+} from "drizzle-orm/pg-core";
 
 import {
   primaryId,
@@ -13,9 +19,9 @@ import {
   userRoleEnum,
   userStatusEnum,
 } from "./_helpers";
+import { addressesTable } from "./addresses";
 import { oauthAccountsTable } from "./oauth-accounts";
 import { sessionsTable } from "./sessions";
-import { addressesTable } from "./addresses";
 
 export const usersTable = pgTable("users", {
   id: primaryId(),

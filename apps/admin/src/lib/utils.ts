@@ -2,7 +2,7 @@
 // Utility helpers
 // =============================================================================
 
-import { clsx, type ClassValue } from "clsx";
+import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 // ── Class name helper ─────────────────────────────────────────────────────────
@@ -48,10 +48,18 @@ export function formatRelativeTime(date: string | Date): string {
   const diffMs = now - then;
   const diffSec = Math.floor(diffMs / 1000);
 
-  if (diffSec < 60) return "baru saja";
-  if (diffSec < 3600) return `${Math.floor(diffSec / 60)} menit lalu`;
-  if (diffSec < 86400) return `${Math.floor(diffSec / 3600)} jam lalu`;
-  if (diffSec < 2592000) return `${Math.floor(diffSec / 86400)} hari lalu`;
+  if (diffSec < 60) {
+    return "baru saja";
+  }
+  if (diffSec < 3600) {
+    return `${Math.floor(diffSec / 60)} menit lalu`;
+  }
+  if (diffSec < 86_400) {
+    return `${Math.floor(diffSec / 3600)} jam lalu`;
+  }
+  if (diffSec < 2_592_000) {
+    return `${Math.floor(diffSec / 86_400)} hari lalu`;
+  }
   return formatDate(date);
 }
 
@@ -91,4 +99,3 @@ export const ORDER_STATUS_COLORS: Record<
   refund_requested: "warning",
   refunded: "secondary",
 };
-

@@ -8,22 +8,21 @@
 // Both paths expose the same `sendEmail()` interface.
 // =============================================================================
 
+import type { SendMailOptions, Transporter } from "nodemailer";
 import nodemailer from "nodemailer";
-import type { Transporter } from "nodemailer";
-import type { SendMailOptions } from "nodemailer";
 import { env } from "@/config";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface EmailPayload {
-  to: string | string[];
-  subject: string;
-  html: string;
-  text?: string;
-  replyTo?: string | string[];
-  headers?: Record<string, string>; // Fix 1: tambah support headers
-  cc?: string | string[];
   bcc?: string | string[];
+  cc?: string | string[];
+  headers?: Record<string, string>; // Fix 1: tambah support headers
+  html: string;
+  replyTo?: string | string[];
+  subject: string;
+  text?: string;
+  to: string | string[];
 }
 
 export interface SendResult {
@@ -36,7 +35,9 @@ export interface SendResult {
 let _smtpTransport: Transporter | null = null;
 
 function getSmtpTransport(): Transporter {
-  if (_smtpTransport) return _smtpTransport;
+  if (_smtpTransport) {
+    return _smtpTransport;
+  }
 
   _smtpTransport = nodemailer.createTransport({
     host: env.SMTP_HOST,
@@ -85,7 +86,9 @@ async function sendViaSMTP(payload: EmailPayload): Promise<SendResult> {
 let _resendClient: import("resend").Resend | null = null;
 
 async function getResendClient() {
-  if (_resendClient) return _resendClient;
+  if (_resendClient) {
+    return _resendClient;
+  }
   const { Resend } = await import("resend");
   _resendClient = new Resend(env.RESEND_API_KEY);
   return _resendClient;
@@ -105,12 +108,20 @@ async function sendViaResend(payload: EmailPayload): Promise<SendResult> {
   };
 
   // Only add optional fields kalau ada nilainya
-  if (payload.text) resendPayload.text = payload.text;
-  if (payload.cc) resendPayload.cc = payload.cc;
-  if (payload.bcc) resendPayload.bcc = payload.bcc;
+  if (payload.text) {
+    resendPayload.text = payload.text;
+  }
+  if (payload.cc) {
+    resendPayload.cc = payload.cc;
+  }
+  if (payload.bcc) {
+    resendPayload.bcc = payload.bcc;
+  }
 
   const replyTo = payload.replyTo ?? env.EMAIL_REPLY_TO;
-  if (replyTo) resendPayload.reply_to = replyTo; // Fix: jangan kirim '' atau undefined
+  if (replyTo) {
+    resendPayload.reply_to = replyTo; // Fix: jangan kirim '' atau undefined
+  }
 
   if (payload.headers && Object.keys(payload.headers).length > 0) {
     resendPayload.headers = payload.headers; // Fix: jangan kirim {}
@@ -156,7 +167,7 @@ export async function verifyMailer(): Promise<void> {
       console.info("[Mailer] Using Resend HTTP API — authenticated");
     } catch (err) {
       throw new Error(
-        `[Mailer] Resend auth failed: ${err instanceof Error ? err.message : err}`,
+        `[Mailer] Resend auth failed: ${err instanceof Error ? err.message : err}`
       );
     }
     return;

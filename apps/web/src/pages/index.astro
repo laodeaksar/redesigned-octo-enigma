@@ -1,8 +1,8 @@
 ---
+import RecentlyViewed from "@/components/islands/RecentlyViewed";
 import BaseLayout from "@/components/layout/BaseLayout.astro";
 import ProductCard from "@/components/shared/ProductCard.astro";
-import RecentlyViewed from "@/components/islands/RecentlyViewed";
-import { api, type Product, type Category } from "@/lib/api";
+import { api, type Category, type Product } from "@/lib/api";
 
 // Fetch featured products + categories in parallel
 let products: Product[] = [];
@@ -12,7 +12,15 @@ try {
   const [productsRes, categoriesRes] = await Promise.all([
     api.get<{ success: true; data: Product[]; meta: { total: number } }>(
       "/products",
-      { params: { page: 1, limit: 8, status: "active", sortBy: "createdAt", sortOrder: "desc" } }
+      {
+        params: {
+          page: 1,
+          limit: 8,
+          status: "active",
+          sortBy: "createdAt",
+          sortOrder: "desc",
+        },
+      }
     ),
     api.get<{ success: true; data: Category[] }>("/categories"),
   ]);
@@ -23,16 +31,24 @@ try {
 }
 ---
 
-<BaseLayout title="Beranda" description="Belanja produk terbaik dengan harga terjangkau">
+<BaseLayout
+  title="Beranda"
+  description="Belanja produk terbaik dengan harga terjangkau"
+>
   <!-- Hero -->
-  <section class="bg-gradient-to-br from-brand-500 to-brand-700 py-20 text-white">
+  <section
+    class="bg-gradient-to-br from-brand-500 to-brand-700 py-20 text-white"
+  >
     <div class="container mx-auto px-4 text-center">
-      <h1 class="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
-        Belanja Lebih<br />
+      <h1
+        class="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl"
+      >
+        Belanja Lebih<br>
         <span class="text-accent">Mudah & Hemat</span>
       </h1>
       <p class="mx-auto mt-4 max-w-xl text-lg text-white/80">
-        Temukan ribuan produk pilihan dengan harga terbaik dan pengiriman ke seluruh Indonesia.
+        Temukan ribuan produk pilihan dengan harga terbaik dan pengiriman ke
+        seluruh Indonesia.
       </p>
       <div class="mt-8 flex flex-wrap items-center justify-center gap-4">
         <a
@@ -113,9 +129,14 @@ try {
       <div class="mb-8 flex items-end justify-between">
         <div>
           <h2 class="text-2xl font-bold text-gray-900">Produk Terbaru</h2>
-          <p class="mt-1 text-sm text-gray-500">Produk pilihan yang baru ditambahkan</p>
+          <p class="mt-1 text-sm text-gray-500">
+            Produk pilihan yang baru ditambahkan
+          </p>
         </div>
-        <a href="/products" class="text-sm font-medium text-accent hover:underline">
+        <a
+          href="/products"
+          class="text-sm font-medium text-accent hover:underline"
+        >
           Lihat semua →
         </a>
       </div>
@@ -149,7 +170,9 @@ try {
   <!-- CTA banner -->
   <section class="bg-accent py-14 text-white">
     <div class="container mx-auto px-4 text-center">
-      <h2 class="text-2xl font-bold sm:text-3xl">Daftar & Dapatkan Diskon 10%</h2>
+      <h2 class="text-2xl font-bold sm:text-3xl">
+        Daftar & Dapatkan Diskon 10%
+      </h2>
       <p class="mt-2 text-white/80">untuk pembelian pertama kamu</p>
       <a
         href="/auth/register"

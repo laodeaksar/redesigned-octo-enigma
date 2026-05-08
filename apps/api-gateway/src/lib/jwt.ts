@@ -3,21 +3,17 @@
 // All downstream services trust x-user-* headers injected here.
 // =============================================================================
 
-import { jwtVerify } from "jose";
-
-import {
-  TokenExpiredError,
-  TokenInvalidError,
-} from "@repo/common/errors";
+import { TokenExpiredError, TokenInvalidError } from "@repo/common/errors";
 import type { JwtPayload, UserRole } from "@repo/common/types";
+import { jwtVerify } from "jose";
 
 import { env } from "@/config";
 
 const SECRET = new TextEncoder().encode(env.JWT_SECRET);
 
 export interface VerifiedUser {
-  id: string;
   email: string;
+  id: string;
   role: UserRole;
 }
 
@@ -47,9 +43,12 @@ export async function verifyAccessToken(token: string): Promise<VerifiedUser> {
  * Extract token from Authorization header.
  * Returns null if header is missing or malformed.
  */
-export function extractBearerToken(authHeader: string | undefined): string | null {
-  if (!authHeader?.startsWith("Bearer ")) return null;
+export function extractBearerToken(
+  authHeader: string | undefined
+): string | null {
+  if (!authHeader?.startsWith("Bearer ")) {
+    return null;
+  }
   const token = authHeader.slice(7).trim();
   return token.length > 0 ? token : null;
 }
-

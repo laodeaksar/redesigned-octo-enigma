@@ -2,16 +2,15 @@
 // Users repository — all database operations for users + addresses
 // =============================================================================
 
-import { eq, and, desc } from "drizzle-orm";
-
 import {
-  usersTable,
-  addressesTable,
-  type UserRow,
-  type NewUserRow,
   type AddressRow,
+  addressesTable,
   type NewAddressRow,
+  type NewUserRow,
+  type UserRow,
+  usersTable,
 } from "@repo/database/drizzle/schema";
+import { and, desc, eq } from "drizzle-orm";
 
 import type { DB } from "@/config";
 
@@ -65,10 +64,7 @@ export async function findUserByResetToken(
   return user;
 }
 
-export async function createUser(
-  db: DB,
-  data: NewUserRow
-): Promise<UserRow> {
+export async function createUser(db: DB, data: NewUserRow): Promise<UserRow> {
   const [user] = await db.insert(usersTable).values(data).returning();
   return user!;
 }
@@ -161,4 +157,3 @@ export async function deleteAddress(
     .returning({ id: addressesTable.id });
   return result.length > 0;
 }
-

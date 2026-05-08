@@ -8,12 +8,19 @@ const { user } = Astro.props;
 const currentPath = Astro.url.pathname;
 ---
 
-<header class="sticky top-0 z-40 border-b border-gray-100 bg-white/95 backdrop-blur-sm">
+<header
+  class="sticky top-0 z-40 border-b border-gray-100 bg-white/95 backdrop-blur-sm"
+>
   <nav class="container mx-auto flex h-16 items-center gap-3 px-4">
-
     <!-- Brand -->
-    <a href="/" class="flex shrink-0 items-center gap-2 text-lg font-bold text-brand-500">
-      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500 text-white text-sm">🛒</span>
+    <a
+      href="/"
+      class="flex shrink-0 items-center gap-2 text-lg font-bold text-brand-500"
+    >
+      <span
+        class="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500 text-white text-sm"
+        >🛒</span
+      >
       <span class="hidden sm:block">My Ecommerce</span>
     </a>
 
@@ -43,12 +50,26 @@ const currentPath = Astro.url.pathname;
           currentPath.startsWith("/wishlist") ? "text-rose-500" : "text-gray-600",
         ]}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round"
-            d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-4 w-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"
+          />
         </svg>
         Wishlist
-        <span id="wishlist-count" class="hidden absolute -right-3.5 -top-2 h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white">0</span>
+        <span
+          id="wishlist-count"
+          class="hidden absolute -right-3.5 -top-2 h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white"
+          >0</span
+        >
       </a>
 
       <!-- Mobile search toggle -->
@@ -57,8 +78,18 @@ const currentPath = Astro.url.pathname;
         class="flex h-9 w-9 items-center justify-center rounded-md text-gray-600 transition-colors hover:bg-gray-100 md:hidden"
         aria-label="Buka pencarian"
       >
-        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+        <svg
+          class="h-5 w-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"
+          />
         </svg>
       </button>
 
@@ -68,11 +99,24 @@ const currentPath = Astro.url.pathname;
         class="relative flex h-9 w-9 items-center justify-center rounded-md text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
         aria-label="Buka keranjang"
       >
-        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+        <svg
+          class="h-5 w-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+          />
         </svg>
-        <span id="cart-count" class="absolute -right-0.5 -top-0.5 hidden h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white">0</span>
+        <span
+          id="cart-count"
+          class="absolute -right-0.5 -top-0.5 hidden h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white"
+          >0</span
+        >
       </button>
 
       <!-- User menu / Login -->
@@ -104,7 +148,10 @@ const currentPath = Astro.url.pathname;
   </nav>
 
   <!-- Mobile search bar (expandable row) -->
-  <div id="mobile-search-bar" class="hidden border-t border-gray-100 px-4 py-2 md:hidden">
+  <div
+    id="mobile-search-bar"
+    class="hidden border-t border-gray-100 px-4 py-2 md:hidden"
+  >
     <SearchBar client:load />
   </div>
 </header>
@@ -115,7 +162,9 @@ const currentPath = Astro.url.pathname;
 
   $cartCount.subscribe((count) => {
     const el = document.getElementById("cart-count");
-    if (!el) return;
+    if (!el) {
+      return;
+    }
     el.textContent = String(count);
     el.classList.toggle("hidden", count === 0);
     el.classList.toggle("flex", count > 0);
@@ -123,7 +172,9 @@ const currentPath = Astro.url.pathname;
 
   $wishlistCount.subscribe((count) => {
     const el = document.getElementById("wishlist-count");
-    if (!el) return;
+    if (!el) {
+      return;
+    }
     el.textContent = String(count);
     el.classList.toggle("hidden", count === 0);
     el.classList.toggle("flex", count > 0);
@@ -133,12 +184,16 @@ const currentPath = Astro.url.pathname;
     $isCartOpen.set(!$isCartOpen.get());
   });
 
-  document.getElementById("mobile-search-toggle")?.addEventListener("click", () => {
-    const bar = document.getElementById("mobile-search-bar");
-    if (!bar) return;
-    bar.classList.toggle("hidden");
-    if (!bar.classList.contains("hidden")) {
-      bar.querySelector("input")?.focus();
-    }
-  });
+  document
+    .getElementById("mobile-search-toggle")
+    ?.addEventListener("click", () => {
+      const bar = document.getElementById("mobile-search-bar");
+      if (!bar) {
+        return;
+      }
+      bar.classList.toggle("hidden");
+      if (!bar.classList.contains("hidden")) {
+        bar.querySelector("input")?.focus();
+      }
+    });
 </script>

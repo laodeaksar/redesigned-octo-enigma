@@ -16,4 +16,3 @@ export const redis = new Redis(env.REDIS_URL, {
 
 redis.on("error", (err) => console.warn("[Redis] Error:", err.message));
 redis.on("connect", () => console.info("[Redis] Connected"));
-

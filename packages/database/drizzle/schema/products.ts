@@ -3,6 +3,7 @@
 // Managed by: product-service
 // =============================================================================
 
+import { relations, sql } from "drizzle-orm";
 import {
   index,
   integer,
@@ -11,7 +12,6 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { relations, sql } from "drizzle-orm";
 
 import {
   primaryId,
@@ -20,9 +20,9 @@ import {
   timestamps,
 } from "./_helpers";
 import { categoriesTable } from "./categories";
-import { productVariantsTable } from "./product-variants";
 import { productImagesTable } from "./product-images";
 import { productReviewsTable } from "./product-reviews";
+import { productVariantsTable } from "./product-variants";
 
 export const productsTable = pgTable(
   "products",
@@ -37,10 +37,7 @@ export const productsTable = pgTable(
       .notNull()
       .references(() => categoriesTable.id),
     /** PostgreSQL text[] for tags */
-    tags: text("tags")
-      .array()
-      .notNull()
-      .default(sql`'{}'::text[]`),
+    tags: text("tags").array().notNull().default(sql`'{}'::text[]`),
     /** Weight in grams — fallback when variant has no weight */
     weight: integer("weight"),
     ...timestamps(),
@@ -56,7 +53,7 @@ export const productsTable = pgTable(
       .where(sql`${t.deletedAt} IS NULL`),
     // Full-text search index (GIN) — commented out; .using() not supported in this drizzle-orm version
     // ftsIdx: index("products_fts_idx").using("gin", sql`to_tsvector('english', ${t.name} || ' ' || ${t.description})`),
-  }),
+  })
 );
 
 // ── Relations ─────────────────────────────────────────────────────────────────

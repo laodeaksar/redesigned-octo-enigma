@@ -4,24 +4,24 @@
 // Triggered by: window.dispatchEvent(new CustomEvent("open-quick-view", { detail: { slug } }))
 // =============================================================================
 
-import React, { useState, useEffect, useCallback } from "react";
-import { addToCart } from "@/stores/cart.store";
-import { formatIDR } from "@/lib/utils";
+import { useCallback, useEffect, useState } from "react";
 import type { ProductDetail } from "@/lib/api";
+import { formatIDR } from "@/lib/utils";
+import { addToCart } from "@/stores/cart.store";
 
 const BASE = import.meta.env.PUBLIC_API_URL ?? "http://localhost:3000";
 
 export default function ProductQuickView() {
-  const [open, setOpen]               = useState(false);
-  const [mounted, setMounted]         = useState(false);
-  const [slug, setSlug]               = useState<string | null>(null);
-  const [product, setProduct]         = useState<ProductDetail | null>(null);
-  const [loading, setLoading]         = useState(false);
-  const [error, setError]             = useState<string | null>(null);
-  const [imageIdx, setImageIdx]       = useState(0);
-  const [selected, setSelected]       = useState<Record<string, string>>({});
-  const [qty, setQty]                 = useState(1);
-  const [added, setAdded]             = useState(false);
+  const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [slug, setSlug] = useState<string | null>(null);
+  const [product, setProduct] = useState<ProductDetail | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [imageIdx, setImageIdx] = useState(0);
+  const [selected, setSelected] = useState<Record<string, string>>({});
+  const [qty, setQty] = useState(1);
+  const [added, setAdded] = useState(false);
 
   // ── Listen for trigger ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -43,7 +43,9 @@ export default function ProductQuickView() {
 
   // ── Fetch product detail when slug is set ────────────────────────────────────
   useEffect(() => {
-    if (!slug) return;
+    if (!slug) {
+      return;
+    }
     setLoading(true);
     fetch(`${BASE}/products/slug/${slug}`)
       .then((r) => r.json())
@@ -52,7 +54,9 @@ export default function ProductQuickView() {
         setProduct(p);
         // Pre-select first active variant's attributes
         const first = p.variants.find((v) => v.isActive);
-        if (first) setSelected({ ...first.attributes });
+        if (first) {
+          setSelected({ ...first.attributes });
+        }
         // Find primary image index
         const primaryIdx = p.images.findIndex((i) => i.isPrimary);
         setImageIdx(primaryIdx >= 0 ? primaryIdx : 0);
@@ -64,15 +68,24 @@ export default function ProductQuickView() {
   // ── Close helpers ────────────────────────────────────────────────────────────
   const close = useCallback(() => {
     setOpen(false);
-    setTimeout(() => { setMounted(false); setSlug(null); }, 320);
+    setTimeout(() => {
+      setMounted(false);
+      setSlug(null);
+    }, 320);
   }, []);
 
   // Lock body scroll + Escape key while open
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        close();
+      }
+    };
     window.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = prev;
@@ -83,17 +96,24 @@ export default function ProductQuickView() {
   // ── Variant logic ────────────────────────────────────────────────────────────
   const activeVariants = product?.variants.filter((v) => v.isActive) ?? [];
   const attrKeys = Object.keys(activeVariants[0]?.attributes ?? {});
-  const attrValues = (key: string) =>
-    [...new Set(activeVariants.map((v) => v.attributes[key]).filter(Boolean) as string[])];
+  const attrValues = (key: string) => [
+    ...new Set(
+      activeVariants.map((v) => v.attributes[key]).filter(Boolean) as string[]
+    ),
+  ];
   const matchedVariant =
-    activeVariants.find((v) => attrKeys.every((k) => v.attributes[k] === selected[k])) ??
+    activeVariants.find((v) =>
+      attrKeys.every((k) => v.attributes[k] === selected[k])
+    ) ??
     activeVariants[0] ??
     null;
   const isOutOfStock = !matchedVariant || matchedVariant.stock === 0;
   const maxQty = matchedVariant?.stock ?? 1;
 
   const handleAdd = () => {
-    if (!matchedVariant || isOutOfStock || !product) return;
+    if (!matchedVariant || isOutOfStock || !product) {
+      return;
+    }
     const coverImage =
       product.images.find((i) => i.isPrimary)?.url ??
       product.images[0]?.url ??
@@ -111,50 +131,67 @@ export default function ProductQuickView() {
     setTimeout(() => setAdded(false), 2000);
   };
 
-  if (!mounted) return null;
+  if (!mounted) {
+    return null;
+  }
 
   const discountPct =
-    matchedVariant?.compareAtPrice && matchedVariant.compareAtPrice > matchedVariant.price
-      ? Math.round((1 - matchedVariant.price / matchedVariant.compareAtPrice) * 100)
+    matchedVariant?.compareAtPrice &&
+    matchedVariant.compareAtPrice > matchedVariant.price
+      ? Math.round(
+          (1 - matchedVariant.price / matchedVariant.compareAtPrice) * 100
+        )
       : 0;
 
   return (
     <>
       {/* ── Backdrop ─────────────────────────────────────────────────────────── */}
       <div
+        aria-hidden="true"
         className={`fixed inset-0 z-[80] bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${
-          open ? "opacity-100" : "opacity-0 pointer-events-none"
+          open ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
         onClick={close}
-        aria-hidden="true"
       />
 
       {/* ── Modal / sheet ────────────────────────────────────────────────────── */}
       <div
-        role="dialog"
-        aria-modal="true"
         aria-label={product?.name ?? "Quick view"}
-        className={`fixed inset-x-0 bottom-0 z-[90] flex flex-col sm:inset-0 sm:items-center sm:justify-center sm:p-4 transition-all duration-300 ${
+        aria-modal="true"
+        className={`fixed inset-x-0 bottom-0 z-[90] flex flex-col transition-all duration-300 sm:inset-0 sm:items-center sm:justify-center sm:p-4 ${
           open
-            ? "opacity-100 pointer-events-auto"
-            : "opacity-0 pointer-events-none"
+            ? "pointer-events-auto opacity-100"
+            : "pointer-events-none opacity-0"
         }`}
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
       >
         <div
-          className={`relative w-full bg-white shadow-2xl rounded-t-2xl sm:rounded-2xl sm:max-w-3xl overflow-hidden transition-transform duration-300 ${
-            open ? "translate-y-0 sm:scale-100" : "translate-y-full sm:translate-y-0 sm:scale-95"
+          className={`relative w-full overflow-hidden rounded-t-2xl bg-white shadow-2xl transition-transform duration-300 sm:max-w-3xl sm:rounded-2xl ${
+            open
+              ? "translate-y-0 sm:scale-100"
+              : "translate-y-full sm:translate-y-0 sm:scale-95"
           }`}
           style={{ maxHeight: "92dvh" }}
         >
           {/* Close */}
           <button
-            onClick={close}
             aria-label="Tutup"
-            className="absolute right-3 top-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-gray-500 shadow ring-1 ring-gray-100 hover:bg-gray-100 hover:text-gray-700"
+            className="absolute top-3 right-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-gray-500 shadow ring-1 ring-gray-100 hover:bg-gray-100 hover:text-gray-700"
+            onClick={close}
           >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2.5}
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M6 18 18 6M6 6l12 12"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </button>
 
@@ -163,7 +200,10 @@ export default function ProductQuickView() {
             <div className="h-1 w-10 rounded-full bg-gray-200" />
           </div>
 
-          <div className="overflow-y-auto" style={{ maxHeight: "calc(92dvh - 1rem)" }}>
+          <div
+            className="overflow-y-auto"
+            style={{ maxHeight: "calc(92dvh - 1rem)" }}
+          >
             {/* Loading */}
             {loading && (
               <div className="flex h-64 items-center justify-center">
@@ -174,42 +214,54 @@ export default function ProductQuickView() {
             {/* Error */}
             {error && !loading && (
               <div className="flex h-40 flex-col items-center justify-center gap-3 p-6">
-                <p className="text-sm text-gray-500">{error}</p>
-                <button onClick={close} className="text-sm text-accent hover:underline">Tutup</button>
+                <p className="text-gray-500 text-sm">{error}</p>
+                <button
+                  className="text-accent text-sm hover:underline"
+                  onClick={close}
+                >
+                  Tutup
+                </button>
               </div>
             )}
 
             {/* Content */}
             {product && !loading && (
               <div className="flex flex-col sm:flex-row">
-
                 {/* Left — image gallery */}
-                <div className="w-full sm:w-2/5 shrink-0 bg-gray-50">
+                <div className="w-full shrink-0 bg-gray-50 sm:w-2/5">
                   <div className="aspect-square overflow-hidden">
                     {product.images.length > 0 ? (
                       <img
-                        key={imageIdx}
-                        src={product.images[imageIdx]?.url ?? product.images[0].url}
                         alt={product.images[imageIdx]?.altText ?? product.name}
                         className="h-full w-full object-cover transition-opacity duration-200"
+                        key={imageIdx}
+                        src={
+                          product.images[imageIdx]?.url ?? product.images[0].url
+                        }
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center text-6xl text-gray-200">📦</div>
+                      <div className="flex h-full w-full items-center justify-center text-6xl text-gray-200">
+                        📦
+                      </div>
                     )}
                   </div>
                   {product.images.length > 1 && (
                     <div className="flex gap-2 overflow-x-auto p-3">
                       {product.images.map((img, i) => (
                         <button
-                          key={img.id}
-                          onClick={() => setImageIdx(i)}
                           className={`h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 transition-colors ${
                             imageIdx === i
                               ? "border-brand-500"
                               : "border-transparent hover:border-gray-300"
                           }`}
+                          key={img.id}
+                          onClick={() => setImageIdx(i)}
                         >
-                          <img src={img.url} alt={img.altText ?? ""} className="h-full w-full object-cover" />
+                          <img
+                            alt={img.altText ?? ""}
+                            className="h-full w-full object-cover"
+                            src={img.url}
+                          />
                         </button>
                       ))}
                     </div>
@@ -220,15 +272,19 @@ export default function ProductQuickView() {
                 <div className="flex flex-1 flex-col gap-4 p-5">
                   {/* Name + short desc */}
                   <div>
-                    <h2 className="text-lg font-bold leading-snug text-gray-900">{product.name}</h2>
+                    <h2 className="font-bold text-gray-900 text-lg leading-snug">
+                      {product.name}
+                    </h2>
                     {product.shortDescription && (
-                      <p className="mt-1 line-clamp-2 text-sm text-gray-500">{product.shortDescription}</p>
+                      <p className="mt-1 line-clamp-2 text-gray-500 text-sm">
+                        {product.shortDescription}
+                      </p>
                     )}
                   </div>
 
                   {/* Price */}
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-2xl font-bold text-gray-900">
+                    <span className="font-bold text-2xl text-gray-900">
                       {matchedVariant ? formatIDR(matchedVariant.price) : "—"}
                     </span>
                     {matchedVariant?.compareAtPrice && (
@@ -237,7 +293,7 @@ export default function ProductQuickView() {
                       </span>
                     )}
                     {discountPct > 0 && (
-                      <span className="rounded-md bg-red-100 px-2 py-0.5 text-xs font-bold text-red-600">
+                      <span className="rounded-md bg-red-100 px-2 py-0.5 font-bold text-red-600 text-xs">
                         -{discountPct}%
                       </span>
                     )}
@@ -246,7 +302,9 @@ export default function ProductQuickView() {
                   {/* Variant selectors */}
                   {attrKeys.map((key) => (
                     <div key={key}>
-                      <p className="mb-2 text-sm font-medium capitalize text-gray-700">{key}</p>
+                      <p className="mb-2 font-medium text-gray-700 text-sm capitalize">
+                        {key}
+                      </p>
                       <div className="flex flex-wrap gap-2">
                         {attrValues(key).map((val) => {
                           const available = activeVariants.some(
@@ -254,16 +312,18 @@ export default function ProductQuickView() {
                           );
                           return (
                             <button
-                              key={val}
-                              onClick={() => setSelected((s) => ({ ...s, [key]: val }))}
-                              disabled={!available}
-                              className={`rounded-md border px-3 py-1.5 text-sm font-medium transition-colors ${
+                              className={`rounded-md border px-3 py-1.5 font-medium text-sm transition-colors ${
                                 selected[key] === val
                                   ? "border-brand-500 bg-brand-500 text-white"
                                   : available
                                     ? "border-gray-200 text-gray-700 hover:border-gray-400"
                                     : "cursor-not-allowed border-gray-100 text-gray-300 line-through"
                               }`}
+                              disabled={!available}
+                              key={val}
+                              onClick={() =>
+                                setSelected((s) => ({ ...s, [key]: val }))
+                              }
                             >
                               {val}
                             </button>
@@ -274,26 +334,34 @@ export default function ProductQuickView() {
                   ))}
 
                   {/* Low stock warning */}
-                  {matchedVariant && matchedVariant.stock > 0 && matchedVariant.stock <= 5 && (
-                    <p className="text-sm font-medium text-yellow-600">
-                      ⚡ Sisa {matchedVariant.stock} item
-                    </p>
-                  )}
+                  {matchedVariant &&
+                    matchedVariant.stock > 0 &&
+                    matchedVariant.stock <= 5 && (
+                      <p className="font-medium text-sm text-yellow-600">
+                        ⚡ Sisa {matchedVariant.stock} item
+                      </p>
+                    )}
 
                   {/* Quantity */}
                   {!isOutOfStock && (
                     <div className="flex items-center gap-3">
-                      <span className="text-sm text-gray-600">Jumlah:</span>
+                      <span className="text-gray-600 text-sm">Jumlah:</span>
                       <div className="flex items-center rounded-md border border-gray-200">
                         <button
+                          className="flex h-9 w-9 items-center justify-center text-gray-500 hover:bg-gray-50"
                           onClick={() => setQty((q) => Math.max(1, q - 1))}
-                          className="flex h-9 w-9 items-center justify-center text-gray-500 hover:bg-gray-50"
-                        >−</button>
-                        <span className="w-10 text-center text-sm font-medium">{qty}</span>
+                        >
+                          −
+                        </button>
+                        <span className="w-10 text-center font-medium text-sm">
+                          {qty}
+                        </span>
                         <button
-                          onClick={() => setQty((q) => Math.min(maxQty, q + 1))}
                           className="flex h-9 w-9 items-center justify-center text-gray-500 hover:bg-gray-50"
-                        >+</button>
+                          onClick={() => setQty((q) => Math.min(maxQty, q + 1))}
+                        >
+                          +
+                        </button>
                       </div>
                     </div>
                   )}
@@ -301,15 +369,15 @@ export default function ProductQuickView() {
                   {/* Actions */}
                   <div className="mt-auto flex flex-col gap-2 pt-2">
                     <button
-                      onClick={handleAdd}
-                      disabled={isOutOfStock}
-                      className={`w-full rounded-lg py-3 text-sm font-semibold transition-all ${
+                      className={`w-full rounded-lg py-3 font-semibold text-sm transition-all ${
                         isOutOfStock
                           ? "cursor-not-allowed bg-gray-100 text-gray-400"
                           : added
                             ? "bg-green-500 text-white"
                             : "bg-accent text-white hover:opacity-90 active:scale-[0.98]"
                       }`}
+                      disabled={isOutOfStock}
+                      onClick={handleAdd}
                     >
                       {isOutOfStock
                         ? "Stok Habis"
@@ -318,9 +386,9 @@ export default function ProductQuickView() {
                           : "Tambah ke Keranjang"}
                     </button>
                     <a
+                      className="block w-full rounded-lg border border-gray-200 py-2.5 text-center font-medium text-gray-700 text-sm hover:bg-gray-50"
                       href={`/products/${product.slug}`}
                       onClick={close}
-                      className="block w-full rounded-lg border border-gray-200 py-2.5 text-center text-sm font-medium text-gray-700 hover:bg-gray-50"
                     >
                       Lihat Detail Lengkap →
                     </a>

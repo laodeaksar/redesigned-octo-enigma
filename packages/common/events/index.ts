@@ -8,37 +8,36 @@
 //   QUEUES              → QUEUES  (unchanged — no breaking change)
 // =============================================================================
 
-// ── Queue names ───────────────────────────────────────────────────────────────
-export { QUEUES } from "./queue-names";
-export type { QueueName } from "./queue-names";
-
+// ── Re-export BullMQ core types ───────────────────────────────────────────────
+export type { JobsOptions, Queue, Worker } from "bullmq";
 // ── Producer ──────────────────────────────────────────────────────────────────
 export {
-  createQueue,
+  addDelayedJob,
   addJob,
   addUniqueJob,
-  addDelayedJob,
   closeQueues,
+  createQueue,
   DEFAULT_JOB_OPTIONS,
   IMPORTANT_JOB_OPTIONS,
 } from "./producer";
-
-// ── Worker ────────────────────────────────────────────────────────────────────
-export {
-  createWorker,
-  createWorkers,
-  closeWorkers,
-} from "./worker";
-
-export type { Processor, Job, WorkerBinding, CreateWorkerOptions } from "./worker";
-
+export type { QueueName } from "./queue-names";
+// ── Queue names ───────────────────────────────────────────────────────────────
+export { QUEUES } from "./queue-names";
 // ── Scheduler ─────────────────────────────────────────────────────────────────
 export {
-  scheduleRecurring,
-  scheduleCron,
   removeScheduler,
+  scheduleCron,
+  scheduleRecurring,
 } from "./scheduler";
-
-// ── Re-export BullMQ core types ───────────────────────────────────────────────
-export type { Queue, Worker, JobsOptions } from "bullmq";
-
+export type {
+  CreateWorkerOptions,
+  Job,
+  Processor,
+  WorkerBinding,
+} from "./worker";
+// ── Worker ────────────────────────────────────────────────────────────────────
+export {
+  closeWorkers,
+  createWorker,
+  createWorkers,
+} from "./worker";

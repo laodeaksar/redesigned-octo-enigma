@@ -1,7 +1,7 @@
 {
   "extends": "@repo/tsconfig/base",
   "compilerOptions": {
-    "lib":["dom"],
+    "lib": ["dom"],
     "noEmit": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",
@@ -17,8 +17,5 @@
     "events/**/*.ts",
     "index.ts"
   ],
-  "exclude": [
-    "node_modules",
-    "**/*.test.ts"
-  ]
+  "exclude": ["node_modules", "**/*.test.ts"]
 }

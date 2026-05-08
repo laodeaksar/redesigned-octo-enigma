@@ -6,10 +6,10 @@
 // Safe to run on every deploy — skips already-applied migrations.
 // =============================================================================
 
+import path from "node:path";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
-import path from "node:path";
 
 const DATABASE_URL = process.env["DATABASE_URL"];
 

@@ -2,30 +2,29 @@
 // Hono app factory
 // =============================================================================
 
+import { swaggerUI } from "@hono/swagger-ui";
+import { normalizeError } from "@repo/common/errors";
+import { failure } from "@repo/common/schemas";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
-import { secureHeaders } from "hono/secure-headers";
 import { prettyJSON } from "hono/pretty-json";
-import { swaggerUI } from "@hono/swagger-ui";
-
-import { failure } from "@repo/common/schemas";
-import { normalizeError } from "@repo/common/errors";
+import { secureHeaders } from "hono/secure-headers";
 
 import { env } from "@/config";
-import { requestIdMiddleware } from "@/middleware/request-id.middleware";
+import { metricsMiddleware, metricsRoutes } from "@/metrics";
 import { auditMiddleware } from "@/middleware/audit.middleware";
 import { ipBlocklistMiddleware } from "@/middleware/ip-blocklist.middleware";
-import { healthRoutes } from "@/modules/health/health.routes";
-import { authRoutes } from "@/modules/auth/auth.routes";
+import { requestIdMiddleware } from "@/middleware/request-id.middleware";
 import { adminRoutes } from "@/modules/admin/admin.routes";
-import { productsRoutes } from "@/modules/products/products.routes";
+import { analyticsRoutes } from "@/modules/analytics/analytics.routes";
+import { authRoutes } from "@/modules/auth/auth.routes";
+import { bullBoardRoutes } from "@/modules/bull-board/bull-board.routes";
+import { healthRoutes } from "@/modules/health/health.routes";
 import { ordersRoutes } from "@/modules/orders/orders.routes";
 import { paymentsRoutes } from "@/modules/payments/payments.routes";
+import { productsRoutes } from "@/modules/products/products.routes";
 import { shippingRoutes } from "@/modules/shipping/shipping.routes";
-import { bullBoardRoutes } from "@/modules/bull-board/bull-board.routes";
-import { analyticsRoutes } from "@/modules/analytics/analytics.routes";
-import { metricsMiddleware, metricsRoutes } from "@/metrics";
 import { wishlistRoutes } from "@/modules/wishlist/wishlist.routes";
 
 export function createApp() {
@@ -51,7 +50,7 @@ export function createApp() {
         "X-RateLimit-Reset",
       ],
       credentials: true,
-      maxAge: 86400,
+      maxAge: 86_400,
     })
   );
 
@@ -94,7 +93,14 @@ export function createApp() {
           "Single entry point for all My Ecommerce services. " +
           "Each service also exposes its own /docs endpoint for detailed schemas.",
       },
-      servers: [{ url: env.NODE_ENV === "development" ? `http://localhost:${env.PORT}` : "" }],
+      servers: [
+        {
+          url:
+            env.NODE_ENV === "development"
+              ? `http://localhost:${env.PORT}`
+              : "",
+        },
+      ],
       tags: [
         { name: "Auth", description: "→ auth-service" },
         { name: "Products", description: "→ product-service" },
@@ -116,11 +122,14 @@ export function createApp() {
   app.route("/", bullBoardRoutes);
   app.route("/", analyticsRoutes);
   app.route("/", metricsRoutes);
-  app.route("/", wishlistRoutes)
+  app.route("/", wishlistRoutes);
 
   // ── 404 handler ────────────────────────────────────────────────────────────
   app.notFound((c) =>
-    c.json(failure("NOT_FOUND", `Route ${c.req.method} ${c.req.path} not found`), 404)
+    c.json(
+      failure("NOT_FOUND", `Route ${c.req.method} ${c.req.path} not found`),
+      404
+    )
   );
 
   // ── Global error handler ───────────────────────────────────────────────────
@@ -137,11 +146,13 @@ export function createApp() {
       });
     }
 
-    return c.json(appError.toJSON(), appError.statusCode as Parameters<typeof c.json>[1]);
+    return c.json(
+      appError.toJSON(),
+      appError.statusCode as Parameters<typeof c.json>[1]
+    );
   });
 
   return app;
 }
 
 export type App = ReturnType<typeof createApp>;
-

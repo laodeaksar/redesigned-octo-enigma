@@ -2,17 +2,19 @@
 // Reviews service
 // =============================================================================
 
-import type Redis from "ioredis";
-import { eq } from "drizzle-orm";
-
-import { ConflictError, NotFoundError, ForbiddenError } from "@repo/common/errors";
+import {
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+} from "@repo/common/errors";
 import type { CreateReviewInput } from "@repo/common/schemas";
 import { productReviewsTable } from "@repo/database/drizzle/schema";
-
-import * as repo from "./reviews.repository";
-import { CacheKey, cacheWrap, cacheDel } from "@/lib/cache";
-import { verifyPurchase } from "@/lib/order-client";
+import { eq } from "drizzle-orm";
+import type Redis from "ioredis";
 import type { DB } from "@/config";
+import { CacheKey, cacheDel, cacheWrap } from "@/lib/cache";
+import { verifyPurchase } from "@/lib/order-client";
+import * as repo from "./reviews.repository";
 
 export async function listReviews(
   db: DB,
@@ -49,7 +51,11 @@ export async function createReview(
   input: CreateReviewInput
 ) {
   // 1. Verify the user actually purchased this product via order-service
-  const isPurchased = await verifyPurchase(userId, input.productId, input.orderId);
+  const isPurchased = await verifyPurchase(
+    userId,
+    input.productId,
+    input.orderId
+  );
   if (!isPurchased) {
     throw new ForbiddenError(
       "Kamu hanya bisa memberi ulasan untuk produk yang sudah kamu beli dan terima."
@@ -102,7 +108,9 @@ export async function deleteReview(
     .where(eq(productReviewsTable.id, reviewId))
     .limit(1);
 
-  if (!existing) throw new NotFoundError("Review");
+  if (!existing) {
+    throw new NotFoundError("Review");
+  }
 
   if (!isAdmin && existing.userId !== requesterId) {
     throw new ForbiddenError("You can only delete your own reviews");

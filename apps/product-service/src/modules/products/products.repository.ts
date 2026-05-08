@@ -2,35 +2,32 @@
 // Products repository
 // =============================================================================
 
-import {
-  eq,
-  and,
-  isNull,
-  ilike,
-  inArray,
-  gte,
-  lte,
-  asc,
-  desc,
-  sql,
-  or,
-  count,
-  type SQL,
-} from "drizzle-orm";
+import type { ListProductsQuery } from "@repo/common/schemas";
 
 import {
-  productsTable,
-  productVariantsTable,
-  productImagesTable,
   categoriesTable,
-  type ProductRow,
+  type NewProductImageRow,
   type NewProductRow,
-  type ProductVariantRow,
   type NewProductVariantRow,
   type ProductImageRow,
-  type NewProductImageRow,
+  type ProductRow,
+  type ProductVariantRow,
+  productImagesTable,
+  productsTable,
+  productVariantsTable,
 } from "@repo/database/drizzle/schema";
-import type { ListProductsQuery } from "@repo/common/schemas";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  isNull,
+  type SQL,
+  sql,
+} from "drizzle-orm";
 
 import type { DB } from "@/config";
 
@@ -62,7 +59,9 @@ export async function findProductBySlug(
 
 export async function findProductWithRelations(db: DB, id: string) {
   const product = await findProductById(db, id);
-  if (!product) return undefined;
+  if (!product) {
+    return;
+  }
 
   const [variants, images, category] = await Promise.all([
     db
@@ -98,14 +97,22 @@ export async function listProducts(
 ): Promise<{ items: ProductListItem[]; total: number }> {
   const conditions = [isNull(productsTable.deletedAt)];
 
-  if (query.status) conditions.push(eq(productsTable.status, query.status));
-  if (query.categoryId) conditions.push(eq(productsTable.categoryId, query.categoryId));
-  if (query.search) conditions.push(ilike(productsTable.name, `%${query.search}%`));
+  if (query.status) {
+    conditions.push(eq(productsTable.status, query.status));
+  }
+  if (query.categoryId) {
+    conditions.push(eq(productsTable.categoryId, query.categoryId));
+  }
+  if (query.search) {
+    conditions.push(ilike(productsTable.name, `%${query.search}%`));
+  }
 
   const sortField =
-    query.sortBy === "name" ? productsTable.name :
-    query.sortBy === "updatedAt" ? productsTable.updatedAt :
-    productsTable.createdAt;
+    query.sortBy === "name"
+      ? productsTable.name
+      : query.sortBy === "updatedAt"
+        ? productsTable.updatedAt
+        : productsTable.createdAt;
 
   const orderFn = query.sortOrder === "asc" ? asc : desc;
   const offset = (query.page - 1) * query.limit;
@@ -137,7 +144,10 @@ export async function listProducts(
         )`,
       })
       .from(productsTable)
-      .leftJoin(productVariantsTable, eq(productVariantsTable.productId, productsTable.id))
+      .leftJoin(
+        productVariantsTable,
+        eq(productVariantsTable.productId, productsTable.id)
+      )
       .where(and(...conditions))
       .groupBy(productsTable.id)
       .orderBy(orderFn(sortField))
@@ -200,7 +210,9 @@ export async function findVariantsBySku(
   db: DB,
   skus: string[]
 ): Promise<ProductVariantRow[]> {
-  if (skus.length === 0) return [];
+  if (skus.length === 0) {
+    return [];
+  }
   return db
     .select()
     .from(productVariantsTable)
@@ -284,7 +296,10 @@ export async function createImage(
   return row!;
 }
 
-export async function deleteImage(db: DB, id: string): Promise<ProductImageRow | undefined> {
+export async function deleteImage(
+  db: DB,
+  id: string
+): Promise<ProductImageRow | undefined> {
   const [row] = await db
     .delete(productImagesTable)
     .where(eq(productImagesTable.id, id))
@@ -341,7 +356,7 @@ export async function fullTextSearch(
     .trim()
     .split(/\s+/)
     .filter(Boolean)
-    .map((w) => `${w}:*`)   // prefix matching
+    .map((w) => `${w}:*`) // prefix matching
     .join(" & ");
 
   // Use GIN full-text search when query is valid, else fall back to ilike
@@ -369,7 +384,10 @@ export async function fullTextSearch(
         .where(and(...conditions, searchCondition)),
     ]);
 
-    return { items: items as Array<ProductRow & { rank: number }>, total: Number(total) };
+    return {
+      items: items as Array<ProductRow & { rank: number }>,
+      total: Number(total),
+    };
   }
 
   // Fallback: ilike on name
@@ -389,6 +407,8 @@ export async function fullTextSearch(
       .where(and(...conditions, ilikeCondition)),
   ]);
 
-  return { items: items as Array<ProductRow & { rank: number }>, total: Number(total) };
+  return {
+    items: items as Array<ProductRow & { rank: number }>,
+    total: Number(total),
+  };
 }
-

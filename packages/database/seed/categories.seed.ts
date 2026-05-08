@@ -101,7 +101,9 @@ export async function seedCategories(db: DrizzleClient): Promise<void> {
 
   for (const [parentSlug, children] of Object.entries(SUB_CATEGORIES)) {
     const parentId = slugToId[parentSlug];
-    if (!parentId) continue;
+    if (!parentId) {
+      continue;
+    }
 
     const inserted = await db
       .insert(categoriesTable)

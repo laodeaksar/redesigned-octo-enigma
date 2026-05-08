@@ -6,26 +6,26 @@
 import type { ApiErrorCode } from "../types/api";
 
 export interface ErrorDetail {
+  code?: string;
   field: string;
   message: string;
-  code?: string;
 }
 
 export interface AppErrorOptions {
-  /** Machine-readable code sent to clients */
-  code: ApiErrorCode;
-  /** HTTP status code */
-  statusCode: number;
-  /** Human-readable message */
-  message: string;
-  /** Optional field-level validation details */
-  details?: ErrorDetail[] | undefined;
   /** Upstream or wrapped error — NOT sent to clients */
   cause?: unknown;
-  /** Extra context for server-side logging — NOT sent to clients */
-  meta?: Record<string, unknown> | undefined;
+  /** Machine-readable code sent to clients */
+  code: ApiErrorCode;
+  /** Optional field-level validation details */
+  details?: ErrorDetail[] | undefined;
   /** Whether this is an expected operational error. Defaults to true */
   isOperational?: boolean;
+  /** Human-readable message */
+  message: string;
+  /** Extra context for server-side logging — NOT sent to clients */
+  meta?: Record<string, unknown> | undefined;
+  /** HTTP status code */
+  statusCode: number;
 }
 
 export class AppError extends Error {
@@ -34,10 +34,10 @@ export class AppError extends Error {
   readonly details?: ErrorDetail[] | undefined;
   readonly meta?: Record<string, unknown> | undefined;
   readonly isOperational: boolean;
-readonly cause?: unknown;
+  readonly cause?: unknown;
   constructor(options: AppErrorOptions) {
     // Pass cause to Error so Node/V8 can chain stacks properly
-    //@ts-ignore
+    //@ts-expect-error
     super(options.message, { cause: options.cause });
 
     this.name = this.constructor.name;
@@ -45,7 +45,7 @@ readonly cause?: unknown;
     this.statusCode = options.statusCode;
     this.details = options.details;
     this.meta = options.meta;
-    this.cause = options.cause
+    this.cause = options.cause;
 
     /**
      * Operational errors are expected runtime failures (user not found,

@@ -2,14 +2,14 @@
 // Admin layout — sidebar + header + content area
 // =============================================================================
 
-import React, { type ReactNode } from "react";
-import { Sidebar } from "./sidebar";
+import type { ReactNode } from "react";
 import { Header } from "./header";
+import { Sidebar } from "./sidebar";
 
 interface AdminLayoutProps {
-  title: string;
-  subtitle?: string;
   children: ReactNode;
+  subtitle?: string;
+  title: string;
 }
 
 export function AdminLayout({ title, subtitle, children }: AdminLayoutProps) {
@@ -17,10 +17,9 @@ export function AdminLayout({ title, subtitle, children }: AdminLayoutProps) {
     <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
-        <Header title={title} subtitle={subtitle} />
+        <Header subtitle={subtitle} title={title} />
         <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </div>
     </div>
   );
 }
-

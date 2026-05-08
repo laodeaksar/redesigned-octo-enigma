@@ -2,20 +2,19 @@
 // StatCard — KPI metric card with optional trend
 // =============================================================================
 
-import React from "react";
-import { TrendingUp, TrendingDown, Minus, type LucideIcon } from "lucide-react";
+import { type LucideIcon, Minus, TrendingDown, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface StatCardProps {
-  title: string;
-  value: string | number;
+  className?: string;
   description?: string;
   icon?: LucideIcon;
+  title: string;
   trend?: {
     value: number;
     label?: string;
   };
-  className?: string;
+  value: string | number;
 }
 
 export function StatCard({
@@ -37,7 +36,7 @@ export function StatCard({
       )}
     >
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-muted-foreground">{title}</p>
+        <p className="font-medium text-muted-foreground text-sm">{title}</p>
         {Icon && (
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
             <Icon className="h-5 w-5 text-primary" />
@@ -46,9 +45,9 @@ export function StatCard({
       </div>
 
       <div className="mt-3">
-        <p className="text-2xl font-bold tracking-tight">{value}</p>
+        <p className="font-bold text-2xl tracking-tight">{value}</p>
         {description && (
-          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+          <p className="mt-1 text-muted-foreground text-sm">{description}</p>
         )}
       </div>
 
@@ -63,7 +62,7 @@ export function StatCard({
           )}
           <span
             className={cn(
-              "text-xs font-medium",
+              "font-medium text-xs",
               isNeutral
                 ? "text-muted-foreground"
                 : isPositive
@@ -75,11 +74,10 @@ export function StatCard({
             {trend.value}%
           </span>
           {trend.label && (
-            <span className="text-xs text-muted-foreground">{trend.label}</span>
+            <span className="text-muted-foreground text-xs">{trend.label}</span>
           )}
         </div>
       )}
     </div>
   );
 }
-

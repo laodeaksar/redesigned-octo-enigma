@@ -2,17 +2,17 @@
 // Payments repository — PostgreSQL via Drizzle
 // =============================================================================
 
-import { eq, and, desc, count, asc } from "drizzle-orm";
+import type { ListPaymentsQuery } from "@repo/common/schemas";
 
 import {
-  paymentsTable,
-  refundsTable,
-  type PaymentRow,
   type NewPaymentRow,
-  type RefundRow,
   type NewRefundRow,
+  type PaymentRow,
+  paymentsTable,
+  type RefundRow,
+  refundsTable,
 } from "@repo/database/drizzle/schema";
-import type { ListPaymentsQuery } from "@repo/common/schemas";
+import { and, asc, count, desc, eq } from "drizzle-orm";
 
 import type { DB } from "@/config";
 
@@ -20,7 +20,7 @@ import type { DB } from "@/config";
 
 export async function findPaymentById(
   db: DB,
-  id: string,
+  id: string
 ): Promise<PaymentRow | undefined> {
   const [row] = await db
     .select()
@@ -32,7 +32,7 @@ export async function findPaymentById(
 
 export async function findPaymentByOrderId(
   db: DB,
-  orderId: string,
+  orderId: string
 ): Promise<PaymentRow | undefined> {
   const [row] = await db
     .select()
@@ -44,7 +44,7 @@ export async function findPaymentByOrderId(
 
 export async function findPaymentByMidtransOrderId(
   db: DB,
-  midtransOrderId: string,
+  midtransOrderId: string
 ): Promise<PaymentRow | undefined> {
   const [row] = await db
     .select()
@@ -56,7 +56,7 @@ export async function findPaymentByMidtransOrderId(
 
 export async function createPayment(
   db: DB,
-  data: NewPaymentRow,
+  data: NewPaymentRow
 ): Promise<PaymentRow> {
   const [row] = await db.insert(paymentsTable).values(data).returning();
   return row!;
@@ -65,7 +65,7 @@ export async function createPayment(
 export async function updatePayment(
   db: DB,
   id: string,
-  data: Partial<NewPaymentRow>,
+  data: Partial<NewPaymentRow>
 ): Promise<PaymentRow | undefined> {
   const [row] = await db
     .update(paymentsTable)
@@ -77,13 +77,19 @@ export async function updatePayment(
 
 export async function listPayments(
   db: DB,
-  query: ListPaymentsQuery,
+  query: ListPaymentsQuery
 ): Promise<{ items: PaymentRow[]; total: number }> {
   const conditions = [];
 
-  if (query.status) conditions.push(eq(paymentsTable.status, query.status));
-  if (query.method) conditions.push(eq(paymentsTable.method, query.method));
-  if (query.userId) conditions.push(eq(paymentsTable.userId, query.userId));
+  if (query.status) {
+    conditions.push(eq(paymentsTable.status, query.status));
+  }
+  if (query.method) {
+    conditions.push(eq(paymentsTable.method, query.method));
+  }
+  if (query.userId) {
+    conditions.push(eq(paymentsTable.userId, query.userId));
+  }
 
   const sortField =
     query.sortBy === "amount"
@@ -117,7 +123,7 @@ export async function listPayments(
 
 export async function findRefundsByPaymentId(
   db: DB,
-  paymentId: string,
+  paymentId: string
 ): Promise<RefundRow[]> {
   return db
     .select()
@@ -128,7 +134,7 @@ export async function findRefundsByPaymentId(
 
 export async function createRefund(
   db: DB,
-  data: NewRefundRow,
+  data: NewRefundRow
 ): Promise<RefundRow> {
   const [row] = await db.insert(refundsTable).values(data).returning();
   return row!;
@@ -137,7 +143,7 @@ export async function createRefund(
 export async function updateRefund(
   db: DB,
   id: string,
-  data: Partial<NewRefundRow>,
+  data: Partial<NewRefundRow>
 ): Promise<RefundRow | undefined> {
   const [row] = await db
     .update(refundsTable)

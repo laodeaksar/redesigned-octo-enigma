@@ -1,25 +1,25 @@
 ---
-import BaseLayout from "@/components/layout/BaseLayout.astro";
 import AddressManager from "@/components/islands/AddressManager";
-import { requireAuth, getTokenFromCookies } from "@/lib/auth";
+import BaseLayout from "@/components/layout/BaseLayout.astro";
 import { api } from "@/lib/api";
+import { getTokenFromCookies, requireAuth } from "@/lib/auth";
 
-await requireAuth(Astro, `/auth/login?redirect=/profile/addresses`);
+await requireAuth(Astro, "/auth/login?redirect=/profile/addresses");
 const token = getTokenFromCookies(Astro.cookies)!;
 
 interface Address {
-  id: string;
-  label: string;
-  recipientName: string;
-  phone: string;
-  street: string;
   city: string;
-  province: string;
-  postalCode: string;
-  country: string;
   cityId: string | null;
-  isDefault: boolean;
+  country: string;
   createdAt: string;
+  id: string;
+  isDefault: boolean;
+  label: string;
+  phone: string;
+  postalCode: string;
+  province: string;
+  recipientName: string;
+  street: string;
 }
 
 let addresses: Address[] = [];

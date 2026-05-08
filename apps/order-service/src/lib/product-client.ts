@@ -3,7 +3,10 @@
 // Used by order-service to validate stock + fetch product snapshots
 // =============================================================================
 
-import { ServiceUnavailableError, InsufficientStockError } from "@repo/common/errors";
+import {
+  InsufficientStockError,
+  ServiceUnavailableError,
+} from "@repo/common/errors";
 import type { ProductSnapshot } from "@repo/common/types";
 import { env } from "@/config";
 
@@ -12,19 +15,19 @@ const BASE = env.PRODUCT_SERVICE_URL.replace(/\/$/, "");
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface VariantStockInfo {
-  variantId: string;
-  productId: string;
-  name: string;               // product name
-  variantName: string;
-  sku: string;
   imageUrl: string | null;
+  name: string; // product name
   price: number;
+  productId: string;
+  sku: string;
   stock: number;
+  variantId: string;
+  variantName: string;
 }
 
 export interface BatchDeductRequest {
-  orderId: string;
   items: Array<{ variantId: string; quantity: number }>;
+  orderId: string;
 }
 
 // ── Internal fetch helper ─────────────────────────────────────────────────────
@@ -51,14 +54,31 @@ async function internalFetch<T>(
   }
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({})) as Record<string, unknown>;
-    const error = body["error"] as { code?: string; message?: string } | undefined;
+    const body = (await res.json().catch(() => ({}))) as Record<
+      string,
+      unknown
+    >;
+    const error = body["error"] as
+      | { code?: string; message?: string }
+      | undefined;
 
     if (error?.code === "INSUFFICIENT_STOCK") {
       throw new InsufficientStockError(
-        String((body["meta"] as Record<string, unknown> | undefined)?.["variantId"] ?? ""),
-        Number((body["meta"] as Record<string, unknown> | undefined)?.["requested"] ?? 0),
-        Number((body["meta"] as Record<string, unknown> | undefined)?.["available"] ?? 0)
+        String(
+          (body["meta"] as Record<string, unknown> | undefined)?.[
+            "variantId"
+          ] ?? ""
+        ),
+        Number(
+          (body["meta"] as Record<string, unknown> | undefined)?.[
+            "requested"
+          ] ?? 0
+        ),
+        Number(
+          (body["meta"] as Record<string, unknown> | undefined)?.[
+            "available"
+          ] ?? 0
+        )
       );
     }
 
@@ -67,7 +87,7 @@ async function internalFetch<T>(
     );
   }
 
-  const json = await res.json() as { data: T };
+  const json = (await res.json()) as { data: T };
   return json.data;
 }
 
@@ -141,4 +161,3 @@ export async function restoreStock(
     )
   );
 }
-

@@ -81,26 +81,25 @@ export const productVariantSchema = z
     {
       message: "Compare-at price must be greater than the selling price",
       path: ["compareAtPrice"],
-    },
+    }
   );
 
 export type ProductVariantInput = z.infer<typeof productVariantSchema>;
 
-export const updateVariantSchema = z
-  .object({
-    name: shortStringSchema.max(200).optional(),
-    attributes: z
-      .record(z.string(), z.string())
-      .refine((v) => Object.keys(v).length > 0, {
-        message: "At least one attribute is required",
-      })
-      .optional(),
-    price: positiveIdrAmountSchema.optional(),
-    compareAtPrice: positiveIdrAmountSchema.nullable().optional(),
-    stock: nonNegativeIntSchema.optional(),
-    weight: weightSchema.nullable().optional(),
-    isActive: z.boolean().optional(),
-  });
+export const updateVariantSchema = z.object({
+  name: shortStringSchema.max(200).optional(),
+  attributes: z
+    .record(z.string(), z.string())
+    .refine((v) => Object.keys(v).length > 0, {
+      message: "At least one attribute is required",
+    })
+    .optional(),
+  price: positiveIdrAmountSchema.optional(),
+  compareAtPrice: positiveIdrAmountSchema.nullable().optional(),
+  stock: nonNegativeIntSchema.optional(),
+  weight: weightSchema.nullable().optional(),
+  isActive: z.boolean().optional(),
+});
 export type UpdateVariantInput = z.infer<typeof updateVariantSchema>;
 
 // ── Create Product ────────────────────────────────────────────────────────────
@@ -132,7 +131,7 @@ export const createProductSchema = z.object({
         const skus = variants.map((v) => v.sku);
         return new Set(skus).size === skus.length;
       },
-      { message: "All variant SKUs must be unique" },
+      { message: "All variant SKUs must be unique" }
     ),
 });
 
@@ -181,7 +180,7 @@ export const batchStockDeductSchema = z.object({
       z.object({
         variantId: uuidSchema,
         quantity: positiveIntSchema,
-      }),
+      })
     )
     .min(1),
 });
@@ -233,7 +232,7 @@ export const listProductsQuerySchema = z
     {
       message: "minPrice cannot be greater than maxPrice",
       path: ["minPrice"],
-    },
+    }
   );
 
 export type ListProductsQuery = z.infer<typeof listProductsQuerySchema>;

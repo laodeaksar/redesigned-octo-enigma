@@ -2,17 +2,13 @@
 // JWT helpers — sign & verify using jose (Web Crypto, works in Bun)
 // =============================================================================
 
-import {
-  SignJWT,
-  jwtVerify,
-  type JWTPayload as JosePayload,
-} from "jose";
-
-import {
-  TokenExpiredError,
-  TokenInvalidError,
-} from "@repo/common/errors";
-import type { JwtPayload, RefreshTokenPayload, UserRole } from "@repo/common/types";
+import { TokenExpiredError, TokenInvalidError } from "@repo/common/errors";
+import type {
+  JwtPayload,
+  RefreshTokenPayload,
+  UserRole,
+} from "@repo/common/types";
+import { jwtVerify, SignJWT } from "jose";
 
 import { env } from "@/config";
 
@@ -71,7 +67,9 @@ export async function verifyRefreshToken(
     return payload as unknown as RefreshTokenPayload;
   } catch (err: unknown) {
     if (err instanceof Error && err.message.includes("expired")) {
-      throw new TokenExpiredError("Refresh token has expired — please log in again");
+      throw new TokenExpiredError(
+        "Refresh token has expired — please log in again"
+      );
     }
     throw new TokenInvalidError("Refresh token is invalid");
   }
@@ -81,13 +79,12 @@ export async function verifyRefreshToken(
 // Supports: "15m", "7d", "1h", "30s"
 export function expiryToMs(expiry: string): number {
   const unit = expiry.slice(-1);
-  const value = parseInt(expiry.slice(0, -1), 10);
+  const value = Number.parseInt(expiry.slice(0, -1), 10);
   const map: Record<string, number> = {
-    s: 1_000,
+    s: 1000,
     m: 60_000,
     h: 3_600_000,
     d: 86_400_000,
   };
   return value * (map[unit] ?? 60_000);
 }
-

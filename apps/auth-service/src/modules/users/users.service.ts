@@ -2,27 +2,25 @@
 // Users service — profile and address management
 // =============================================================================
 
-import {
-  UserNotFoundError,
-  NotFoundError,
-  ForbiddenError,
-} from "@repo/common/errors";
+import { NotFoundError, UserNotFoundError } from "@repo/common/errors";
 import type {
-  UpdateProfileInput,
   CreateAddressInput,
   UpdateAddressInput,
+  UpdateProfileInput,
 } from "@repo/common/schemas";
-
-import * as repo from "./users.repository";
 import type { DB } from "@/config";
+import * as repo from "./users.repository";
 
 // ── Profile ───────────────────────────────────────────────────────────────────
 
 export async function getProfile(db: DB, userId: string) {
   const user = await repo.findUserById(db, userId);
-  if (!user) throw new UserNotFoundError();
+  if (!user) {
+    throw new UserNotFoundError();
+  }
 
-  const { passwordHash, emailVerificationToken, passwordResetToken, ...safe } = user;
+  const { passwordHash, emailVerificationToken, passwordResetToken, ...safe } =
+    user;
   return safe;
 }
 
@@ -33,12 +31,15 @@ export async function updateProfile(
 ) {
   const user = await repo.updateUser(db, userId, {
     ...(input.name ? { name: input.name } : {}),
-    ...(input.avatarUrl !== undefined ? { avatarUrl: input.avatarUrl } : {}),
+    ...(input.avatarUrl === undefined ? {} : { avatarUrl: input.avatarUrl }),
   });
 
-  if (!user) throw new UserNotFoundError();
+  if (!user) {
+    throw new UserNotFoundError();
+  }
 
-  const { passwordHash, emailVerificationToken, passwordResetToken, ...safe } = user;
+  const { passwordHash, emailVerificationToken, passwordResetToken, ...safe } =
+    user;
   return safe;
 }
 
@@ -63,22 +64,23 @@ export async function updateAddress(
   input: UpdateAddressInput
 ) {
   const existing = await repo.findAddressById(db, addressId, userId);
-  if (!existing) throw new NotFoundError("Address");
+  if (!existing) {
+    throw new NotFoundError("Address");
+  }
 
   const updated = await repo.updateAddress(db, addressId, userId, input);
-  if (!updated) throw new NotFoundError("Address");
+  if (!updated) {
+    throw new NotFoundError("Address");
+  }
 
   return updated;
 }
 
-export async function deleteAddress(
-  db: DB,
-  userId: string,
-  addressId: string
-) {
+export async function deleteAddress(db: DB, userId: string, addressId: string) {
   const deleted = await repo.deleteAddress(db, addressId, userId);
-  if (!deleted) throw new NotFoundError("Address");
+  if (!deleted) {
+    throw new NotFoundError("Address");
+  }
 
   return { message: "Address deleted successfully" };
 }
-

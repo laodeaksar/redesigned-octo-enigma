@@ -10,8 +10,6 @@ import {
   emailSchema,
   phoneSchema,
   shortStringSchema,
-  slugSchema,
-  uuidSchema,
 } from "./common.schema";
 
 // ── Enums ─────────────────────────────────────────────────────────────────────

@@ -1,14 +1,14 @@
 ---
-import BaseLayout from "@/components/layout/BaseLayout.astro";
-import { getCurrentUser } from "@/lib/auth";
 import AddToCartButton from "@/components/islands/AddToCartButton";
-import WishlistButton from "@/components/islands/WishlistButton";
-import TrackProductView from "@/components/islands/TrackProductView";
-import RecentlyViewed from "@/components/islands/RecentlyViewed";
 import CompareToggle from "@/components/islands/CompareToggle";
-import Badge from "@/components/shared/Badge.astro";
 import ProductReviews from "@/components/islands/ProductReviews";
+import RecentlyViewed from "@/components/islands/RecentlyViewed";
+import TrackProductView from "@/components/islands/TrackProductView";
+import WishlistButton from "@/components/islands/WishlistButton";
+import BaseLayout from "@/components/layout/BaseLayout.astro";
+import Badge from "@/components/shared/Badge.astro";
 import { api, type ProductDetail } from "@/lib/api";
+import { getCurrentUser } from "@/lib/auth";
 import { formatDate } from "@/lib/utils";
 
 const user = await getCurrentUser(Astro.cookies);
@@ -18,7 +18,9 @@ const { slug } = Astro.params;
 let product: ProductDetail | null = null;
 
 try {
-  const res = await api.get<{ success: true; data: ProductDetail }>(`/products/slug/${slug}`);
+  const res = await api.get<{ success: true; data: ProductDetail }>(
+    `/products/slug/${slug}`
+  );
   product = res.data;
 } catch {
   return Astro.redirect("/404");
@@ -28,8 +30,11 @@ if (!product || product.status !== "active") {
   return Astro.redirect("/404");
 }
 
-const primaryImage = product.images.find((i) => i.isPrimary) ?? product.images[0];
-const sortedImages = [...product.images].sort((a, b) => a.sortOrder - b.sortOrder);
+const primaryImage =
+  product.images.find((i) => i.isPrimary) ?? product.images[0];
+const sortedImages = [...product.images].sort(
+  (a, b) => a.sortOrder - b.sortOrder
+);
 ---
 
 <BaseLayout
@@ -37,7 +42,6 @@ const sortedImages = [...product.images].sort((a, b) => a.sortOrder - b.sortOrde
   description={product.shortDescription ?? product.description.slice(0, 160)}
 >
   <div class="container mx-auto px-4 py-10">
-
     <!-- Breadcrumb -->
     <nav class="mb-6 flex items-center gap-2 text-sm text-gray-500">
       <a href="/" class="hover:text-gray-900">Beranda</a>
@@ -56,7 +60,6 @@ const sortedImages = [...product.images].sort((a, b) => a.sortOrder - b.sortOrde
     </nav>
 
     <div class="grid gap-10 lg:grid-cols-2">
-
       <!-- Image gallery -->
       <div class="space-y-3">
         <!-- Main image -->
@@ -106,7 +109,7 @@ const sortedImages = [...product.images].sort((a, b) => a.sortOrder - b.sortOrde
 
         {/* Short description */}
         {product.shortDescription && (
-          <p class="text-gray-600 leading-relaxed">{product.shortDescription}</p>
+        <p class="text-gray-600 leading-relaxed">{product.shortDescription}</p>
         )}
 
         <!-- Tags -->
@@ -119,7 +122,9 @@ const sortedImages = [...product.images].sort((a, b) => a.sortOrder - b.sortOrde
         )}
 
         <!-- AddToCartButton, WishlistButton & CompareToggle React islands -->
-        <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm space-y-3">
+        <div
+          class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm space-y-3"
+        >
           <AddToCartButton
             client:load
             productName={product.name}
@@ -205,25 +210,33 @@ const sortedImages = [...product.images].sort((a, b) => a.sortOrder - b.sortOrde
 
   <!-- Recently viewed (excludes current product) -->
   <div class="border-t border-gray-100 bg-gray-50/50">
-    <RecentlyViewed client:load currentSlug={slug} title="Produk yang Baru Kamu Lihat" />
+    <RecentlyViewed
+      client:load
+      currentSlug={slug}
+      title="Produk yang Baru Kamu Lihat"
+    />
   </div>
 </BaseLayout>
 
 <script>
   // Thumbnail switcher
-  const mainImage = document.getElementById("main-image") as HTMLImageElement | null;
-  document.querySelectorAll<HTMLButtonElement>(".thumbnail-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      if (mainImage) {
-        mainImage.src = btn.dataset.src ?? "";
-        mainImage.alt = btn.dataset.alt ?? "";
-      }
-      document.querySelectorAll(".thumbnail-btn").forEach((b) => {
-        b.classList.remove("border-brand-500");
-        b.classList.add("border-transparent");
+  const mainImage = document.getElementById(
+    "main-image"
+  ) as HTMLImageElement | null;
+  document
+    .querySelectorAll<HTMLButtonElement>(".thumbnail-btn")
+    .forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (mainImage) {
+          mainImage.src = btn.dataset.src ?? "";
+          mainImage.alt = btn.dataset.alt ?? "";
+        }
+        document.querySelectorAll(".thumbnail-btn").forEach((b) => {
+          b.classList.remove("border-brand-500");
+          b.classList.add("border-transparent");
+        });
+        btn.classList.add("border-brand-500");
+        btn.classList.remove("border-transparent");
       });
-      btn.classList.add("border-brand-500");
-      btn.classList.remove("border-transparent");
     });
-  });
 </script>

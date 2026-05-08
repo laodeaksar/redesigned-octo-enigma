@@ -2,8 +2,8 @@
 // Config — validated env + singleton DB and BullMQ queue clients
 // =============================================================================
 
-import { env as rawEnv } from "@repo/env/payment-service";
 import { createDrizzleClient } from "@repo/database/drizzle";
+import { env as rawEnv } from "@repo/env/payment-service";
 
 export const env = rawEnv;
 
@@ -12,7 +12,9 @@ export const env = rawEnv;
 const DATABASE_URL = process.env.DATABASE_URL ?? "";
 
 export const db = createDrizzleClient({
-  url: DATABASE_URL || "postgres://placeholder:placeholder@localhost:5432/placeholder",
+  url:
+    DATABASE_URL ||
+    "postgres://placeholder:placeholder@localhost:5432/placeholder",
   maxConnections: 5,
   debug: env.NODE_ENV === "development",
 });

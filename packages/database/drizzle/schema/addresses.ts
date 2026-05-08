@@ -3,6 +3,7 @@
 // Managed by: auth-service
 // =============================================================================
 
+import { relations } from "drizzle-orm";
 import {
   boolean,
   char,
@@ -12,8 +13,6 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-
-import { relations } from "drizzle-orm";
 
 import { primaryId, timestamps } from "./_helpers";
 import { usersTable } from "./users";
@@ -39,7 +38,7 @@ export const addressesTable = pgTable(
   },
   (t) => ({
     addressesUserIdIdx: index("addresses_user_id_idx").on(t.userId),
-  }),
+  })
 );
 
 // ── Relations ─────────────────────────────────────────────────────────────────

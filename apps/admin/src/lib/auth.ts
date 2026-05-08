@@ -2,28 +2,28 @@
 // Auth helpers — login, logout, session state
 // =============================================================================
 
-import { api, setTokens, clearTokens, getAccessToken } from "./api";
 import type { ApiResponse } from "./api";
+import { api, clearTokens, getAccessToken, setTokens } from "./api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface AdminUser {
-  id: string;
+  avatarUrl: string | null;
+  createdAt: string;
   email: string;
+  emailVerified: boolean;
+  id: string;
   name: string;
   role: "admin" | "super_admin";
-  avatarUrl: string | null;
-  emailVerified: boolean;
   status: string;
-  createdAt: string;
   updatedAt: string;
 }
 
 export interface LoginResponse {
-  user: AdminUser;
   accessToken: string;
-  refreshToken: string;
   expiresIn: number;
+  refreshToken: string;
+  user: AdminUser;
 }
 
 // ── Auth actions ──────────────────────────────────────────────────────────────
@@ -58,7 +58,9 @@ export async function logout(): Promise<void> {
 }
 
 export async function getMe(): Promise<AdminUser | null> {
-  if (!getAccessToken()) return null;
+  if (!getAccessToken()) {
+    return null;
+  }
 
   try {
     const res = await api.get<ApiResponse<AdminUser>>("/auth/me");
@@ -71,4 +73,3 @@ export async function getMe(): Promise<AdminUser | null> {
 export function isAuthenticated(): boolean {
   return !!getAccessToken();
 }
-

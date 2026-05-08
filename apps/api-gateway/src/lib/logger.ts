@@ -8,39 +8,44 @@ export enum LogLevel {
   INFO = 1,
   WARN = 2,
   ERROR = 3,
-  CRITICAL = 4
+  CRITICAL = 4,
 }
 
 interface LogEntry {
-  timestamp: string;
   level: string;
   message: string;
-  service: string;
-  requestId?: string;
   metadata?: Record<string, unknown>;
+  requestId?: string;
+  service: string;
   stack?: string;
+  timestamp: string;
 }
 
 const LOG_LEVEL_NAMES = ["debug", "info", "warn", "error", "critical"];
 
 class Logger {
-  private currentLevel: LogLevel = process.env.NODE_ENV === "production" 
-    ? LogLevel.INFO 
-    : LogLevel.DEBUG;
+  private currentLevel: LogLevel =
+    process.env.NODE_ENV === "production" ? LogLevel.INFO : LogLevel.DEBUG;
 
   setLevel(level: LogLevel): void {
     this.currentLevel = level;
   }
 
-  private log(level: LogLevel, message: string, metadata?: Record<string, unknown>): void {
-    if (level < this.currentLevel) return;
+  private log(
+    level: LogLevel,
+    message: string,
+    metadata?: Record<string, unknown>
+  ): void {
+    if (level < this.currentLevel) {
+      return;
+    }
 
     const entry: LogEntry = {
       timestamp: new Date().toISOString(),
       level: LOG_LEVEL_NAMES[level],
       message,
       service: "api-gateway",
-      ...metadata
+      ...metadata,
     };
 
     const output = JSON.stringify(entry);

@@ -5,8 +5,7 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "strictNullChecks": true,
+    "strictNullChecks": true
   },
   "include": ["src"]
 }
-

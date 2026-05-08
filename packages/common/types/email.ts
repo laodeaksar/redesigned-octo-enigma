@@ -3,34 +3,34 @@
 // =============================================================================
 
 export interface EmailPayload {
-  to: string | string[];
-  subject: string;
-  html: string;
-  text?: string;
-  replyTo?: string;
-  headers?: Record<string, string>;
-  cc?: string | string[];
-  bcc?: string | string[];
   attachments?: EmailAttachment[];
+  bcc?: string | string[];
+  cc?: string | string[];
+  headers?: Record<string, string>;
+  html: string;
+  replyTo?: string;
+  subject: string;
+  text?: string;
+  to: string | string[];
 }
 
 export interface EmailAttachment {
-  filename: string;
+  cid?: string; // buat inline images
   content: Buffer | string;
   contentType?: string;
-  cid?: string; // buat inline images
+  filename: string;
 }
 
 export interface EmailResult {
+  accepted?: string[]; // SMTP: email yang sukses
   messageId: string;
   provider: "smtp" | "resend";
-  accepted?: string[]; // SMTP: email yang sukses
   rejected?: string[]; // SMTP: email yang ditolak
   response?: string; // SMTP response code
 }
 
 export interface EmailTemplate {
-  subject: string;
   html: string;
+  subject: string;
   text: string;
 }

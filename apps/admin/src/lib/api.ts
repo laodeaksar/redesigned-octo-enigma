@@ -9,13 +9,12 @@ const BASE_URL = env.VITE_API_URL;
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface ApiResponse<T> {
-  success: true;
   data: T;
   message?: string;
+  success: true;
 }
 
 export interface PaginatedResponse<T> {
-  success: true;
   data: T[];
   meta: {
     total: number;
@@ -25,15 +24,16 @@ export interface PaginatedResponse<T> {
     hasNextPage: boolean;
     hasPrevPage: boolean;
   };
+  success: true;
 }
 
 export interface ApiError {
-  success: false;
   error: {
     code: string;
     message: string;
     details?: Array<{ field: string; message: string }>;
   };
+  success: false;
 }
 
 export class ApiRequestError extends Error {
@@ -72,7 +72,9 @@ export function clearTokens() {
 }
 
 export function getAccessToken(): string | null {
-  if (_accessToken) return _accessToken;
+  if (_accessToken) {
+    return _accessToken;
+  }
   if (typeof localStorage !== "undefined") {
     _accessToken = localStorage.getItem("access_token");
   }
@@ -80,7 +82,9 @@ export function getAccessToken(): string | null {
 }
 
 function getRefreshToken(): string | null {
-  if (_refreshToken) return _refreshToken;
+  if (_refreshToken) {
+    return _refreshToken;
+  }
   if (typeof localStorage !== "undefined") {
     _refreshToken = localStorage.getItem("refresh_token");
   }
@@ -93,11 +97,15 @@ let _refreshPromise: Promise<string | null> | null = null;
 
 async function refreshAccessToken(): Promise<string | null> {
   // Deduplicate concurrent refresh calls
-  if (_refreshPromise) return _refreshPromise;
+  if (_refreshPromise) {
+    return _refreshPromise;
+  }
 
   _refreshPromise = (async () => {
     const refreshToken = getRefreshToken();
-    if (!refreshToken) return null;
+    if (!refreshToken) {
+      return null;
+    }
 
     try {
       const res = await fetch(`${BASE_URL}/auth/refresh`, {
@@ -132,10 +140,10 @@ async function refreshAccessToken(): Promise<string | null> {
 // ── Core fetch ────────────────────────────────────────────────────────────────
 
 interface FetchOptions extends RequestInit {
-  /** Skip auth header */
-  skipAuth?: boolean;
   /** Query params object */
   params?: Record<string, string | number | boolean | undefined | null>;
+  /** Skip auth header */
+  skipAuth?: boolean;
 }
 
 async function apiFetch<T>(
@@ -159,14 +167,19 @@ async function apiFetch<T>(
 
   if (!skipAuth) {
     const token = getAccessToken();
-    if (token) headers.set("Authorization", `Bearer ${token}`);
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
   }
 
   let res = await fetch(url.toString(), { ...fetchOptions, headers });
 
   // Auto-refresh on 401 TOKEN_EXPIRED
   if (res.status === 401 && !skipAuth) {
-    const body = (await res.clone().json().catch(() => ({}))) as ApiError;
+    const body = (await res
+      .clone()
+      .json()
+      .catch(() => ({}))) as ApiError;
     if (body.error?.code === "TOKEN_EXPIRED") {
       const newToken = await refreshAccessToken();
       if (newToken) {
@@ -216,4 +229,3 @@ export const api = {
     return apiFetch<T>(path, { ...options, method: "DELETE" });
   },
 };
-

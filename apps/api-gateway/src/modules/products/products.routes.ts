@@ -27,40 +27,40 @@
 // =============================================================================
 
 import { Hono } from "hono";
-
+import { SERVICES } from "@/config";
+import { buildTargetUrl, proxyRequest } from "@/lib/proxy";
 import {
-  requireAuth,
   optionalAuth,
+  requireAuth,
   requireRole,
 } from "@/middleware/auth.middleware";
-import {
-  defaultRateLimit,
-} from "@/middleware/rate-limit.middleware";
-import { proxyRequest, buildTargetUrl } from "@/lib/proxy";
-import { SERVICES } from "@/config";
+import { defaultRateLimit } from "@/middleware/rate-limit.middleware";
 
 const app = new Hono();
 const productBase = SERVICES.product;
 
 // ── Block internal stock endpoints from clients ───────────────────────────────
 app.all("/products/stock/*", (c) =>
-  c.json({ success: false, error: { code: "FORBIDDEN", message: "Access denied" } }, 403)
+  c.json(
+    { success: false, error: { code: "FORBIDDEN", message: "Access denied" } },
+    403
+  )
 );
 
 // ── Category public reads ─────────────────────────────────────────────────────
-app.get("/categories/*", defaultRateLimit, optionalAuth, async (c) => {
-  return proxyRequest(c, {
+app.get("/categories/*", defaultRateLimit, optionalAuth, async (c) =>
+  proxyRequest(c, {
     target: buildTargetUrl(productBase, c),
     user: c.var.user,
-  });
-});
+  })
+);
 
-app.get("/categories", defaultRateLimit, optionalAuth, async (c) => {
-  return proxyRequest(c, {
+app.get("/categories", defaultRateLimit, optionalAuth, async (c) =>
+  proxyRequest(c, {
     target: buildTargetUrl(productBase, c),
     user: c.var.user,
-  });
-});
+  })
+);
 
 // ── Category admin writes ─────────────────────────────────────────────────────
 app.post(
@@ -69,7 +69,10 @@ app.post(
   requireRole("admin", "super_admin"),
   defaultRateLimit,
   async (c) =>
-    proxyRequest(c, { target: buildTargetUrl(productBase, c), user: c.var.user })
+    proxyRequest(c, {
+      target: buildTargetUrl(productBase, c),
+      user: c.var.user,
+    })
 );
 
 app.patch(
@@ -78,7 +81,10 @@ app.patch(
   requireRole("admin", "super_admin"),
   defaultRateLimit,
   async (c) =>
-    proxyRequest(c, { target: buildTargetUrl(productBase, c), user: c.var.user })
+    proxyRequest(c, {
+      target: buildTargetUrl(productBase, c),
+      user: c.var.user,
+    })
 );
 
 app.delete(
@@ -87,56 +93,59 @@ app.delete(
   requireRole("admin", "super_admin"),
   defaultRateLimit,
   async (c) =>
-    proxyRequest(c, { target: buildTargetUrl(productBase, c), user: c.var.user })
+    proxyRequest(c, {
+      target: buildTargetUrl(productBase, c),
+      user: c.var.user,
+    })
 );
 
 // ── Product public reads ──────────────────────────────────────────────────────
-app.get("/products/search", defaultRateLimit, optionalAuth, async (c) => {
-  return proxyRequest(c, {
+app.get("/products/search", defaultRateLimit, optionalAuth, async (c) =>
+  proxyRequest(c, {
     target: buildTargetUrl(productBase, c),
     user: c.var.user,
-  });
-});
+  })
+);
 
-app.get("/products", defaultRateLimit, optionalAuth, async (c) => {
-  return proxyRequest(c, {
+app.get("/products", defaultRateLimit, optionalAuth, async (c) =>
+  proxyRequest(c, {
     target: buildTargetUrl(productBase, c),
     user: c.var.user,
-  });
-});
+  })
+);
 
-app.get("/products/slug/:slug", defaultRateLimit, optionalAuth, async (c) => {
-  return proxyRequest(c, {
+app.get("/products/slug/:slug", defaultRateLimit, optionalAuth, async (c) =>
+  proxyRequest(c, {
     target: buildTargetUrl(productBase, c),
     user: c.var.user,
-  });
-});
+  })
+);
 
-app.get("/products/:id", defaultRateLimit, optionalAuth, async (c) => {
-  return proxyRequest(c, {
+app.get("/products/:id", defaultRateLimit, optionalAuth, async (c) =>
+  proxyRequest(c, {
     target: buildTargetUrl(productBase, c),
     user: c.var.user,
-  });
-});
+  })
+);
 
 // ── Reviews: public list, authenticated create ────────────────────────────────
-app.get("/products/:id/reviews", defaultRateLimit, optionalAuth, async (c) => {
-  return proxyRequest(c, {
+app.get("/products/:id/reviews", defaultRateLimit, optionalAuth, async (c) =>
+  proxyRequest(c, {
     target: buildTargetUrl(productBase, c),
     user: c.var.user,
-  });
-});
+  })
+);
 
-app.get("/products/:id/reviews/summary", defaultRateLimit, async (c) => {
-  return proxyRequest(c, { target: buildTargetUrl(productBase, c), user: null });
-});
+app.get("/products/:id/reviews/summary", defaultRateLimit, async (c) =>
+  proxyRequest(c, { target: buildTargetUrl(productBase, c), user: null })
+);
 
-app.post("/products/:id/reviews", requireAuth, defaultRateLimit, async (c) => {
-  return proxyRequest(c, {
+app.post("/products/:id/reviews", requireAuth, defaultRateLimit, async (c) =>
+  proxyRequest(c, {
     target: buildTargetUrl(productBase, c),
     user: c.var.user,
-  });
-});
+  })
+);
 
 // Admin: delete any review (content moderation)
 app.delete(
@@ -145,11 +154,18 @@ app.delete(
   requireRole("admin", "super_admin"),
   defaultRateLimit,
   async (c) =>
-    proxyRequest(c, { target: buildTargetUrl(productBase, c), user: c.var.user })
+    proxyRequest(c, {
+      target: buildTargetUrl(productBase, c),
+      user: c.var.user,
+    })
 );
 
 // ── Product admin writes ──────────────────────────────────────────────────────
-const adminMiddleware = [requireAuth, requireRole("admin", "super_admin"), defaultRateLimit] as const;
+const adminMiddleware = [
+  requireAuth,
+  requireRole("admin", "super_admin"),
+  defaultRateLimit,
+] as const;
 
 app.post("/products", ...adminMiddleware, async (c) =>
   proxyRequest(c, { target: buildTargetUrl(productBase, c), user: c.var.user })
@@ -186,4 +202,3 @@ app.delete("/products/:id/images/:iid", ...adminMiddleware, async (c) =>
 );
 
 export { app as productsRoutes };
-

@@ -2,8 +2,8 @@
 // Config — validated env + singleton clients + service registry
 // =============================================================================
 
-import { env as rawEnv } from "@repo/env/api-gateway";
 import { createDrizzleClient } from "@repo/database/drizzle";
+import { env as rawEnv } from "@repo/env/api-gateway";
 import Redis from "ioredis";
 
 export const env = rawEnv;
@@ -41,7 +41,9 @@ let _redis: Redis | null = null;
 let _redisAvailable = false;
 
 export function getRedis(): Redis | null {
-  if (!_redisAvailable) return null;
+  if (!_redisAvailable) {
+    return null;
+  }
   return _redis;
 }
 

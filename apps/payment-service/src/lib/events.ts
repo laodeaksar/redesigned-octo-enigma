@@ -2,10 +2,9 @@
 // Payment service — BullMQ job publishers + order-service HTTP callback
 // =============================================================================
 
-import { addUniqueJob } from "@repo/common/events";
 import { ServiceUnavailableError } from "@repo/common/errors";
-import { queues, ORDER_SERVICE_URL } from "@/config";
 import type { PaymentRow } from "@repo/database/drizzle/schema";
+import { ORDER_SERVICE_URL } from "@/config";
 
 // ── Notify order-service after payment confirmed ──────────────────────────────
 // Direct HTTP (not a queue) — synchronous confirmation before webhook ack
@@ -13,7 +12,7 @@ import type { PaymentRow } from "@repo/database/drizzle/schema";
 export async function notifyOrderPaid(
   orderId: string,
   paymentId: string,
-  paidAt: Date,
+  paidAt: Date
 ): Promise<void> {
   let res: Response;
 
@@ -40,7 +39,7 @@ export async function notifyOrderPaid(
       unknown
     >;
     throw new ServiceUnavailableError(
-      `order-service responded ${res.status}: ${JSON.stringify(body)}`,
+      `order-service responded ${res.status}: ${JSON.stringify(body)}`
     );
   }
 }
@@ -50,7 +49,7 @@ export async function notifyOrderPaid(
 
 export async function publishPaymentSucceeded(
   payment: PaymentRow,
-  _userEmail: string,
+  _userEmail: string
 ): Promise<void> {
   // Order confirmation email is already queued by order-service when order is created.
   // Payment success triggers order-service transition via notifyOrderPaid (HTTP above).
@@ -59,7 +58,7 @@ export async function publishPaymentSucceeded(
 }
 
 export async function publishPaymentExpired(
-  payment: PaymentRow,
+  payment: PaymentRow
 ): Promise<void> {
   // Payment expiry is handled by order-service expiry sweep (BullMQ recurring job).
   // Nothing extra needed from payment-service side.
@@ -68,7 +67,7 @@ export async function publishPaymentExpired(
 
 export async function publishPaymentRefunded(
   payment: PaymentRow,
-  _amount: number,
+  _amount: number
 ): Promise<void> {
   // Refund notification email can be added here when email template is ready.
   void payment;

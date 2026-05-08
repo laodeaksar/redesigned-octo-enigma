@@ -1,15 +1,9 @@
-// =============================================================================
-// Shared Drizzle column helpers
-// =============================================================================
-
-import { sql } from "drizzle-orm";
-import { pgEnum, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { pgEnum, timestamp, uuid } from "drizzle-orm/pg-core";
 
 // ── Reusable column factories ─────────────────────────────────────────────────
 
 /** Auto-generated UUID primary key */
-export const primaryId = () =>
-  uuid("id").primaryKey().defaultRandom();
+export const primaryId = () => uuid("id").primaryKey().defaultRandom();
 
 /** Standard created_at + updated_at timestamps */
 export const timestamps = () => ({
@@ -42,10 +36,7 @@ export const userStatusEnum = pgEnum("user_status", [
   "pending_verification",
 ]);
 
-export const oauthProviderEnum = pgEnum("oauth_provider", [
-  "google",
-  "github",
-]);
+export const oauthProviderEnum = pgEnum("oauth_provider", ["google", "github"]);
 
 export const productStatusEnum = pgEnum("product_status", [
   "active",

@@ -4,7 +4,7 @@
 // =============================================================================
 
 import type { DrizzleClient } from "../drizzle/client";
-import { usersTable, addressesTable } from "../drizzle/schema";
+import { addressesTable, usersTable } from "../drizzle/schema";
 
 // Pre-hashed "Password123!" using Argon2id (same params as auth-service)
 const HASHED_PASSWORD =

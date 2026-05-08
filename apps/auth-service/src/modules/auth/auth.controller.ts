@@ -2,21 +2,18 @@
 // Auth controller — request handlers (thin layer over service)
 // =============================================================================
 
-import { success } from "@repo/common/schemas";
+import { safeParse } from "@repo/common/errors";
 import {
-  safeParse,
-} from "@repo/common/errors";
-import {
-  registerSchema,
+  forgotPasswordSchema,
   loginSchema,
   refreshTokenSchema,
-  verifyEmailSchema,
-  forgotPasswordSchema,
+  registerSchema,
   resetPasswordSchema,
+  success,
+  verifyEmailSchema,
 } from "@repo/common/schemas";
-
-import * as authService from "./auth.service";
 import type { DB } from "@/config";
+import * as authService from "./auth.service";
 
 export async function handleRegister(db: DB, body: unknown) {
   const input = safeParse(registerSchema, body);
@@ -53,4 +50,3 @@ export async function handleResetPassword(db: DB, body: unknown) {
   const result = await authService.resetPassword(db, input);
   return success(result);
 }
-

@@ -2,9 +2,9 @@
 // Config — validated env + MongoDB + Drizzle (vouchers) + BullMQ queue clients
 // =============================================================================
 
-import { env as rawEnv } from "@repo/env/order-service";
 import { createDrizzleClient } from "@repo/database/drizzle";
 import { connectMongo } from "@repo/database/mongo";
+import { env as rawEnv } from "@repo/env/order-service";
 
 export const env = rawEnv;
 
@@ -13,7 +13,9 @@ export const env = rawEnv;
 const DATABASE_URL = process.env.DATABASE_URL ?? "";
 
 export const db = createDrizzleClient({
-  url: DATABASE_URL || "postgres://placeholder:placeholder@localhost:5432/placeholder",
+  url:
+    DATABASE_URL ||
+    "postgres://placeholder:placeholder@localhost:5432/placeholder",
   maxConnections: 5,
   debug: env.NODE_ENV === "development",
 });
@@ -36,8 +38,8 @@ export const redis = null;
 
 export const queues = {
   emailOrderConfirmation: null as null,
-  emailOrderShipped:      null as null,
-  emailOrderCancelled:    null as null,
-  orderCancelExpired:     null as null,
-  stockRestore:           null as null,
+  emailOrderShipped: null as null,
+  emailOrderCancelled: null as null,
+  orderCancelExpired: null as null,
+  stockRestore: null as null,
 } as const;

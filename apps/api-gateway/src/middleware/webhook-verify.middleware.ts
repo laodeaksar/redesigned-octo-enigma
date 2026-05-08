@@ -30,11 +30,11 @@
 //   • DB writes are fire-and-forget so they never delay the response.
 // =============================================================================
 
-import { timingSafeEqual, createHash } from "node:crypto";
-import type { Context, MiddlewareHandler } from "hono";
-import { env, getRedis, db } from "@/config";
-import { logger } from "@/lib/logger";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { webhookEventsTable } from "@repo/database/drizzle/schema";
+import type { Context, MiddlewareHandler } from "hono";
+import { db, env, getRedis } from "@/config";
+import { logger } from "@/lib/logger";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -52,10 +52,14 @@ const IDEMPOTENCY_KEY_PREFIX = "webhook:idempotency";
  * Compare two hex strings in constant time to prevent timing oracle attacks.
  */
 function safeCompare(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
+  if (a.length !== b.length) {
+    return false;
+  }
   const aBytes = Buffer.from(a, "hex");
   const bBytes = Buffer.from(b, "hex");
-  if (aBytes.length !== bBytes.length) return false;
+  if (aBytes.length !== bBytes.length) {
+    return false;
+  }
   try {
     return timingSafeEqual(aBytes, bBytes);
   } catch {
@@ -67,7 +71,11 @@ function safeCompare(a: string, b: string): boolean {
  * Re-inject a body ArrayBuffer back into the Hono context's raw request so
  * downstream middleware and the proxy helper can still read it.
  */
-function reInjectBody(c: Context, body: ArrayBuffer, extraHeaders?: Headers): void {
+function reInjectBody(
+  c: Context,
+  body: ArrayBuffer,
+  extraHeaders?: Headers
+): void {
   const original = c.req.raw;
   const headers = extraHeaders ?? original.headers;
   const patched = new Request(original.url, {
@@ -89,26 +97,28 @@ function isRecord(v: unknown): v is Record<string, unknown> {
  * Write a webhook event log row — fire-and-forget, never delays the response.
  */
 function logWebhookEvent(row: {
-  provider:      string;
-  ip:            string;
-  outcome:       string;
+  provider: string;
+  ip: string;
+  outcome: string;
   outcomeDetail?: string;
   transactionId?: string | null;
-  orderId?:       string | null;
+  orderId?: string | null;
   paymentStatus?: string | null;
-  rawPayload?:    unknown;
+  rawPayload?: unknown;
 }): void {
-  if (!db) return;
+  if (!db) {
+    return;
+  }
   db.insert(webhookEventsTable)
     .values({
-      provider:      row.provider,
-      ip:            row.ip,
-      outcome:       row.outcome,
+      provider: row.provider,
+      ip: row.ip,
+      outcome: row.outcome,
       outcomeDetail: row.outcomeDetail ?? null,
       transactionId: row.transactionId ?? null,
-      orderId:       row.orderId       ?? null,
+      orderId: row.orderId ?? null,
       paymentStatus: row.paymentStatus ?? null,
-      rawPayload:    row.rawPayload    ?? null,
+      rawPayload: row.rawPayload ?? null,
     })
     .catch((err: unknown) => {
       logger.warn("[webhook-log] Failed to write webhook event", { err });
@@ -118,16 +128,13 @@ function logWebhookEvent(row: {
 // ── Generic factory ───────────────────────────────────────────────────────────
 
 export interface WebhookVerifyOptions {
-  /** Provider name used in logs and forwarded headers (e.g. "midtrans") */
-  provider: string;
-
   /**
-   * Signature verifier.
-   * - Return `null`  → key not configured, skip silently
-   * - Return `true`  → signature is valid
-   * - Return `false` → signature is invalid, block request
+   * Optional: extract additional fields from the parsed body for the event log.
    */
-  verify: (rawBody: ArrayBuffer, bodyJson: unknown) => boolean | null;
+  extractLogFields?: (bodyJson: unknown) => {
+    orderId?: string | null;
+    paymentStatus?: string | null;
+  };
 
   /**
    * Optional: extract a stable unique ID from the parsed body for
@@ -139,14 +146,16 @@ export interface WebhookVerifyOptions {
    * Return `null` / `undefined` to skip idempotency for this delivery.
    */
   idempotencyKey?: (bodyJson: unknown) => string | null | undefined;
+  /** Provider name used in logs and forwarded headers (e.g. "midtrans") */
+  provider: string;
 
   /**
-   * Optional: extract additional fields from the parsed body for the event log.
+   * Signature verifier.
+   * - Return `null`  → key not configured, skip silently
+   * - Return `true`  → signature is valid
+   * - Return `false` → signature is invalid, block request
    */
-  extractLogFields?: (bodyJson: unknown) => {
-    orderId?:       string | null;
-    paymentStatus?: string | null;
-  };
+  verify: (rawBody: ArrayBuffer, bodyJson: unknown) => boolean | null;
 }
 
 /**
@@ -177,8 +186,16 @@ export function createWebhookVerifier(
       rawBody = await c.req.raw.arrayBuffer();
     } catch {
       logger.warn(`[webhook-verify:${provider}] Failed to read body`, { ip });
-      logWebhookEvent({ provider, ip, outcome: "error", outcomeDetail: "Failed to read body" });
-      return c.json({ success: false, error: "Failed to read request body" }, 400);
+      logWebhookEvent({
+        provider,
+        ip,
+        outcome: "error",
+        outcomeDetail: "Failed to read body",
+      });
+      return c.json(
+        { success: false, error: "Failed to read request body" },
+        400
+      );
     }
 
     // ── 2. Parse JSON ─────────────────────────────────────────────────────────
@@ -187,14 +204,22 @@ export function createWebhookVerifier(
       bodyJson = JSON.parse(new TextDecoder().decode(rawBody));
     } catch {
       logger.warn(`[webhook-verify:${provider}] Invalid JSON body`, { ip });
-      logWebhookEvent({ provider, ip, outcome: "invalid_json", outcomeDetail: "Body is not valid JSON" });
+      logWebhookEvent({
+        provider,
+        ip,
+        outcome: "invalid_json",
+        outcomeDetail: "Body is not valid JSON",
+      });
       reInjectBody(c, rawBody);
-      return c.json({ success: false, error: "Webhook body must be valid JSON" }, 400);
+      return c.json(
+        { success: false, error: "Webhook body must be valid JSON" },
+        400
+      );
     }
 
     // Extract log fields now — used in all outcome branches below
     const logFields = extractLogFields ? extractLogFields(bodyJson) : {};
-    const notifId   = idempotencyKey   ? idempotencyKey(bodyJson)   : undefined;
+    const notifId = idempotencyKey ? idempotencyKey(bodyJson) : undefined;
 
     // ── 3. Signature verification ─────────────────────────────────────────────
     const sigResult = verify(rawBody, bodyJson);
@@ -205,8 +230,9 @@ export function createWebhookVerifier(
         { ip, path: c.req.path }
       );
       logWebhookEvent({
-        provider, ip,
-        outcome:       "sig_skipped",
+        provider,
+        ip,
+        outcome: "sig_skipped",
         outcomeDetail: "MIDTRANS_SERVER_KEY not configured",
         transactionId: notifId,
         ...logFields,
@@ -224,8 +250,9 @@ export function createWebhookVerifier(
         orderId: isRecord(bodyJson) ? bodyJson["order_id"] : undefined,
       });
       logWebhookEvent({
-        provider, ip,
-        outcome:       "invalid_signature",
+        provider,
+        ip,
+        outcome: "invalid_signature",
         outcomeDetail: "SHA512 signature mismatch",
         transactionId: notifId,
         ...logFields,
@@ -236,7 +263,7 @@ export function createWebhookVerifier(
         {
           success: false,
           error: {
-            code:    "WEBHOOK_SIGNATURE_INVALID",
+            code: "WEBHOOK_SIGNATURE_INVALID",
             message: `${provider} webhook signature verification failed`,
           },
         },
@@ -248,27 +275,31 @@ export function createWebhookVerifier(
     if (idempotencyKey && notifId) {
       const redis = getRedis();
 
-      if (!redis) {
-        logger.warn(
-          `[webhook-verify:${provider}] Redis unavailable — skipping idempotency check`,
-          { ip }
-        );
-      } else {
+      if (redis) {
         const redisKey = `${IDEMPOTENCY_KEY_PREFIX}:${provider}:${notifId}`;
 
         // SET key 1 NX EX <ttl> — atomic "set if not exists"
         // Returns "OK" on first delivery, null on subsequent deliveries
         const setResult = await redis.set(
-          redisKey, "1", "EX", IDEMPOTENCY_TTL_SECONDS, "NX"
+          redisKey,
+          "1",
+          "EX",
+          IDEMPOTENCY_TTL_SECONDS,
+          "NX"
         );
 
         if (setResult === null) {
-          logger.info(`[webhook-verify:${provider}] Duplicate notification — already processed`, {
-            ip, notifId,
-          });
+          logger.info(
+            `[webhook-verify:${provider}] Duplicate notification — already processed`,
+            {
+              ip,
+              notifId,
+            }
+          );
           logWebhookEvent({
-            provider, ip,
-            outcome:       "duplicate",
+            provider,
+            ip,
+            outcome: "duplicate",
             outcomeDetail: `Already processed: ${notifId}`,
             transactionId: notifId,
             ...logFields,
@@ -279,8 +310,8 @@ export function createWebhookVerifier(
             {
               success: true,
               data: {
-                code:           "WEBHOOK_DUPLICATE",
-                message:        "Notification already processed",
+                code: "WEBHOOK_DUPLICATE",
+                message: "Notification already processed",
                 notificationId: notifId,
               },
             },
@@ -290,8 +321,13 @@ export function createWebhookVerifier(
 
         logger.debug(`[webhook-verify:${provider}] Idempotency key recorded`, {
           notifId,
-          ttlDays: IDEMPOTENCY_TTL_SECONDS / 86400,
+          ttlDays: IDEMPOTENCY_TTL_SECONDS / 86_400,
         });
+      } else {
+        logger.warn(
+          `[webhook-verify:${provider}] Redis unavailable — skipping idempotency check`,
+          { ip }
+        );
       }
     } else if (idempotencyKey && !notifId) {
       logger.warn(
@@ -302,8 +338,9 @@ export function createWebhookVerifier(
 
     // ── 5. Pass through — log, re-inject body, mark as verified ───────────────
     logWebhookEvent({
-      provider, ip,
-      outcome:       "forwarded",
+      provider,
+      ip,
+      outcome: "forwarded",
       transactionId: notifId,
       ...logFields,
       rawPayload: bodyJson,
@@ -315,7 +352,8 @@ export function createWebhookVerifier(
     c.res.headers.set("x-webhook-verified", provider);
 
     logger.debug(`[webhook-verify:${provider}] Verified and forwarded`, {
-      ip, path: c.req.path,
+      ip,
+      path: c.req.path,
     });
 
     await next();
@@ -338,19 +376,23 @@ export const verifyMidtransWebhook = createWebhookVerifier({
 
   verify(_rawBody, bodyJson): boolean | null {
     const serverKey = env.MIDTRANS_SERVER_KEY;
-    if (!serverKey) return null;
+    if (!serverKey) {
+      return null;
+    }
 
-    if (!isRecord(bodyJson)) return false;
+    if (!isRecord(bodyJson)) {
+      return false;
+    }
 
-    const orderId      = bodyJson["order_id"];
-    const statusCode   = bodyJson["status_code"];
-    const grossAmount  = bodyJson["gross_amount"];
+    const orderId = bodyJson["order_id"];
+    const statusCode = bodyJson["status_code"];
+    const grossAmount = bodyJson["gross_amount"];
     const signatureKey = bodyJson["signature_key"];
 
     if (
-      typeof orderId      !== "string" ||
-      typeof statusCode   !== "string" ||
-      typeof grossAmount  !== "string" ||
+      typeof orderId !== "string" ||
+      typeof statusCode !== "string" ||
+      typeof grossAmount !== "string" ||
       typeof signatureKey !== "string"
     ) {
       return false;
@@ -364,17 +406,21 @@ export const verifyMidtransWebhook = createWebhookVerifier({
   },
 
   idempotencyKey(bodyJson): string | null {
-    if (!isRecord(bodyJson)) return null;
+    if (!isRecord(bodyJson)) {
+      return null;
+    }
     const txId = bodyJson["transaction_id"];
     return typeof txId === "string" && txId.length > 0 ? txId : null;
   },
 
   extractLogFields(bodyJson) {
-    if (!isRecord(bodyJson)) return {};
-    const orderId       = bodyJson["order_id"];
+    if (!isRecord(bodyJson)) {
+      return {};
+    }
+    const orderId = bodyJson["order_id"];
     const paymentStatus = bodyJson["transaction_status"];
     return {
-      orderId:       typeof orderId       === "string" ? orderId       : null,
+      orderId: typeof orderId === "string" ? orderId : null,
       paymentStatus: typeof paymentStatus === "string" ? paymentStatus : null,
     };
   },

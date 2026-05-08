@@ -17,16 +17,18 @@
 // =============================================================================
 
 import { Hono } from "hono";
-
+import { SERVICES } from "@/config";
+import { buildTargetUrl, proxyRequest } from "@/lib/proxy";
 import { requireAuth, requireRole } from "@/middleware/auth.middleware";
-import { defaultRateLimit, strictRateLimit } from "@/middleware/rate-limit.middleware";
-import { proxyRequest, buildTargetUrl } from "@/lib/proxy";
+import {
+  defaultRateLimit,
+  strictRateLimit,
+} from "@/middleware/rate-limit.middleware";
 import { auditLogsRoutes } from "./audit-logs.routes";
 import { blockedIpsRoutes } from "./blocked-ips.routes";
-import { securityOverviewRoutes } from "./security-overview.routes";
 import { securityAlertsRoutes } from "./security-alerts.routes";
+import { securityOverviewRoutes } from "./security-overview.routes";
 import { webhookEventsRoutes } from "./webhook-events.routes";
-import { SERVICES } from "@/config";
 
 const app = new Hono();
 
@@ -53,7 +55,8 @@ app.all(
   requireAuth,
   requireRole("admin", "super_admin"),
   defaultRateLimit,
-  async (c) => proxyRequest(c, { target: buildTargetUrl(authBase, c), user: c.var.user }),
+  async (c) =>
+    proxyRequest(c, { target: buildTargetUrl(authBase, c), user: c.var.user })
 );
 
 // ── Custom admin user management endpoints ─────────────────────────────────────
@@ -63,7 +66,8 @@ app.get(
   requireAuth,
   requireRole("admin", "super_admin"),
   defaultRateLimit,
-  async (c) => proxyRequest(c, { target: buildTargetUrl(authBase, c), user: c.var.user }),
+  async (c) =>
+    proxyRequest(c, { target: buildTargetUrl(authBase, c), user: c.var.user })
 );
 
 app.patch(
@@ -71,7 +75,8 @@ app.patch(
   requireAuth,
   requireRole("admin", "super_admin"),
   strictRateLimit,
-  async (c) => proxyRequest(c, { target: buildTargetUrl(authBase, c), user: c.var.user }),
+  async (c) =>
+    proxyRequest(c, { target: buildTargetUrl(authBase, c), user: c.var.user })
 );
 
 app.post(
@@ -79,7 +84,8 @@ app.post(
   requireAuth,
   requireRole("admin", "super_admin"),
   strictRateLimit,
-  async (c) => proxyRequest(c, { target: buildTargetUrl(authBase, c), user: c.var.user }),
+  async (c) =>
+    proxyRequest(c, { target: buildTargetUrl(authBase, c), user: c.var.user })
 );
 
 app.post(
@@ -87,7 +93,8 @@ app.post(
   requireAuth,
   requireRole("admin", "super_admin"),
   strictRateLimit,
-  async (c) => proxyRequest(c, { target: buildTargetUrl(authBase, c), user: c.var.user }),
+  async (c) =>
+    proxyRequest(c, { target: buildTargetUrl(authBase, c), user: c.var.user })
 );
 
 app.post(
@@ -95,7 +102,8 @@ app.post(
   requireAuth,
   requireRole("admin", "super_admin"),
   strictRateLimit,
-  async (c) => proxyRequest(c, { target: buildTargetUrl(authBase, c), user: c.var.user }),
+  async (c) =>
+    proxyRequest(c, { target: buildTargetUrl(authBase, c), user: c.var.user })
 );
 
 app.delete(
@@ -103,7 +111,8 @@ app.delete(
   requireAuth,
   requireRole("admin", "super_admin"),
   strictRateLimit,
-  async (c) => proxyRequest(c, { target: buildTargetUrl(authBase, c), user: c.var.user }),
+  async (c) =>
+    proxyRequest(c, { target: buildTargetUrl(authBase, c), user: c.var.user })
 );
 
 export { app as adminRoutes };

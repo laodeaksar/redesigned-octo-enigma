@@ -3,14 +3,9 @@
 // Usage: apply `.use(jwtMiddleware)` before protected route groups
 // =============================================================================
 
-import Elysia from "elysia";
-
-import {
-  UnauthorizedError,
-  ForbiddenError,
-  InsufficientRoleError,
-} from "@repo/common/errors";
+import { InsufficientRoleError, UnauthorizedError } from "@repo/common/errors";
 import type { UserRole } from "@repo/common/types";
+import Elysia from "elysia";
 
 import { verifyAccessToken } from "@/lib/jwt";
 
@@ -20,8 +15,9 @@ import { verifyAccessToken } from "@/lib/jwt";
  *
  * Throws UnauthorizedError if the token is missing or invalid.
  */
-export const jwtMiddleware = new Elysia({ name: "jwt-middleware" })
-  .derive({ as: "scoped" }, async ({ headers }) => {
+export const jwtMiddleware = new Elysia({ name: "jwt-middleware" }).derive(
+  { as: "scoped" },
+  async ({ headers }) => {
     const authHeader = headers["authorization"];
 
     if (!authHeader?.startsWith("Bearer ")) {
@@ -38,7 +34,8 @@ export const jwtMiddleware = new Elysia({ name: "jwt-middleware" })
         role: payload.role,
       },
     };
-  });
+  }
+);
 
 /**
  * Guard factory — restrict route to specific roles.
@@ -52,9 +49,8 @@ export const requireRole = (...roles: UserRole[]) =>
   new Elysia({ name: `require-role-${roles.join("-")}` })
     .use(jwtMiddleware)
     .derive({ as: "scoped" }, ({ user }) => {
-      if (!user || !roles.includes(user.role)) {
+      if (!(user && roles.includes(user.role))) {
         throw new InsufficientRoleError(roles[0]);
       }
       return {};
     });
-

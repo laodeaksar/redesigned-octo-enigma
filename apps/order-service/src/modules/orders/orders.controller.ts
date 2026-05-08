@@ -2,18 +2,18 @@
 // Orders controller
 // =============================================================================
 
-import { success, paginated } from "@repo/common/schemas";
 import { safeParse } from "@repo/common/errors";
 import {
-  createOrderSchema,
   cancelOrderSchema,
-  updateOrderStatusSchema,
+  createOrderSchema,
   listOrdersQuerySchema,
   myOrdersQuerySchema,
+  paginated,
+  success,
+  updateOrderStatusSchema,
 } from "@repo/common/schemas";
-
-import * as service from "./orders.service";
 import type { DB } from "@/config";
+import * as service from "./orders.service";
 
 export async function handleCreate(
   db: DB,
@@ -31,7 +31,9 @@ export async function handleGetById(
   requesterId: string,
   requesterRole: string
 ) {
-  return success(await service.getOrderById(orderId, requesterId, requesterRole));
+  return success(
+    await service.getOrderById(orderId, requesterId, requesterRole)
+  );
 }
 
 export async function handleGetMyOrders(userId: string, query: unknown) {
@@ -56,7 +58,13 @@ export async function handleCancel(
 ) {
   const input = safeParse(cancelOrderSchema, body);
   return success(
-    await service.cancelOrder(orderId, requesterId, requesterRole, userEmail, input)
+    await service.cancelOrder(
+      orderId,
+      requesterId,
+      requesterRole,
+      userEmail,
+      input
+    )
   );
 }
 
@@ -73,10 +81,7 @@ export async function handleUpdateStatus(
   );
 }
 
-export async function handleMarkPaid(
-  orderId: string,
-  body: unknown
-) {
+export async function handleMarkPaid(orderId: string, body: unknown) {
   const { paymentId } = body as { paymentId: string };
   return success(await service.markOrderPaid(orderId, paymentId));
 }
@@ -84,4 +89,3 @@ export async function handleMarkPaid(
 export async function handleExpireOrders() {
   return success(await service.expireStaleOrders());
 }
-

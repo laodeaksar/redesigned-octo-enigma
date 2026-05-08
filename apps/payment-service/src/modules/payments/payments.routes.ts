@@ -15,9 +15,8 @@
 // =============================================================================
 
 import Elysia, { t } from "elysia";
-
-import { databasePlugin } from "@/plugins/database.plugin";
 import { jwtMiddleware, requireRole } from "@/middleware/jwt.middleware";
+import { databasePlugin } from "@/plugins/database.plugin";
 import * as controller from "./payments.controller";
 
 const UUID = t.String({ format: "uuid" });
@@ -50,7 +49,7 @@ export const paymentsRoutes = new Elysia({ prefix: "/payments" })
         tags: ["Payments"],
         summary: "Create a Midtrans Snap transaction for an order",
       },
-    },
+    }
   )
 
   .get(
@@ -63,7 +62,7 @@ export const paymentsRoutes = new Elysia({ prefix: "/payments" })
         tags: ["Payments"],
         summary: "Get payment by order ID",
       },
-    },
+    }
   )
 
   .get(
@@ -76,7 +75,7 @@ export const paymentsRoutes = new Elysia({ prefix: "/payments" })
         tags: ["Payments"],
         summary: "Get payment by ID",
       },
-    },
+    }
   )
 
   // ── Admin routes ──────────────────────────────────────────────────────────

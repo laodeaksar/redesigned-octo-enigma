@@ -12,14 +12,14 @@ export type StockStatus = "in_stock" | "low_stock" | "out_of_stock";
 // ── Category ──────────────────────────────────────────────────────────────────
 
 export interface Category {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  imageUrl: string | null;
-  parentId: string | null; // null = root category
-  sortOrder: number;
   createdAt: Date;
+  description: string | null;
+  id: string;
+  imageUrl: string | null;
+  name: string;
+  parentId: string | null; // null = root category
+  slug: string;
+  sortOrder: number;
   updatedAt: Date;
 }
 
@@ -32,29 +32,29 @@ export interface CategoryTree extends Category {
 // ── Product Image ─────────────────────────────────────────────────────────────
 
 export interface ProductImage {
-  id: string;
-  productId: string;
-  url: string;
   altText: string | null;
-  sortOrder: number;
+  id: string;
   isPrimary: boolean;
+  productId: string;
+  sortOrder: number;
+  url: string;
 }
 
 // ── Product Variant ───────────────────────────────────────────────────────────
 
 export interface ProductVariant {
+  attributes: Record<string, string>; // e.g. { color: "red", size: "XL" }
+  compareAtPrice: number | null;
+  createdAt: Date;
   id: string;
+  isActive: boolean;
+  name: string; // e.g. "Red / XL"
+  price: number; // in IDR, integer (no decimals)
   productId: string;
   sku: string;
-  name: string; // e.g. "Red / XL"
-  attributes: Record<string, string>; // e.g. { color: "red", size: "XL" }
-  price: number; // in IDR, integer (no decimals)
-  compareAtPrice: number | null;
   stock: number;
-  weight: number | null; // in grams
-  isActive: boolean;
-  createdAt: Date;
   updatedAt: Date;
+  weight: number | null; // in grams
 }
 
 export type ProductVariantSummary = Pick<
@@ -72,18 +72,18 @@ export type ProductVariantSummary = Pick<
 // ── Product ───────────────────────────────────────────────────────────────────
 
 export interface Product {
+  categoryId: string;
+  createdAt: Date;
+  deletedAt: Date | null; // soft delete
+  description: string;
   id: string;
   name: string;
-  slug: string;
-  description: string;
   shortDescription: string | null;
+  slug: string;
   status: ProductStatus;
-  categoryId: string;
   tags: string[];
-  weight: number | null; // in grams (used when no variant weight)
-  createdAt: Date;
   updatedAt: Date;
-  deletedAt: Date | null; // soft delete
+  weight: number | null; // in grams (used when no variant weight)
 }
 
 /** Full product with all relations — used in detail pages & admin */
@@ -95,39 +95,39 @@ export interface ProductDetail extends Product {
 
 /** Lightweight product for listing pages & search results */
 export interface ProductSummary {
+  categoryId: string;
+  createdAt: Date;
+  highestPrice: number;
   id: string;
+  lowestPrice: number;
   name: string;
+  primaryImage: string | null;
   slug: string;
   status: ProductStatus;
-  categoryId: string;
-  primaryImage: string | null;
-  lowestPrice: number;
-  highestPrice: number;
-  totalStock: number;
   stockStatus: StockStatus;
-  createdAt: Date;
+  totalStock: number;
 }
 
 /** Used inside an order line-item — snapshot at time of purchase */
 export interface ProductSnapshot {
-  productId: string;
-  variantId: string;
-  name: string;
-  variantName: string;
-  sku: string;
   imageUrl: string | null;
+  name: string;
   price: number;
+  productId: string;
+  sku: string;
+  variantId: string;
+  variantName: string;
 }
 
 // ── Stock ─────────────────────────────────────────────────────────────────────
 
 export interface StockAdjustment {
-  variantId: string;
+  createdAt: Date;
   delta: number; // positive = restock, negative = deduction
+  note: string | null;
   reason: StockAdjustmentReason;
   referenceId: string | null; // orderId, returnId, etc.
-  note: string | null;
-  createdAt: Date;
+  variantId: string;
 }
 
 export type StockAdjustmentReason =
@@ -140,17 +140,17 @@ export type StockAdjustmentReason =
 // ── Review ────────────────────────────────────────────────────────────────────
 
 export interface ProductReview {
-  id: string;
-  productId: string;
-  userId: string;
-  orderId: string;
-  rating: 1 | 2 | 3 | 4 | 5;
-  title: string | null;
   body: string | null;
+  createdAt: Date;
+  id: string;
   imageUrls: string[];
   isVerifiedPurchase: boolean;
-  createdAt: Date;
+  orderId: string;
+  productId: string;
+  rating: 1 | 2 | 3 | 4 | 5;
+  title: string | null;
   updatedAt: Date;
+  userId: string;
 }
 
 export interface ProductReviewWithAuthor extends ProductReview {
@@ -158,8 +158,8 @@ export interface ProductReviewWithAuthor extends ProductReview {
 }
 
 export interface ProductRatingSummary {
-  productId: string;
   average: number;
-  count: number;
   breakdown: Record<1 | 2 | 3 | 4 | 5, number>;
+  count: number;
+  productId: string;
 }

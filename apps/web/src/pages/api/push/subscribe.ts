@@ -1,16 +1,21 @@
 import type { APIRoute } from "astro";
-import { getTokenFromCookies } from "@/lib/auth";
 import { api } from "@/lib/api";
-import { savePushSubscription, removePushSubscription } from "@/lib/push.server";
+import { getTokenFromCookies } from "@/lib/auth";
+import {
+  removePushSubscription,
+  savePushSubscription,
+} from "@/lib/push.server";
 
 // POST /api/push/subscribe — save a push subscription
 export const POST: APIRoute = async ({ request, cookies }) => {
   const token = getTokenFromCookies(cookies);
-  if (!token) return json({ error: "Unauthorized" }, 401);
+  if (!token) {
+    return json({ error: "Unauthorized" }, 401);
+  }
 
   let body: {
     subscription: { endpoint: string; keys: { p256dh: string; auth: string } };
-    orderId:      string;
+    orderId: string;
     orderNumber?: string;
   };
 
@@ -20,14 +25,17 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     return json({ error: "Invalid JSON" }, 400);
   }
 
-  if (!body?.subscription?.endpoint || !body?.orderId) {
+  if (!(body?.subscription?.endpoint && body?.orderId)) {
     return json({ error: "Missing fields" }, 400);
   }
 
   // Get authenticated user
   let user: { id: string } | null = null;
   try {
-    const res = await api.get<{ success: true; data: { id: string } }>("/auth/me", { token });
+    const res = await api.get<{ success: true; data: { id: string } }>(
+      "/auth/me",
+      { token }
+    );
     user = res.data;
   } catch {
     return json({ error: "Unauthorized" }, 401);
@@ -35,12 +43,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
   try {
     await savePushSubscription({
-      userId:      user.id,
-      orderId:     body.orderId,
+      userId: user.id,
+      orderId: body.orderId,
       orderNumber: body.orderNumber,
-      endpoint:    body.subscription.endpoint,
-      p256dh:      body.subscription.keys.p256dh,
-      auth:        body.subscription.keys.auth,
+      endpoint: body.subscription.endpoint,
+      p256dh: body.subscription.keys.p256dh,
+      auth: body.subscription.keys.auth,
     });
     return json({ success: true });
   } catch (err) {
@@ -52,7 +60,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 // DELETE /api/push/subscribe — unsubscribe
 export const DELETE: APIRoute = async ({ request, cookies }) => {
   const token = getTokenFromCookies(cookies);
-  if (!token) return json({ error: "Unauthorized" }, 401);
+  if (!token) {
+    return json({ error: "Unauthorized" }, 401);
+  }
 
   let body: { endpoint: string };
   try {
@@ -61,7 +71,9 @@ export const DELETE: APIRoute = async ({ request, cookies }) => {
     return json({ error: "Invalid JSON" }, 400);
   }
 
-  if (!body?.endpoint) return json({ error: "Missing endpoint" }, 400);
+  if (!body?.endpoint) {
+    return json({ error: "Missing endpoint" }, 400);
+  }
 
   try {
     await removePushSubscription(body.endpoint);

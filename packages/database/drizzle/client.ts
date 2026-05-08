@@ -4,18 +4,18 @@
 // =============================================================================
 
 import { drizzle } from "drizzle-orm/postgres-js";
-import postgres, { Sql } from "postgres";
+import postgres, { type Sql } from "postgres";
 
 import * as schema from "./schema";
 
 export interface DrizzleClientOptions {
-  url: string;
-  /** Max connections in the pool. Default: 10 */
-  maxConnections?: number;
   /** Connection timeout in seconds. Default: 30 */
   connectTimeout?: number;
   /** Log all SQL queries. Set to true in development only */
   debug?: boolean;
+  /** Max connections in the pool. Default: 10 */
+  maxConnections?: number;
+  url: string;
 }
 
 export type DrizzleClient = ReturnType<typeof drizzle<typeof schema>> & {
@@ -34,7 +34,7 @@ export type DrizzleClient = ReturnType<typeof drizzle<typeof schema>> & {
  *   export type DB = typeof db
  */
 export function createDrizzleClient(
-  options: DrizzleClientOptions,
+  options: DrizzleClientOptions
 ): DrizzleClient {
   const {
     url,

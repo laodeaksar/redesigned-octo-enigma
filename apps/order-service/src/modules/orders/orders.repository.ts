@@ -2,15 +2,15 @@
 // Orders repository — MongoDB via Mongoose
 // =============================================================================
 
-import type { FilterQuery } from "mongoose";
+import type { ListOrdersQuery } from "@repo/common/schemas";
 
 import {
-  OrderModel,
   type IOrder,
   type IOrderDocument,
   type IOrderStatusEvent,
+  OrderModel,
 } from "@repo/database/mongo/models";
-import type { ListOrdersQuery } from "@repo/common/schemas";
+import type { FilterQuery } from "mongoose";
 
 // ── Queries ───────────────────────────────────────────────────────────────────
 
@@ -33,7 +33,9 @@ export async function findOrdersByUser(
   limit = 10
 ): Promise<{ items: IOrderDocument[]; total: number }> {
   const filter: FilterQuery<IOrderDocument> = { userId };
-  if (status) filter["status"] = status;
+  if (status) {
+    filter["status"] = status;
+  }
 
   const [items, total] = await Promise.all([
     OrderModel.find(filter)
@@ -51,8 +53,12 @@ export async function listOrders(
 ): Promise<{ items: IOrderDocument[]; total: number }> {
   const filter: FilterQuery<IOrderDocument> = {};
 
-  if (query.status) filter["status"] = query.status;
-  if (query.userId) filter["userId"] = query.userId;
+  if (query.status) {
+    filter["status"] = query.status;
+  }
+  if (query.userId) {
+    filter["userId"] = query.userId;
+  }
 
   if (query.search) {
     filter["$or"] = [{ orderNumber: new RegExp(query.search, "i") }];
@@ -60,21 +66,32 @@ export async function listOrders(
 
   if (query.dateRange?.from || query.dateRange?.to) {
     filter["createdAt"] = {};
-    if (query.dateRange.from) filter["createdAt"]["$gte"] = new Date(query.dateRange.from);
-    if (query.dateRange.to) filter["createdAt"]["$lte"] = new Date(query.dateRange.to);
+    if (query.dateRange.from) {
+      filter["createdAt"]["$gte"] = new Date(query.dateRange.from);
+    }
+    if (query.dateRange.to) {
+      filter["createdAt"]["$lte"] = new Date(query.dateRange.to);
+    }
   }
 
   if (query.minTotal || query.maxTotal) {
     filter["pricing.grandTotal"] = {};
-    if (query.minTotal) filter["pricing.grandTotal"]["$gte"] = query.minTotal;
-    if (query.maxTotal) filter["pricing.grandTotal"]["$lte"] = query.maxTotal;
+    if (query.minTotal) {
+      filter["pricing.grandTotal"]["$gte"] = query.minTotal;
+    }
+    if (query.maxTotal) {
+      filter["pricing.grandTotal"]["$lte"] = query.maxTotal;
+    }
   }
 
   const sortField =
-    query.sortBy === "grandTotal" ? "pricing.grandTotal" :
-    query.sortBy === "orderNumber" ? "orderNumber" :
-    query.sortBy === "updatedAt" ? "updatedAt" :
-    "createdAt";
+    query.sortBy === "grandTotal"
+      ? "pricing.grandTotal"
+      : query.sortBy === "orderNumber"
+        ? "orderNumber"
+        : query.sortBy === "updatedAt"
+          ? "updatedAt"
+          : "createdAt";
 
   const sortDir = query.sortOrder === "asc" ? 1 : -1;
   const offset = (query.page - 1) * query.limit;
@@ -151,4 +168,3 @@ export async function findExpiredOrders(): Promise<IOrderDocument[]> {
     expiresAt: { $lt: new Date() },
   });
 }
-

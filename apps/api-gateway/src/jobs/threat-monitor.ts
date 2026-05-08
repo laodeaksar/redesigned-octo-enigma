@@ -10,27 +10,31 @@
 //   stopThreatMonitor()   — call on graceful shutdown
 // =============================================================================
 
-import { gte, count } from "drizzle-orm";
 import { auditLogsTable } from "@repo/database/drizzle/schema";
+import { count, gte } from "drizzle-orm";
 import { db, env, getRedis } from "@/config";
 import {
-  type ThreatLevel,
+  getCooldownTtl,
   isEscalation,
   meetsThreshold,
-  updateTrackedLevel,
   sendAlert,
-  getCooldownTtl,
+  type ThreatLevel,
+  updateTrackedLevel,
 } from "@/lib/alerting";
-import {
-  BLOCK_KEY_PREFIX,
-} from "@/middleware/ip-blocklist.middleware";
+import { BLOCK_KEY_PREFIX } from "@/middleware/ip-blocklist.middleware";
 
 // ── Threat level derivation ───────────────────────────────────────────────────
 
 function deriveLevel(failuresLastHour: number): ThreatLevel {
-  if (failuresLastHour >= 100) return "CRITICAL";
-  if (failuresLastHour >= 20)  return "HIGH";
-  if (failuresLastHour >= 5)   return "MEDIUM";
+  if (failuresLastHour >= 100) {
+    return "CRITICAL";
+  }
+  if (failuresLastHour >= 20) {
+    return "HIGH";
+  }
+  if (failuresLastHour >= 5) {
+    return "MEDIUM";
+  }
   return "LOW";
 }
 
@@ -38,14 +42,22 @@ function deriveLevel(failuresLastHour: number): ThreatLevel {
 
 let _timer: ReturnType<typeof setInterval> | null = null;
 let _currentLevel: ThreatLevel = "LOW";
-let _lastPollAt: Date | null   = null;
-let _lastError: string | null  = null;
-let _pollCount                 = 0;
+let _lastPollAt: Date | null = null;
+let _lastError: string | null = null;
+let _pollCount = 0;
 
-export function getCurrentLevel():  ThreatLevel   { return _currentLevel; }
-export function getLastPollAt():    Date | null    { return _lastPollAt;   }
-export function getLastError():     string | null  { return _lastError;    }
-export function getPollCount():     number         { return _pollCount;    }
+export function getCurrentLevel(): ThreatLevel {
+  return _currentLevel;
+}
+export function getLastPollAt(): Date | null {
+  return _lastPollAt;
+}
+export function getLastError(): string | null {
+  return _lastError;
+}
+export function getPollCount(): number {
+  return _pollCount;
+}
 
 // ── Poll ──────────────────────────────────────────────────────────────────────
 
@@ -70,46 +82,58 @@ async function poll(): Promise<void> {
     let activeBlocks = 0;
     const redis = getRedis();
     if (redis) {
-      const keys = await redis.keys(`${BLOCK_KEY_PREFIX}*`).catch(() => [] as string[]);
+      const keys = await redis
+        .keys(`${BLOCK_KEY_PREFIX}*`)
+        .catch(() => [] as string[]);
       activeBlocks = keys.length;
     }
 
     // ── 3. Derive current threat level ─────────────────────────────────────
     const current = deriveLevel(failuresLastHour);
     _currentLevel = current;
-    _lastPollAt   = new Date();
+    _lastPollAt = new Date();
 
     // ── 4. Compare with tracked previous level ──────────────────────────────
     const { previous, changed } = await updateTrackedLevel(current);
 
-    if (!changed) return; // No level change — nothing to do
+    if (!changed) {
+      return; // No level change — nothing to do
+    }
 
     const escalated = isEscalation(previous, current);
-    const meetsMin  = meetsThreshold(current, env.ALERT_THRESHOLD_LEVEL as ThreatLevel);
+    const meetsMin = meetsThreshold(
+      current,
+      env.ALERT_THRESHOLD_LEVEL as ThreatLevel
+    );
 
-    if (!escalated || !meetsMin) return; // Downgrade or below threshold — skip alert
+    if (!(escalated && meetsMin)) {
+      return; // Downgrade or below threshold — skip alert
+    }
 
     // ── 5. Check cooldown before alerting ───────────────────────────────────
     const ttl = await getCooldownTtl(current);
     if (ttl > 0) {
-      console.info(`[threat-monitor] Level ${previous}→${current} — cooldown active (${ttl}s remaining), skip alert`);
+      console.info(
+        `[threat-monitor] Level ${previous}→${current} — cooldown active (${ttl}s remaining), skip alert`
+      );
       return;
     }
 
     // ── 6. Fire alert ───────────────────────────────────────────────────────
-    console.warn(`[threat-monitor] 🚨 Threat escalation: ${previous} → ${current} (${failuresLastHour} failures/hr)`);
+    console.warn(
+      `[threat-monitor] 🚨 Threat escalation: ${previous} → ${current} (${failuresLastHour} failures/hr)`
+    );
 
     const result = await sendAlert({
-      level:            current,
-      previousLevel:    previous,
+      level: current,
+      previousLevel: previous,
       failuresLastHour,
       activeBlocks,
-      environment:      env.ALERT_ENV_NAME,
-      gatewayUrl:       `http://localhost:${env.PORT}`,
+      environment: env.ALERT_ENV_NAME,
+      gatewayUrl: `http://localhost:${env.PORT}`,
     });
 
     console.info("[threat-monitor] Alert result:", result);
-
   } catch (err) {
     _lastError = err instanceof Error ? err.message : String(err);
     console.warn("[threat-monitor] Poll error:", _lastError);
@@ -119,7 +143,9 @@ async function poll(): Promise<void> {
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 
 export function startThreatMonitor(): void {
-  if (_timer) return; // Already running
+  if (_timer) {
+    return; // Already running
+  }
 
   const intervalMs = env.ALERT_MONITOR_INTERVAL_SECONDS * 1000;
 
@@ -128,12 +154,14 @@ export function startThreatMonitor(): void {
   _timer = setInterval(() => void poll(), intervalMs);
 
   // Don't let the interval keep the process alive by itself
-  if (typeof _timer.unref === "function") _timer.unref();
+  if (typeof _timer.unref === "function") {
+    _timer.unref();
+  }
 
   console.info(
     `[threat-monitor] Started — polling every ${env.ALERT_MONITOR_INTERVAL_SECONDS}s, ` +
-    `threshold: ${env.ALERT_THRESHOLD_LEVEL}, ` +
-    `cooldown: ${env.ALERT_COOLDOWN_MINUTES}min`
+      `threshold: ${env.ALERT_THRESHOLD_LEVEL}, ` +
+      `cooldown: ${env.ALERT_COOLDOWN_MINUTES}min`
   );
 }
 

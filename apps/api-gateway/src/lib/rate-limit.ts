@@ -8,17 +8,17 @@ import type Redis from "ioredis";
 export interface RateLimitConfig {
   /** Maximum requests per window */
   limit: number;
-  /** Window size in seconds */
-  windowSec: number;
   /** Key prefix to namespace different limiters */
   prefix?: string;
+  /** Window size in seconds */
+  windowSec: number;
 }
 
 export interface RateLimitResult {
   allowed: boolean;
-  remaining: number;
-  resetAt: number;   // Unix timestamp (seconds) when the window resets
   limit: number;
+  remaining: number;
+  resetAt: number; // Unix timestamp (seconds) when the window resets
 }
 
 /**
@@ -49,7 +49,9 @@ export async function checkRateLimit(
   const windowStart = now - windowMs;
 
   try {
-    if (!redis) throw new Error("Redis unavailable");
+    if (!redis) {
+      throw new Error("Redis unavailable");
+    }
     const pipeline = redis.pipeline();
 
     // Remove entries outside the window
@@ -98,9 +100,8 @@ export const RATE_LIMITS = {
    * Tune WEBHOOK_RATE_LIMIT_MAX via env if you need a different threshold.
    */
   webhook: {
-    limit:     Number(process.env["WEBHOOK_RATE_LIMIT_MAX"] ?? 20),
+    limit: Number(process.env["WEBHOOK_RATE_LIMIT_MAX"] ?? 20),
     windowSec: 60,
-    prefix:    "rl:webhook",
+    prefix: "rl:webhook",
   },
 } as const satisfies Record<string, RateLimitConfig>;
-

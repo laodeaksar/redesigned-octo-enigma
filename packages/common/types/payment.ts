@@ -39,59 +39,59 @@ export type PaymentMethod =
 
 export interface VirtualAccountInfo {
   bank: string;
-  vaNumber: string;
   expiresAt: Date;
+  vaNumber: string;
 }
 
 // ── E-Wallet ──────────────────────────────────────────────────────────────────
 
 export interface EWalletInfo {
-  provider: string;
-  qrCodeUrl: string | null;
   deepLinkUrl: string | null;
   expiresAt: Date;
+  provider: string;
+  qrCodeUrl: string | null;
 }
 
 // ── Convenience Store ─────────────────────────────────────────────────────────
 
 export interface CStoreInfo {
-  store: "indomaret" | "alfamart";
-  paymentCode: string;
   expiresAt: Date;
+  paymentCode: string;
+  store: "indomaret" | "alfamart";
 }
 
 // ── Core Entity ───────────────────────────────────────────────────────────────
 
 export interface Payment {
-  id: string;
-  orderId: string;
-  userId: string;
-  status: PaymentStatus;
-  method: PaymentMethod | null; // null until customer selects method
   amount: number; // in IDR
+  createdAt: Date;
+  cStore: CStoreInfo | null;
   currency: "IDR";
-
-  /** Midtrans transaction ID */
-  transactionId: string | null;
+  eWallet: EWalletInfo | null;
+  expiresAt: Date;
+  id: string;
+  method: PaymentMethod | null; // null until customer selects method
   /** Midtrans order ID sent to their API */
   midtransOrderId: string;
-  /** Snap payment token — passed to frontend Snap.js popup */
-  snapToken: string | null;
-  /** Redirect URL for hosted payment page (alternative to Snap) */
-  snapRedirectUrl: string | null;
-
-  /** Payment method-specific instructions */
-  virtualAccount: VirtualAccountInfo | null;
-  eWallet: EWalletInfo | null;
-  cStore: CStoreInfo | null;
 
   /** Raw Midtrans notification payload — stored for audit */
   midtransRawNotification: Record<string, unknown> | null;
+  orderId: string;
 
   paidAt: Date | null;
-  expiresAt: Date;
-  createdAt: Date;
+  /** Redirect URL for hosted payment page (alternative to Snap) */
+  snapRedirectUrl: string | null;
+  /** Snap payment token — passed to frontend Snap.js popup */
+  snapToken: string | null;
+  status: PaymentStatus;
+
+  /** Midtrans transaction ID */
+  transactionId: string | null;
   updatedAt: Date;
+  userId: string;
+
+  /** Payment method-specific instructions */
+  virtualAccount: VirtualAccountInfo | null;
 }
 
 /** Lightweight version safe to send to the client */
@@ -116,22 +116,22 @@ export type PaymentSummary = Pick<
 
 /** Shape of Midtrans HTTP notification payload */
 export interface MidtransNotification {
-  transaction_time: string;
-  transaction_status: string;
-  transaction_id: string;
-  status_message: string;
-  status_code: string;
-  signature_key: string;
-  payment_type: string;
-  order_id: string;
-  merchant_id: string;
-  gross_amount: string;
-  fraud_status?: string;
-  currency: string;
-  // Bank transfer fields
-  va_numbers?: Array<{ bank: string; va_number: string }>;
   // E-wallet fields
   acquirer?: string;
+  currency: string;
+  fraud_status?: string;
+  gross_amount: string;
+  merchant_id: string;
+  order_id: string;
+  payment_type: string;
+  signature_key: string;
+  status_code: string;
+  status_message: string;
+  transaction_id: string;
+  transaction_status: string;
+  transaction_time: string;
+  // Bank transfer fields
+  va_numbers?: Array<{ bank: string; va_number: string }>;
 }
 
 // ── Refund ────────────────────────────────────────────────────────────────────
@@ -145,14 +145,14 @@ export type RefundReason =
   | "admin_action";
 
 export interface Refund {
-  id: string;
-  paymentId: string;
-  orderId: string;
   amount: number;
-  reason: RefundReason;
-  note: string | null;
-  midtransRefundId: string | null;
-  status: "pending" | "success" | "failure";
   createdAt: Date;
+  id: string;
+  midtransRefundId: string | null;
+  note: string | null;
+  orderId: string;
+  paymentId: string;
+  reason: RefundReason;
+  status: "pending" | "success" | "failure";
   updatedAt: Date;
 }

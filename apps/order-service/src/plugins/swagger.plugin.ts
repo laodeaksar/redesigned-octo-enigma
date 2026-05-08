@@ -10,9 +10,11 @@ export const swaggerPlugin = swagger({
     tags: [
       { name: "Health", description: "Service health check" },
       { name: "Orders", description: "Order CRUD and lifecycle transitions" },
-      { name: "Vouchers", description: "Voucher validation and admin management" },
+      {
+        name: "Vouchers",
+        description: "Voucher validation and admin management",
+      },
     ],
   },
   path: "/docs",
 });
-

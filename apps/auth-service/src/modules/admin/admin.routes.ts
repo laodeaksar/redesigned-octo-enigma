@@ -13,16 +13,15 @@
 //  DELETE /admin/users/:id         — delete a user permanently
 // =============================================================================
 
-import Elysia, { t } from "elysia";
+import { ForbiddenError, InsufficientRoleError } from "@repo/common/errors";
+import { success } from "@repo/common/schemas";
+import type { UserRole } from "@repo/common/types";
+import { usersTable } from "@repo/database/drizzle/schema";
 import { eq } from "drizzle-orm";
-
+import Elysia, { t } from "elysia";
+import { auth } from "@/lib/better-auth";
 import { jwtMiddleware } from "@/middleware/jwt.middleware";
 import { databasePlugin } from "@/plugins/database.plugin";
-import { auth } from "@/lib/better-auth";
-import { success } from "@repo/common/schemas";
-import { ForbiddenError, InsufficientRoleError } from "@repo/common/errors";
-import { usersTable } from "@repo/database/drizzle/schema";
-import type { UserRole } from "@repo/common/types";
 
 const ADMIN_ROLES: UserRole[] = ["admin", "super_admin"];
 
@@ -39,7 +38,7 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
   .use(jwtMiddleware)
   // Guard: only admin / super_admin can reach any route below
   .derive({ as: "scoped" }, ({ user }) => {
-    if (!user || !ADMIN_ROLES.includes(user.role)) {
+    if (!(user && ADMIN_ROLES.includes(user.role))) {
       throw new InsufficientRoleError("admin");
     }
     return { adminUser: user };
@@ -49,7 +48,7 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
   .get(
     "/users",
     async ({ adminUser, query }) => {
-      const page  = query.page  ?? 1;
+      const page = query.page ?? 1;
       const limit = query.limit ?? 20;
 
       const result = await auth.api.listUsers({
@@ -60,7 +59,10 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
           searchValue: query.search ?? undefined,
           filterField: query.role ? "role" : undefined,
           filterValue: query.role ?? undefined,
-          sortBy: (query.sortBy ?? "createdAt") as "createdAt" | "email" | "name",
+          sortBy: (query.sortBy ?? "createdAt") as
+            | "createdAt"
+            | "email"
+            | "name",
           sortDirection: query.sortOrder ?? "desc",
         },
         headers: makeAdminHeaders(adminUser.id),
@@ -76,19 +78,23 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
     },
     {
       query: t.Object({
-        page:      t.Optional(t.Numeric({ default: 1,  minimum: 1 })),
-        limit:     t.Optional(t.Numeric({ default: 20, minimum: 1, maximum: 100 })),
-        search:    t.Optional(t.String()),
-        role:      t.Optional(t.Union([
-          t.Literal("customer"),
-          t.Literal("admin"),
-          t.Literal("super_admin"),
-        ])),
-        sortBy:    t.Optional(t.Union([
-          t.Literal("createdAt"),
-          t.Literal("email"),
-          t.Literal("name"),
-        ])),
+        page: t.Optional(t.Numeric({ default: 1, minimum: 1 })),
+        limit: t.Optional(t.Numeric({ default: 20, minimum: 1, maximum: 100 })),
+        search: t.Optional(t.String()),
+        role: t.Optional(
+          t.Union([
+            t.Literal("customer"),
+            t.Literal("admin"),
+            t.Literal("super_admin"),
+          ])
+        ),
+        sortBy: t.Optional(
+          t.Union([
+            t.Literal("createdAt"),
+            t.Literal("email"),
+            t.Literal("name"),
+          ])
+        ),
         sortOrder: t.Optional(t.Union([t.Literal("asc"), t.Literal("desc")])),
       }),
       detail: {
@@ -96,7 +102,7 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
         summary: "List users (paginated, filterable)",
         security: [{ bearerAuth: [] }],
       },
-    },
+    }
   )
 
   // ── Set role ───────────────────────────────────────────────────────────────
@@ -105,7 +111,9 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
     async ({ db, adminUser, params, body }) => {
       // Only super_admin can assign the super_admin role
       if (body.role === "super_admin" && adminUser.role !== "super_admin") {
-        throw new ForbiddenError("Only super_admin can assign super_admin role");
+        throw new ForbiddenError(
+          "Only super_admin can assign super_admin role"
+        );
       }
 
       // Use the DB directly — better-auth's setRole is typed for "admin"|"user"
@@ -128,7 +136,7 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
 
       return success(
         { userId: params.id, role: body.role },
-        "Role updated successfully",
+        "Role updated successfully"
       );
     },
     {
@@ -145,7 +153,7 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
         summary: "Set user role (revokes existing sessions)",
         security: [{ bearerAuth: [] }],
       },
-    },
+    }
   )
 
   // ── Ban user ───────────────────────────────────────────────────────────────
@@ -166,17 +174,19 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
     {
       params: t.Object({ id: t.String({ format: "uuid" }) }),
       body: t.Object({
-        reason:    t.Optional(t.String({ maxLength: 500 })),
-        expiresIn: t.Optional(t.Number({
-          description: "Ban duration in seconds — omit for permanent ban",
-        })),
+        reason: t.Optional(t.String({ maxLength: 500 })),
+        expiresIn: t.Optional(
+          t.Number({
+            description: "Ban duration in seconds — omit for permanent ban",
+          })
+        ),
       }),
       detail: {
         tags: ["Admin"],
         summary: "Ban a user",
         security: [{ bearerAuth: [] }],
       },
-    },
+    }
   )
 
   // ── Unban user ─────────────────────────────────────────────────────────────
@@ -197,7 +207,7 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
         summary: "Unban a user",
         security: [{ bearerAuth: [] }],
       },
-    },
+    }
   )
 
   // ── Revoke all user sessions ───────────────────────────────────────────────
@@ -218,7 +228,7 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
         summary: "Revoke all sessions for a user",
         security: [{ bearerAuth: [] }],
       },
-    },
+    }
   )
 
   // ── Delete user ────────────────────────────────────────────────────────────
@@ -243,5 +253,5 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
         summary: "Delete a user permanently",
         security: [{ bearerAuth: [] }],
       },
-    },
+    }
   );

@@ -7,18 +7,13 @@
 // After auth middleware runs, downstream proxy calls inject x-user-* headers.
 // =============================================================================
 
-import { createMiddleware } from "hono/factory";
+import { TokenExpiredError } from "@repo/common/errors";
 
 import { failure } from "@repo/common/schemas";
-import {
-  UnauthorizedError,
-  TokenExpiredError,
-  TokenInvalidError,
-} from "@repo/common/errors";
 import type { UserRole } from "@repo/common/types";
-
-import { verifyAccessToken, extractBearerToken } from "@/lib/jwt";
+import { createMiddleware } from "hono/factory";
 import type { VerifiedUser } from "@/lib/jwt";
+import { extractBearerToken, verifyAccessToken } from "@/lib/jwt";
 
 // Extend Hono context variables type
 declare module "hono" {
@@ -35,10 +30,7 @@ export const requireAuth = createMiddleware(async (c, next) => {
   const token = extractBearerToken(c.req.header("authorization"));
 
   if (!token) {
-    return c.json(
-      failure("UNAUTHORIZED", "Authentication required"),
-      401
-    );
+    return c.json(failure("UNAUTHORIZED", "Authentication required"), 401);
   }
 
   try {
@@ -98,4 +90,3 @@ export const requireRole = (...roles: UserRole[]) =>
 
     await next();
   });
-

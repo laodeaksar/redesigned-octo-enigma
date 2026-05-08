@@ -13,8 +13,13 @@ async function bootstrap() {
     await initMongo();
     console.info("✓ MongoDB connected");
   } catch (err) {
-    console.warn("⚠ MongoDB connection failed — order persistence unavailable:", (err as Error).message?.split("\n")[0]);
-    if (env.NODE_ENV === "production") process.exit(1);
+    console.warn(
+      "⚠ MongoDB connection failed — order persistence unavailable:",
+      (err as Error).message?.split("\n")[0]
+    );
+    if (env.NODE_ENV === "production") {
+      process.exit(1);
+    }
   }
 
   // ── Elysia server ────────────────────────────────────────────────────────

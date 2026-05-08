@@ -10,31 +10,31 @@
 import { env } from "@/config";
 
 const BASE_URL = "https://api.rajaongkir.com/starter";
-const API_KEY  = env.RAJAONGKIR_API_KEY;
-const ORIGIN   = env.RAJAONGKIR_ORIGIN;
+const API_KEY = env.RAJAONGKIR_API_KEY;
+const ORIGIN = env.RAJAONGKIR_ORIGIN;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface ShippingCost {
-  service:     string;
+  cost: number;
   description: string;
-  cost:        number;
-  etd:         string;  // estimated time of delivery e.g. "2-3"
+  etd: string; // estimated time of delivery e.g. "2-3"
+  service: string;
 }
 
 export interface CourierRates {
   courier: string;
-  name:    string;
-  rates:   ShippingCost[];
+  name: string;
+  rates: ShippingCost[];
 }
 
 export interface City {
-  id:         string;
-  provinceId: string;
-  province:   string;
-  type:       string;  // Kota | Kabupaten
-  name:       string;
+  id: string;
+  name: string;
   postalCode: string;
+  province: string;
+  provinceId: string;
+  type: string; // Kota | Kabupaten
 }
 
 // ── Core fetch ────────────────────────────────────────────────────────────────
@@ -46,20 +46,18 @@ async function rajaFetch<T>(
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     headers: {
-      "key":          API_KEY,
+      key: API_KEY,
       "content-type": "application/x-www-form-urlencoded",
       ...options.headers,
     },
   });
 
-  const json = await res.json() as {
+  const json = (await res.json()) as {
     rajaongkir: { status: { code: number; description: string }; results: T };
   };
 
   if (json.rajaongkir.status.code !== 200) {
-    throw new Error(
-      `RajaOngkir error: ${json.rajaongkir.status.description}`
-    );
+    throw new Error(`RajaOngkir error: ${json.rajaongkir.status.description}`);
   }
 
   return json.rajaongkir.results;
@@ -74,19 +72,28 @@ async function rajaFetch<T>(
 let _citiesCache: City[] | null = null;
 
 export async function getAllCities(): Promise<City[]> {
-  if (_citiesCache) return _citiesCache;
+  if (_citiesCache) {
+    return _citiesCache;
+  }
 
-  const results = await rajaFetch<Array<{
-    city_id: string; province_id: string; province: string;
-    type: string; city_name: string; postal_code: string;
-  }>>("/city");
+  const results =
+    await rajaFetch<
+      Array<{
+        city_id: string;
+        province_id: string;
+        province: string;
+        type: string;
+        city_name: string;
+        postal_code: string;
+      }>
+    >("/city");
 
   _citiesCache = results.map((c) => ({
-    id:         c.city_id,
+    id: c.city_id,
     provinceId: c.province_id,
-    province:   c.province,
-    type:       c.type,
-    name:       c.city_name,
+    province: c.province,
+    type: c.type,
+    name: c.city_name,
     postalCode: c.postal_code,
   }));
 
@@ -107,9 +114,9 @@ export async function searchCities(query: string): Promise<City[]> {
 // ── Shipping rates ─────────────────────────────────────────────────────────────
 
 export interface GetRatesInput {
+  couriers?: string[];
   destinationCityId: string;
-  weightGrams:       number;
-  couriers?:         string[];
+  weightGrams: number;
 }
 
 const DEFAULT_COURIERS = ["jne", "jnt", "sicepat", "anteraja", "tiki"];
@@ -130,20 +137,22 @@ export async function getShippingRates(
   // RajaOngkir starter plan: one courier per request
   const results = await Promise.allSettled(
     couriers.map((courier) =>
-      rajaFetch<Array<{
-        code: string;
-        name: string;
-        costs: Array<{
-          service: string;
-          description: string;
-          cost: Array<{ value: number; etd: string; note: string }>;
-        }>;
-      }>>("/cost", {
+      rajaFetch<
+        Array<{
+          code: string;
+          name: string;
+          costs: Array<{
+            service: string;
+            description: string;
+            cost: Array<{ value: number; etd: string; note: string }>;
+          }>;
+        }>
+      >("/cost", {
         method: "POST",
         body: new URLSearchParams({
-          origin:      ORIGIN,
+          origin: ORIGIN,
           destination: input.destinationCityId,
-          weight:      String(weightKg * 1000), // RajaOngkir uses grams
+          weight: String(weightKg * 1000), // RajaOngkir uses grams
           courier,
         }).toString(),
       })
@@ -151,17 +160,23 @@ export async function getShippingRates(
   );
 
   return results
-    .filter((r): r is PromiseFulfilledResult<typeof r extends PromiseFulfilledResult<infer V> ? V : never> => r.status === "fulfilled")
+    .filter(
+      (
+        r
+      ): r is PromiseFulfilledResult<
+        typeof r extends PromiseFulfilledResult<infer V> ? V : never
+      > => r.status === "fulfilled"
+    )
     .flatMap((r) => r.value)
     .map((result) => ({
-      courier:  result.code,
-      name:     result.name,
+      courier: result.code,
+      name: result.name,
       rates: result.costs
         .map((s) => ({
-          service:     s.service,
+          service: s.service,
           description: s.description,
-          cost:        s.cost[0]?.value ?? 0,
-          etd:         (s.cost[0]?.etd ?? "").replace(/\s+HARI/i, "").trim(),
+          cost: s.cost[0]?.value ?? 0,
+          etd: (s.cost[0]?.etd ?? "").replace(/\s+HARI/i, "").trim(),
         }))
         .filter((s) => s.cost > 0),
     }))
@@ -193,4 +208,3 @@ export async function getSingleRate(
 
   return serviceRate?.cost ?? 0;
 }
-

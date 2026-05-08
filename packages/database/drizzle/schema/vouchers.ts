@@ -14,7 +14,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 
-import { primaryId, discountTypeEnum, timestamps } from "./_helpers";
+import { discountTypeEnum, primaryId, timestamps } from "./_helpers";
 
 export const vouchersTable = pgTable(
   "vouchers",
@@ -41,11 +41,13 @@ export const vouchersTable = pgTable(
     /** Restrict to specific user IDs — null = public voucher */
     restrictedToUserId: uuid("restricted_to_user_id"),
     ...timestamps(),
-}, (t) => ({
-  codeIdx: uniqueIndex('vouchers_code_idx').on(t.code),
-  isActiveIdx: index('vouchers_is_active_idx').on(t.isActive),
-  expiresAtIdx: index('vouchers_expires_at_idx').on(t.expiresAt),
-}));
+  },
+  (t) => ({
+    codeIdx: uniqueIndex("vouchers_code_idx").on(t.code),
+    isActiveIdx: index("vouchers_is_active_idx").on(t.isActive),
+    expiresAtIdx: index("vouchers_expires_at_idx").on(t.expiresAt),
+  })
+);
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

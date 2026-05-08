@@ -11,9 +11,9 @@
 // =============================================================================
 
 import { createDrizzleClient } from "../drizzle/client";
-import { seedUsers } from "./users.seed";
 import { seedCategories } from "./categories.seed";
 import { seedProducts } from "./products.seed";
+import { seedUsers } from "./users.seed";
 
 const DATABASE_URL = process.env["DATABASE_URL"];
 

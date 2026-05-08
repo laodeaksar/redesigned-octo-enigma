@@ -28,9 +28,9 @@ const AUTH_HEADER = `Basic ${Buffer.from(`${env.MIDTRANS_SERVER_KEY}:`).toString
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface SnapCustomerDetails {
+  email: string;
   firstName: string;
   lastName?: string;
-  email: string;
   phone?: string;
 }
 
@@ -42,33 +42,33 @@ export interface SnapItemDetail {
 }
 
 export interface SnapBillingAddress {
-  firstName: string;
-  phone: string;
   address: string;
   city: string;
-  postalCode: string;
   countryCode: string;
+  firstName: string;
+  phone: string;
+  postalCode: string;
 }
 
 export interface CreateSnapTransactionInput {
-  /** Unique order ID sent to Midtrans — format: "ORD-{orderId}-{ts}" */
-  orderId: string;
-  /** Total amount in IDR */
-  grossAmount: number;
-  customerDetails: SnapCustomerDetails;
-  itemDetails: SnapItemDetail[];
   billingAddress?: SnapBillingAddress;
-  /** URL Midtrans will POST payment notifications to */
-  notificationUrl?: string;
-  /** URL to redirect after Snap payment completion (for redirect flow) */
-  finishUrl?: string;
+  customerDetails: SnapCustomerDetails;
   /** Payment expiry — minutes from now (default: 60) */
   expiryMinutes?: number;
+  /** URL to redirect after Snap payment completion (for redirect flow) */
+  finishUrl?: string;
+  /** Total amount in IDR */
+  grossAmount: number;
+  itemDetails: SnapItemDetail[];
+  /** URL Midtrans will POST payment notifications to */
+  notificationUrl?: string;
+  /** Unique order ID sent to Midtrans — format: "ORD-{orderId}-{ts}" */
+  orderId: string;
 }
 
 export interface SnapTransactionResult {
-  token: string;
   redirectUrl: string;
+  token: string;
 }
 
 // ── Create Snap transaction ───────────────────────────────────────────────────
@@ -78,7 +78,7 @@ export interface SnapTransactionResult {
  * The token is passed to the frontend Snap.js popup.
  */
 export async function createSnapTransaction(
-  input: CreateSnapTransactionInput,
+  input: CreateSnapTransactionInput
 ): Promise<SnapTransactionResult> {
   const {
     orderId,
@@ -155,7 +155,7 @@ export async function createSnapTransaction(
     error_messages?: string[];
   };
 
-  if (!res.ok || !json.token) {
+  if (!(res.ok && json.token)) {
     const messages = json.error_messages?.join("; ") ?? `HTTP ${res.status}`;
     throw new PaymentGatewayError(`Midtrans Snap error: ${messages}`);
   }
@@ -176,7 +176,7 @@ export async function createSnapTransaction(
  * @returns true if the signature is valid
  */
 export function verifyMidtransSignature(
-  notification: MidtransNotification,
+  notification: MidtransNotification
 ): boolean {
   const raw =
     notification.order_id +
@@ -196,7 +196,7 @@ export function verifyMidtransSignature(
  * Useful for manual status verification.
  */
 export async function checkTransactionStatus(
-  midtransOrderId: string,
+  midtransOrderId: string
 ): Promise<Record<string, unknown>> {
   let res: Response;
 
@@ -214,14 +214,14 @@ export async function checkTransactionStatus(
 // ── Refund ────────────────────────────────────────────────────────────────────
 
 export interface RefundRequest {
-  midtransOrderId: string;
-  refundKey: string; // unique key per refund attempt
   amount: number; // IDR
+  midtransOrderId: string;
   reason: string;
+  refundKey: string; // unique key per refund attempt
 }
 
 export async function createRefund(
-  input: RefundRequest,
+  input: RefundRequest
 ): Promise<Record<string, unknown>> {
   let res: Response;
 
@@ -246,7 +246,7 @@ export async function createRefund(
 
   if (!res.ok) {
     throw new PaymentGatewayError(
-      `Midtrans refund error: ${(json["error_messages"] as string[] | undefined)?.join("; ") ?? res.statusText}`,
+      `Midtrans refund error: ${(json["error_messages"] as string[] | undefined)?.join("; ") ?? res.statusText}`
     );
   }
 
@@ -266,11 +266,21 @@ export function parsePaymentMethod(notification: MidtransNotification): string {
   switch (payment_type) {
     case "bank_transfer": {
       const b = (vaBank ?? bank ?? "").toLowerCase();
-      if (b === "bca") return "bank_transfer_bca";
-      if (b === "bni") return "bank_transfer_bni";
-      if (b === "bri") return "bank_transfer_bri";
-      if (b === "mandiri") return "bank_transfer_mandiri";
-      if (b === "permata") return "bank_transfer_permata";
+      if (b === "bca") {
+        return "bank_transfer_bca";
+      }
+      if (b === "bni") {
+        return "bank_transfer_bni";
+      }
+      if (b === "bri") {
+        return "bank_transfer_bri";
+      }
+      if (b === "mandiri") {
+        return "bank_transfer_mandiri";
+      }
+      if (b === "permata") {
+        return "bank_transfer_permata";
+      }
       return "bank_transfer_bca";
     }
     case "echannel":
@@ -289,8 +299,12 @@ export function parsePaymentMethod(notification: MidtransNotification): string {
       return "credit_card";
     case "cstore": {
       const store = (notification.store ?? "").toLowerCase();
-      if (store === "indomaret") return "cstore_indomaret";
-      if (store.includes("alfa")) return "cstore_alfamart";
+      if (store === "indomaret") {
+        return "cstore_indomaret";
+      }
+      if (store.includes("alfa")) {
+        return "cstore_alfamart";
+      }
       return "cstore_indomaret";
     }
     case "akulaku":

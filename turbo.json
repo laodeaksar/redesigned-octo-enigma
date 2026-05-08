@@ -1,12 +1,7 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
-  "globalEnv": [
-    "NODE_ENV",
-    "DATABASE_URL",
-    "REDIS_URL",
-    "MONGODB_URL"
-  ],
+  "globalEnv": ["NODE_ENV", "DATABASE_URL", "REDIS_URL", "MONGODB_URL"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -32,10 +27,7 @@
 
     "db:generate": {
       "cache": false,
-      "inputs": [
-        "drizzle/schema/**",
-        "drizzle.config.ts"
-      ],
+      "inputs": ["drizzle/schema/**", "drizzle.config.ts"],
       "outputs": ["drizzle/migrations/**"]
     },
 

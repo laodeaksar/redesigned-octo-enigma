@@ -4,12 +4,12 @@
 // =============================================================================
 
 import {
+  index,
   pgTable,
+  smallint,
   text,
   timestamp,
   varchar,
-  smallint,
-  index,
 } from "drizzle-orm/pg-core";
 
 import { primaryId } from "./_helpers";

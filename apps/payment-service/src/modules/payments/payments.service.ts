@@ -2,36 +2,33 @@
 // Payments service — full lifecycle: create → webhook → refund
 // =============================================================================
 
-import { randomUUID } from "node:crypto";
-
 import {
-  NotFoundError,
-  PaymentAlreadyProcessedError,
-  OrderNotPayableError,
   ForbiddenError,
+  NotFoundError,
+  OrderNotPayableError,
+  PaymentAlreadyProcessedError,
   PaymentGatewayError,
 } from "@repo/common/errors";
 import type {
   CreatePaymentInput,
-  MidtransNotificationInput,
   CreateRefundInput,
   ListPaymentsQuery,
+  MidtransNotificationInput,
 } from "@repo/common/schemas";
-
-import * as repo from "./payments.repository";
+import { type DB, env } from "@/config";
 import {
-  createSnapTransaction,
-  verifyMidtransSignature,
-  parsePaymentMethod,
-  createRefund as midtransRefund,
-} from "@/lib/midtrans";
-import {
-  publishPaymentSucceeded,
+  notifyOrderPaid,
   publishPaymentExpired,
   publishPaymentRefunded,
-  notifyOrderPaid,
+  publishPaymentSucceeded,
 } from "@/lib/events";
-import { env, type DB } from "@/config";
+import {
+  createSnapTransaction,
+  createRefund as midtransRefund,
+  parsePaymentMethod,
+  verifyMidtransSignature,
+} from "@/lib/midtrans";
+import * as repo from "./payments.repository";
 
 // ── Create Payment ────────────────────────────────────────────────────────────
 
@@ -39,7 +36,7 @@ export async function createPayment(
   db: DB,
   userId: string,
   userEmail: string,
-  input: CreatePaymentInput,
+  input: CreatePaymentInput
 ) {
   // Prevent duplicate payment for the same order
   const existing = await repo.findPaymentByOrderId(db, input.orderId);
@@ -99,7 +96,7 @@ export async function createPayment(
  */
 export async function handleWebhook(
   db: DB,
-  notification: MidtransNotificationInput,
+  notification: MidtransNotificationInput
 ) {
   // 1. Verify signature to prevent spoofed webhooks
   if (!verifyMidtransSignature(notification)) {
@@ -109,14 +106,14 @@ export async function handleWebhook(
   // 2. Find the payment by Midtrans order ID
   const payment = await repo.findPaymentByMidtransOrderId(
     db,
-    notification.order_id,
+    notification.order_id
   );
 
   if (!payment) {
     // Midtrans might send notifications for orders we don't know about
     // (e.g. during testing). Log and return 200 to prevent retries.
     console.warn(
-      `[webhook] Payment not found for Midtrans order: ${notification.order_id}`,
+      `[webhook] Payment not found for Midtrans order: ${notification.order_id}`
     );
     return { processed: false, reason: "payment_not_found" };
   }
@@ -127,7 +124,7 @@ export async function handleWebhook(
   const newStatus = mapMidtransStatus(transaction_status, fraud_status);
   const paymentMethod = parsePaymentMethod(notification);
   const transactionId = notification.transaction_id;
-  const grossAmount = parseInt(notification.gross_amount, 10);
+  const grossAmount = Number.parseInt(notification.gross_amount, 10);
 
   // 4. Build payment method details (VA, e-wallet, cstore)
   const { virtualAccount, eWallet, cStore } =
@@ -152,7 +149,9 @@ export async function handleWebhook(
   });
 
   const updated = await repo.findPaymentById(db, payment.id);
-  if (!updated) return { processed: false, reason: "update_failed" };
+  if (!updated) {
+    return { processed: false, reason: "update_failed" };
+  }
 
   // 6. Fire side effects based on new status
   if (newStatus === "settlement" || newStatus === "capture") {
@@ -173,10 +172,12 @@ export async function getPaymentById(
   db: DB,
   paymentId: string,
   requesterId: string,
-  requesterRole: string,
+  requesterRole: string
 ) {
   const payment = await repo.findPaymentById(db, paymentId);
-  if (!payment) throw new NotFoundError("Payment");
+  if (!payment) {
+    throw new NotFoundError("Payment");
+  }
 
   if (requesterRole === "customer" && payment.userId !== requesterId) {
     throw new ForbiddenError();
@@ -189,10 +190,12 @@ export async function getPaymentByOrderId(
   db: DB,
   orderId: string,
   requesterId: string,
-  requesterRole: string,
+  requesterRole: string
 ) {
   const payment = await repo.findPaymentByOrderId(db, orderId);
-  if (!payment) throw new NotFoundError("Payment");
+  if (!payment) {
+    throw new NotFoundError("Payment");
+  }
 
   if (requesterRole === "customer" && payment.userId !== requesterId) {
     throw new ForbiddenError();
@@ -209,7 +212,9 @@ export async function listPayments(db: DB, query: ListPaymentsQuery) {
 
 export async function requestRefund(db: DB, input: CreateRefundInput) {
   const payment = await repo.findPaymentById(db, input.paymentId);
-  if (!payment) throw new NotFoundError("Payment");
+  if (!payment) {
+    throw new NotFoundError("Payment");
+  }
 
   if (payment.status !== "settlement" && payment.status !== "capture") {
     throw new OrderNotPayableError(payment.status);
@@ -262,12 +267,14 @@ type PaymentRow = Awaited<ReturnType<typeof repo.findPaymentById>>;
  */
 function mapMidtransStatus(
   transactionStatus: string,
-  fraudStatus?: string,
+  fraudStatus?: string
 ): string {
   switch (transactionStatus) {
     case "capture":
       // Credit card: captured but not yet settled
-      if (fraudStatus === "challenge") return "challenge";
+      if (fraudStatus === "challenge") {
+        return "challenge";
+      }
       return "capture";
     case "settlement":
       return "settlement";

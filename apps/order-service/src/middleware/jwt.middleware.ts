@@ -3,32 +3,33 @@
 // Internal middleware — verifies x-internal-key for service-to-service calls
 // =============================================================================
 
-import Elysia from "elysia";
-
 import {
-  UnauthorizedError,
-  InsufficientRoleError,
   ForbiddenError,
+  InsufficientRoleError,
+  UnauthorizedError,
 } from "@repo/common/errors";
 import type { UserRole } from "@repo/common/types";
+import Elysia from "elysia";
 import { env } from "@/config";
 
 /**
  * Reads x-user-id / x-user-email / x-user-role headers set by api-gateway
  * and injects them as `user` into the Elysia context.
  */
-export const jwtMiddleware = new Elysia({ name: "jwt-middleware" })
-  .derive({ as: "scoped" }, ({ headers }) => {
+export const jwtMiddleware = new Elysia({ name: "jwt-middleware" }).derive(
+  { as: "scoped" },
+  ({ headers }) => {
     const id = headers["x-user-id"];
     const email = headers["x-user-email"];
     const role = headers["x-user-role"] as UserRole | undefined;
 
-    if (!id || !email || !role) {
+    if (!(id && email && role)) {
       throw new UnauthorizedError();
     }
 
     return { user: { id, email, role } };
-  });
+  }
+);
 
 /**
  * Role guard factory — checks JWT headers AND restricts to specific roles.
@@ -36,13 +37,14 @@ export const jwtMiddleware = new Elysia({ name: "jwt-middleware" })
  * correctly through Elysia's onError chain.
  */
 export const requireRole = (...roles: UserRole[]) =>
-  new Elysia({ name: `require-role-${roles.join("-")}` })
-    .derive({ as: "scoped" }, ({ headers }) => {
+  new Elysia({ name: `require-role-${roles.join("-")}` }).derive(
+    { as: "scoped" },
+    ({ headers }) => {
       const id = headers["x-user-id"];
       const email = headers["x-user-email"];
       const role = headers["x-user-role"] as UserRole | undefined;
 
-      if (!id || !email || !role) {
+      if (!(id && email && role)) {
         throw new UnauthorizedError();
       }
 
@@ -51,18 +53,20 @@ export const requireRole = (...roles: UserRole[]) =>
       }
 
       return { user: { id, email, role } };
-    });
+    }
+  );
 
 /**
  * Internal service middleware — validates x-internal-key shared secret.
  * Apply to endpoints that should only be reachable by other internal services,
  * never by external clients (even if they somehow bypass the api-gateway block).
  */
-export const internalMiddleware = new Elysia({ name: "internal-middleware" })
-  .derive({ as: "scoped" }, ({ headers }) => {
-    const key = headers["x-internal-key"];
-    if (!key || key !== env.INTERNAL_SERVICE_KEY) {
-      throw new ForbiddenError("Internal endpoint — access denied");
-    }
-    return {};
-  });
+export const internalMiddleware = new Elysia({
+  name: "internal-middleware",
+}).derive({ as: "scoped" }, ({ headers }) => {
+  const key = headers["x-internal-key"];
+  if (!key || key !== env.INTERNAL_SERVICE_KEY) {
+    throw new ForbiddenError("Internal endpoint — access denied");
+  }
+  return {};
+});

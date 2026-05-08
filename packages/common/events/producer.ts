@@ -9,7 +9,7 @@
 //   await addJob(queue, payload)
 // =============================================================================
 
-import { Queue, type ConnectionOptions, type JobsOptions } from "bullmq";
+import { type ConnectionOptions, type JobsOptions, Queue } from "bullmq";
 import type Redis from "ioredis";
 
 // ── Defaults ──────────────────────────────────────────────────────────────────
@@ -19,7 +19,7 @@ export const DEFAULT_JOB_OPTIONS: JobsOptions = {
   attempts: 3,
   backoff: {
     type: "exponential",
-    delay: 2000,  // 2s → 4s → 8s
+    delay: 2000, // 2s → 4s → 8s
   },
   // Keep completed jobs for 24h (useful for debugging)
   removeOnComplete: { age: 86_400, count: 1000 },
@@ -122,4 +122,3 @@ export async function addDelayedJob<TData>(
 export async function closeQueues(queues: Queue[]): Promise<void> {
   await Promise.all(queues.map((q) => q.close()));
 }
-

@@ -2,13 +2,12 @@
 // Wishlist repository
 // =============================================================================
 
-import { eq, and, inArray, desc, isNull, sql } from "drizzle-orm";
-
 import {
-  wishlistsTable,
   productsTable,
   productVariantsTable,
+  wishlistsTable,
 } from "@repo/database/drizzle/schema";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/config";
 
@@ -92,7 +91,9 @@ export const wishlistRepository = {
     userId: string,
     productIds: string[]
   ): Promise<Record<string, boolean>> {
-    if (!productIds.length) return {};
+    if (!productIds.length) {
+      return {};
+    }
 
     const rows = await db
       .select({ productId: wishlistsTable.productId })
@@ -157,10 +158,7 @@ export const wishlistRepository = {
         )
       )
       .where(
-        and(
-          eq(wishlistsTable.userId, userId),
-          isNull(productsTable.deletedAt)
-        )
+        and(eq(wishlistsTable.userId, userId), isNull(productsTable.deletedAt))
       )
       .groupBy(
         wishlistsTable.id,

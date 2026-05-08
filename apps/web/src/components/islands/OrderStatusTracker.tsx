@@ -1,59 +1,68 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const STATUS_LABELS: Record<string, string> = {
-  pending_payment:  "Menunggu Pembayaran",
-  processing:       "Diproses",
-  shipped:          "Dikirim",
-  delivered:        "Terkirim",
-  completed:        "Selesai",
-  cancelled:        "Dibatalkan",
+  pending_payment: "Menunggu Pembayaran",
+  processing: "Diproses",
+  shipped: "Dikirim",
+  delivered: "Terkirim",
+  completed: "Selesai",
+  cancelled: "Dibatalkan",
   refund_requested: "Minta Refund",
-  refunded:         "Direfund",
+  refunded: "Direfund",
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  pending_payment:  "bg-yellow-100 text-yellow-800",
-  processing:       "bg-blue-100 text-blue-800",
-  shipped:          "bg-indigo-100 text-indigo-800",
-  delivered:        "bg-teal-100 text-teal-800",
-  completed:        "bg-green-100 text-green-800",
-  cancelled:        "bg-red-100 text-red-800",
+  pending_payment: "bg-yellow-100 text-yellow-800",
+  processing: "bg-blue-100 text-blue-800",
+  shipped: "bg-indigo-100 text-indigo-800",
+  delivered: "bg-teal-100 text-teal-800",
+  completed: "bg-green-100 text-green-800",
+  cancelled: "bg-red-100 text-red-800",
   refund_requested: "bg-orange-100 text-orange-800",
-  refunded:         "bg-gray-100 text-gray-600",
+  refunded: "bg-gray-100 text-gray-600",
 };
 
 const TIMELINE_STEPS = [
   { key: "pending_payment", label: "Menunggu Pembayaran", icon: "💳" },
-  { key: "processing",      label: "Diproses",            icon: "📦" },
-  { key: "shipped",         label: "Dikirim",             icon: "🚚" },
-  { key: "delivered",       label: "Terkirim",            icon: "📬" },
-  { key: "completed",       label: "Selesai",             icon: "✅" },
+  { key: "processing", label: "Diproses", icon: "📦" },
+  { key: "shipped", label: "Dikirim", icon: "🚚" },
+  { key: "delivered", label: "Terkirim", icon: "📬" },
+  { key: "completed", label: "Selesai", icon: "✅" },
 ];
 
-const STATUS_ORDER = ["pending_payment", "processing", "shipped", "delivered", "completed"];
+const STATUS_ORDER = [
+  "pending_payment",
+  "processing",
+  "shipped",
+  "delivered",
+  "completed",
+];
 const TERMINAL = new Set(["completed", "cancelled", "refunded"]);
 
 interface StatusHistoryEntry {
+  actorId?: string;
+  note?: string | null;
   status: string;
   timestamp: string;
-  note?: string | null;
-  actorId?: string;
 }
 
 interface Props {
-  orderId: string;
+  cancellationNote?: string | null;
+  cancellationReason?: string | null;
   initialStatus: string;
   initialStatusHistory: StatusHistoryEntry[];
-  cancellationReason?: string | null;
-  cancellationNote?: string | null;
+  orderId: string;
 }
 
 type ConnState = "connecting" | "connected" | "disconnected" | "terminal";
 
 function formatDT(ts: string | Date) {
   return new Date(ts).toLocaleString("id-ID", {
-    day: "numeric", month: "short", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
@@ -64,19 +73,22 @@ export default function OrderStatusTracker({
   cancellationReason,
   cancellationNote,
 }: Props) {
-  const [status, setStatus]               = useState(initialStatus);
-  const [history, setHistory]             = useState<StatusHistoryEntry[]>(initialStatusHistory);
-  const [connState, setConnState]         = useState<ConnState>("connecting");
-  const [lastUpdated, setLastUpdated]     = useState<Date | null>(null);
-  const [justChanged, setJustChanged]     = useState(false);
+  const [status, setStatus] = useState(initialStatus);
+  const [history, setHistory] =
+    useState<StatusHistoryEntry[]>(initialStatusHistory);
+  const [connState, setConnState] = useState<ConnState>("connecting");
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [justChanged, setJustChanged] = useState(false);
 
-  const esRef            = useRef<EventSource | null>(null);
-  const reconnectTimer   = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const reconnectCount   = useRef(0);
-  const currentStatus    = useRef(initialStatus);
+  const esRef = useRef<EventSource | null>(null);
+  const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectCount = useRef(0);
+  const currentStatus = useRef(initialStatus);
 
   const connect = () => {
-    if (esRef.current) esRef.current.close();
+    if (esRef.current) {
+      esRef.current.close();
+    }
 
     const es = new EventSource(`/api/orders/${orderId}/stream`);
     esRef.current = es;
@@ -101,7 +113,9 @@ export default function OrderStatusTracker({
         setTimeout(() => setJustChanged(false), 2000);
       }
 
-      if (data.statusHistory) setHistory(data.statusHistory);
+      if (data.statusHistory) {
+        setHistory(data.statusHistory);
+      }
 
       if (TERMINAL.has(data.status)) {
         setConnState("terminal");
@@ -123,7 +137,7 @@ export default function OrderStatusTracker({
       }
 
       setConnState("disconnected");
-      const delay = Math.min(1000 * Math.pow(2, reconnectCount.current), 30_000);
+      const delay = Math.min(1000 * 2 ** reconnectCount.current, 30_000);
       reconnectCount.current++;
       reconnectTimer.current = setTimeout(connect, delay);
     };
@@ -139,27 +153,30 @@ export default function OrderStatusTracker({
 
     return () => {
       esRef.current?.close();
-      if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
+      if (reconnectTimer.current) {
+        clearTimeout(reconnectTimer.current);
+      }
     };
   }, [orderId]);
 
-  const isCancelled    = ["cancelled", "refund_requested", "refunded"].includes(status);
+  const isCancelled = ["cancelled", "refund_requested", "refunded"].includes(
+    status
+  );
   const currentStepIdx = STATUS_ORDER.indexOf(status);
-  const statusColor    = STATUS_COLORS[status] ?? "bg-gray-100 text-gray-600";
+  const statusColor = STATUS_COLORS[status] ?? "bg-gray-100 text-gray-600";
 
   return (
     <div className="space-y-6">
-
       {/* ── Status badge row ─────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-3">
         <span
-          className={`inline-flex items-center rounded-full px-4 py-1.5 text-sm font-semibold transition-all duration-500 ${statusColor} ${justChanged ? "scale-105 shadow-md" : ""}`}
+          className={`inline-flex items-center rounded-full px-4 py-1.5 font-semibold text-sm transition-all duration-500 ${statusColor} ${justChanged ? "scale-105 shadow-md" : ""}`}
         >
           {STATUS_LABELS[status] ?? status}
         </span>
 
         {connState === "connected" && (
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-600">
+          <span className="inline-flex items-center gap-1.5 font-medium text-green-600 text-xs">
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
@@ -169,18 +186,22 @@ export default function OrderStatusTracker({
         )}
 
         {connState === "connecting" && (
-          <span className="text-xs text-gray-400">Menghubungkan…</span>
+          <span className="text-gray-400 text-xs">Menghubungkan…</span>
         )}
 
         {connState === "disconnected" && (
-          <span className="text-xs text-orange-500">Mencoba menghubungkan ulang…</span>
+          <span className="text-orange-500 text-xs">
+            Mencoba menghubungkan ulang…
+          </span>
         )}
 
         {lastUpdated && (
-          <span className="text-xs text-gray-400">
+          <span className="text-gray-400 text-xs">
             Diperbarui{" "}
             {lastUpdated.toLocaleTimeString("id-ID", {
-              hour: "2-digit", minute: "2-digit", second: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
             })}
           </span>
         )}
@@ -188,11 +209,22 @@ export default function OrderStatusTracker({
 
       {/* ── Status changed toast ─────────────────────────────────────────── */}
       {justChanged && (
-        <div className="flex items-center gap-2 rounded-xl border border-green-100 bg-green-50 px-4 py-3 text-sm text-green-800 shadow-sm">
-          <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        <div className="flex items-center gap-2 rounded-xl border border-green-100 bg-green-50 px-4 py-3 text-green-800 text-sm shadow-sm">
+          <svg
+            className="h-4 w-4 shrink-0"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M5 13l4 4L19 7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
-          Status pesanan diperbarui ke <strong className="ml-1">{STATUS_LABELS[status] ?? status}</strong>
+          Status pesanan diperbarui ke{" "}
+          <strong className="ml-1">{STATUS_LABELS[status] ?? status}</strong>
         </div>
       )}
 
@@ -201,19 +233,21 @@ export default function OrderStatusTracker({
         <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
           <div className="relative flex items-start justify-between gap-2">
             {TIMELINE_STEPS.map((step, i) => {
-              const done   = currentStepIdx >= i;
+              const done = currentStepIdx >= i;
               const active = currentStepIdx === i;
-              const entry  = history.find((e) => e.status === step.key);
+              const entry = history.find((e) => e.status === step.key);
 
               return (
                 <div
-                  key={step.key}
                   className="relative z-10 flex flex-1 flex-col items-center gap-1 text-center"
+                  key={step.key}
                 >
                   {i < TIMELINE_STEPS.length - 1 && (
                     <div
-                      className={`absolute left-1/2 top-4 h-0.5 w-full -translate-y-1/2 transition-colors duration-700 ${
-                        done && currentStepIdx > i ? "bg-green-400" : "bg-gray-200"
+                      className={`absolute top-4 left-1/2 h-0.5 w-full -translate-y-1/2 transition-colors duration-700 ${
+                        done && currentStepIdx > i
+                          ? "bg-green-400"
+                          : "bg-gray-200"
                       }`}
                     />
                   )}
@@ -232,11 +266,15 @@ export default function OrderStatusTracker({
                         <svg
                           className="h-4 w-4 text-white"
                           fill="none"
-                          viewBox="0 0 24 24"
                           stroke="currentColor"
                           strokeWidth={3}
+                          viewBox="0 0 24 24"
                         >
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          <path
+                            d="M5 13l4 4L19 7"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
                         </svg>
                       )
                     ) : (
@@ -253,7 +291,9 @@ export default function OrderStatusTracker({
                   </p>
 
                   {entry && (
-                    <p className="text-[10px] text-gray-400">{formatDT(entry.timestamp)}</p>
+                    <p className="text-[10px] text-gray-400">
+                      {formatDT(entry.timestamp)}
+                    </p>
                   )}
                 </div>
               );
@@ -269,10 +309,12 @@ export default function OrderStatusTracker({
           <div>
             <p className="font-semibold">{STATUS_LABELS[status] ?? status}</p>
             {cancellationReason && (
-              <p className="mt-0.5 text-sm">Alasan: {cancellationReason.replace(/_/g, " ")}</p>
+              <p className="mt-0.5 text-sm">
+                Alasan: {cancellationReason.replace(/_/g, " ")}
+              </p>
             )}
             {cancellationNote && (
-              <p className="text-sm text-red-600">{cancellationNote}</p>
+              <p className="text-red-600 text-sm">{cancellationNote}</p>
             )}
           </div>
         </div>

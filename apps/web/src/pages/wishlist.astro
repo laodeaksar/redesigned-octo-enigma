@@ -1,15 +1,15 @@
 ---
 import BaseLayout from "@/components/layout/BaseLayout.astro";
-import ProductCard from "@/components/shared/ProductCard.astro";
 import Pagination from "@/components/shared/Pagination.astro";
-import { requireAuth, getTokenFromCookies } from "@/lib/auth";
+import ProductCard from "@/components/shared/ProductCard.astro";
 import { api, type WishlistItem } from "@/lib/api";
+import { getTokenFromCookies, requireAuth } from "@/lib/auth";
 
-const user = await requireAuth(Astro.cookies, `/auth/login?redirect=/checkout`);
+const user = await requireAuth(Astro.cookies, "/auth/login?redirect=/checkout");
 const token = getTokenFromCookies(Astro.cookies)!;
 
 const { searchParams } = Astro.url;
-const page = parseInt(searchParams.get("page") ?? "1", 10);
+const page = Number.parseInt(searchParams.get("page") ?? "1", 10);
 
 let wishlists: WishlistItem[] = [];
 let totalPages = 1;

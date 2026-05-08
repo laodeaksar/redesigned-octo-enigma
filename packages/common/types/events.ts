@@ -9,15 +9,14 @@
 // ── Auth ──────────────────────────────────────────────────────────────────────
 
 export interface WelcomeEmailJobData {
-  userId: string;
   email: string;
   name: string;
+  userId: string;
 }
 
 export interface OrderConfirmationEmailJobData {
-  orderId: string;
-  orderNumber: string;
   email: string;
+  expiresAt: string;
   items: Array<{
     name: string;
     variantName: string;
@@ -25,6 +24,8 @@ export interface OrderConfirmationEmailJobData {
     unitPrice: number;
     subtotal: number;
   }>;
+  orderId: string;
+  orderNumber: string;
   pricing: {
     subtotal: number;
     shippingCost: number;
@@ -44,47 +45,46 @@ export interface OrderConfirmationEmailJobData {
       postalCode: string;
     };
   };
-  expiresAt: string;
 }
 
 export interface OrderShippedEmailJobData {
-  orderId: string;
-  orderNumber: string;
-  email: string;
-  courier: string;
-  trackingNumber: string | null;
   address: {
     recipientName: string;
     city: string;
     province: string;
   };
+  courier: string;
+  email: string;
+  orderId: string;
+  orderNumber: string;
+  trackingNumber: string | null;
 }
 
 export interface OrderCancelledEmailJobData {
+  email: string;
+  grandTotal: number;
   orderId: string;
   orderNumber: string;
-  email: string;
   reason: string | null;
-  grandTotal: number;
 }
 
 export interface PasswordResetEmailJobData {
-  userId: string;
   email: string;
-  resetToken: string;
   expiresAt: string;
+  resetToken: string;
+  userId: string;
 }
 
 // ── Product ───────────────────────────────────────────────────────────────────
 
 export interface StockDeductJobData {
-  orderId: string;
   items: Array<{ variantId: string; quantity: number }>;
+  orderId: string;
 }
 
 export interface StockRestoreJobData {
-  orderId: string;
   items: Array<{ variantId: string; quantity: number }>;
+  orderId: string;
 }
 
 // ── Order ─────────────────────────────────────────────────────────────────────
@@ -96,10 +96,10 @@ export interface OrderExpirySweepJobData {
 
 export interface OrderPaymentConfirmedJobData {
   orderId: string;
-  paymentId: string;
   paidAt: string;
+  paymentId: string;
 }
 
+export type { QueueName } from "../events/queue-names";
 // ── Queue name constant (kept for backward compat with import paths) ──────────
 export { QUEUES } from "../events/queue-names";
-export type { QueueName } from "../events/queue-names";

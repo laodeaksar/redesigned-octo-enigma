@@ -5,7 +5,8 @@
 
 import type { APIRoute } from "astro";
 
-const GW = (import.meta.env.PUBLIC_API_URL as string) ?? "http://localhost:3000";
+const GW =
+  (import.meta.env.PUBLIC_API_URL as string) ?? "http://localhost:3000";
 
 export const GET: APIRoute = async ({ url, cookies }) => {
   const token = cookies.get("web_access_token")?.value;
@@ -29,7 +30,10 @@ export const GET: APIRoute = async ({ url, cookies }) => {
     });
   } catch {
     return new Response(
-      JSON.stringify({ success: false, error: { code: "GATEWAY_ERROR", message: "Service unavailable" } }),
+      JSON.stringify({
+        success: false,
+        error: { code: "GATEWAY_ERROR", message: "Service unavailable" },
+      }),
       { status: 503, headers: { "Content-Type": "application/json" } }
     );
   }

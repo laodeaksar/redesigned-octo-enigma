@@ -2,16 +2,14 @@
 // Elysia app factory
 // =============================================================================
 
-import Elysia from "elysia";
 import { cors } from "@elysiajs/cors";
-
 import { elysiaErrorHandler } from "@repo/common/errors";
-
-import { swaggerPlugin } from "@/plugins/swagger.plugin";
+import Elysia from "elysia";
+import { env } from "@/config";
+import { metricsRoutes } from "@/metrics";
 import { healthRoutes } from "@/modules/health/health.routes";
 import { paymentsRoutes } from "@/modules/payments/payments.routes";
-import { metricsRoutes } from "@/metrics";
-import { env } from "@/config";
+import { swaggerPlugin } from "@/plugins/swagger.plugin";
 
 export function createApp() {
   return new Elysia()
@@ -27,7 +25,7 @@ export function createApp() {
           "x-webhook-source",
         ],
         methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-      }),
+      })
     )
     .use(swaggerPlugin)
     .onError(elysiaErrorHandler)

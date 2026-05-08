@@ -18,14 +18,14 @@ export type OAuthProvider = "google" | "github";
 // ── Core Entity ───────────────────────────────────────────────────────────────
 
 export interface User {
-  id: string;
-  email: string;
-  name: string;
   avatarUrl: string | null;
+  createdAt: Date;
+  email: string;
+  emailVerified: boolean;
+  id: string;
+  name: string;
   role: UserRole;
   status: UserStatus;
-  emailVerified: boolean;
-  createdAt: Date;
   updatedAt: Date;
 }
 
@@ -45,68 +45,68 @@ export type UserSummary = Pick<User, "id" | "name" | "avatarUrl">;
 // ── OAuth ─────────────────────────────────────────────────────────────────────
 
 export interface OAuthAccount {
+  accessToken: string | null;
+  createdAt: Date;
+  expiresAt: Date | null;
   id: string;
-  userId: string;
   provider: OAuthProvider;
   providerAccountId: string;
-  accessToken: string | null;
   refreshToken: string | null;
-  expiresAt: Date | null;
-  createdAt: Date;
+  userId: string;
 }
 
 // ── Sessions & Tokens ─────────────────────────────────────────────────────────
 
 /** Payload encoded inside a JWT access token */
 export interface JwtPayload {
-  sub: string; // userId
   email: string;
-  role: UserRole;
-  iat: number;
   exp: number;
+  iat: number;
+  role: UserRole;
+  sub: string; // userId
 }
 
 /** Payload encoded inside a JWT refresh token */
 export interface RefreshTokenPayload {
-  sub: string; // userId
-  jti: string; // unique token ID (for revocation)
-  iat: number;
   exp: number;
+  iat: number;
+  jti: string; // unique token ID (for revocation)
+  sub: string; // userId
 }
 
 export interface Session {
-  id: string;
-  userId: string;
-  token: string;
-  expiresAt: Date;
   createdAt: Date;
-  userAgent: string | null;
+  expiresAt: Date;
+  id: string;
   ipAddress: string | null;
+  token: string;
+  userAgent: string | null;
+  userId: string;
 }
 
 /** Injected by api-gateway into internal request headers */
 export interface RequestUser {
-  id: string;
   email: string;
+  id: string;
   role: UserRole;
 }
 
 // ── Address ───────────────────────────────────────────────────────────────────
 
 export interface Address {
-  id: string;
-  userId: string;
-  label: string; // e.g. "Home", "Office"
-  recipientName: string;
-  phone: string;
-  street: string;
   city: string;
-  province: string;
-  postalCode: string;
   country: string;
-  isDefault: boolean;
   createdAt: Date;
+  id: string;
+  isDefault: boolean;
+  label: string; // e.g. "Home", "Office"
+  phone: string;
+  postalCode: string;
+  province: string;
+  recipientName: string;
+  street: string;
   updatedAt: Date;
+  userId: string;
 }
 
 export type AddressSummary = Pick<

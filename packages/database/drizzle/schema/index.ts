@@ -5,112 +5,100 @@
 
 // ── Shared helpers & enums ────────────────────────────────────────────────────
 export {
+  discountTypeEnum,
+  oauthProviderEnum,
+  paymentMethodEnum,
+  paymentStatusEnum,
   primaryId,
-  timestamps,
+  productStatusEnum,
   softDelete,
+  stockAdjustmentReasonEnum,
+  timestamps,
   userRoleEnum,
   userStatusEnum,
-  oauthProviderEnum,
-  productStatusEnum,
-  stockAdjustmentReasonEnum,
-  paymentStatusEnum,
-  paymentMethodEnum,
-  discountTypeEnum,
 } from "./_helpers";
-
-// ── Auth service tables ───────────────────────────────────────────────────────
-export {
-  usersTable,
-  usersRelations,
-} from "./users";
-export type { UserRow, NewUserRow } from "./users";
-
-export {
-  sessionsTable,
-  sessionsRelations,
-} from "./sessions";
-export type { SessionRow, NewSessionRow } from "./sessions";
-
-export {
-  accountsTable,
-  accountsRelations,
-} from "./accounts";
 export type { AccountRow, NewAccountRow } from "./accounts";
-
-export { verificationsTable } from "./verifications";
-export type { VerificationRow, NewVerificationRow } from "./verifications";
-
 export {
-  oauthAccountsTable,
-  oauthAccountsRelations,
-} from "./oauth-accounts";
-export type { OAuthAccountRow, NewOAuthAccountRow } from "./oauth-accounts";
-
-export {
-  addressesTable,
-  addressesRelations,
-} from "./addresses";
+  accountsRelations,
+  accountsTable,
+} from "./accounts";
 export type { AddressRow, NewAddressRow } from "./addresses";
-
-// ── Product service tables ────────────────────────────────────────────────────
 export {
-  categoriesTable,
-  categoriesRelations,
-} from "./categories";
-export type { CategoryRow, NewCategoryRow } from "./categories";
-
-export {
-  productsTable,
-  productsRelations,
-} from "./products";
-export type { ProductRow, NewProductRow } from "./products";
-
-export {
-  productVariantsTable,
-  productVariantsRelations,
-} from "./product-variants";
-export type { ProductVariantRow, NewProductVariantRow } from "./product-variants";
-
-export {
-  productImagesTable,
-  productImagesRelations,
-} from "./product-images";
-export type { ProductImageRow, NewProductImageRow } from "./product-images";
-
-export {
-  productReviewsTable,
-  productReviewsRelations,
-} from "./product-reviews";
-export type { ProductReviewRow, NewProductReviewRow } from "./product-reviews";
-
-// ── Payment service tables ────────────────────────────────────────────────────
-export {
-  paymentsTable,
-  paymentsRelations,
-} from "./payments";
-export type { PaymentRow, NewPaymentRow } from "./payments";
-
-export {
-  refundsTable,
-  refundsRelations,
-} from "./refunds";
-export type { RefundRow, NewRefundRow } from "./refunds";
-
-// ── Shared tables ─────────────────────────────────────────────────────────────
-export { vouchersTable } from "./vouchers";
-export type { VoucherRow, NewVoucherRow } from "./vouchers";
-
-export { wishlistsTable } from "./wishlist";
-export type { Wishlist, NewWishlist } from "./wishlist";
-
-// ── Push notifications ────────────────────────────────────────────────────────
-export { pushSubscriptionsTable } from "./push-subscriptions";
-export type { PushSubscriptionRow, NewPushSubscriptionRow } from "./push-subscriptions";
-
+  addressesRelations,
+  addressesTable,
+} from "./addresses";
+export type { AuditLogRow, NewAuditLogRow } from "./audit-logs";
 // ── Security audit log ────────────────────────────────────────────────────────
 export { auditLogsTable } from "./audit-logs";
-export type { AuditLogRow, NewAuditLogRow } from "./audit-logs";
-
+export type { CategoryRow, NewCategoryRow } from "./categories";
+// ── Product service tables ────────────────────────────────────────────────────
+export {
+  categoriesRelations,
+  categoriesTable,
+} from "./categories";
+export type { NewOAuthAccountRow, OAuthAccountRow } from "./oauth-accounts";
+export {
+  oauthAccountsRelations,
+  oauthAccountsTable,
+} from "./oauth-accounts";
+export type { NewPaymentRow, PaymentRow } from "./payments";
+// ── Payment service tables ────────────────────────────────────────────────────
+export {
+  paymentsRelations,
+  paymentsTable,
+} from "./payments";
+export type { NewProductImageRow, ProductImageRow } from "./product-images";
+export {
+  productImagesRelations,
+  productImagesTable,
+} from "./product-images";
+export type { NewProductReviewRow, ProductReviewRow } from "./product-reviews";
+export {
+  productReviewsRelations,
+  productReviewsTable,
+} from "./product-reviews";
+export type {
+  NewProductVariantRow,
+  ProductVariantRow,
+} from "./product-variants";
+export {
+  productVariantsRelations,
+  productVariantsTable,
+} from "./product-variants";
+export type { NewProductRow, ProductRow } from "./products";
+export {
+  productsRelations,
+  productsTable,
+} from "./products";
+export type {
+  NewPushSubscriptionRow,
+  PushSubscriptionRow,
+} from "./push-subscriptions";
+// ── Push notifications ────────────────────────────────────────────────────────
+export { pushSubscriptionsTable } from "./push-subscriptions";
+export type { NewRefundRow, RefundRow } from "./refunds";
+export {
+  refundsRelations,
+  refundsTable,
+} from "./refunds";
+export type { NewSessionRow, SessionRow } from "./sessions";
+export {
+  sessionsRelations,
+  sessionsTable,
+} from "./sessions";
+export type { NewUserRow, UserRow } from "./users";
+// ── Auth service tables ───────────────────────────────────────────────────────
+export {
+  usersRelations,
+  usersTable,
+} from "./users";
+export type { NewVerificationRow, VerificationRow } from "./verifications";
+export { verificationsTable } from "./verifications";
+export type { NewVoucherRow, VoucherRow } from "./vouchers";
+// ── Shared tables ─────────────────────────────────────────────────────────────
+export { vouchersTable } from "./vouchers";
+export type { NewWebhookEventRow, WebhookEventRow } from "./webhook-events";
 // ── Webhook event log ─────────────────────────────────────────────────────────
 export { webhookEventsTable } from "./webhook-events";
-export type { WebhookEventRow, NewWebhookEventRow } from "./webhook-events";
+export type { NewWishlist, Wishlist } from "./wishlist";
+export { wishlistsTable } from "./wishlist";

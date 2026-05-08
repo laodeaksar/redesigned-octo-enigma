@@ -3,11 +3,13 @@
 // =============================================================================
 
 import type {
-  WelcomeEmailJobData,
   PasswordResetEmailJobData,
+  WelcomeEmailJobData,
 } from "@repo/common/types";
 
-export async function publishUserRegistered(_payload: WelcomeEmailJobData): Promise<void> {
+export async function publishUserRegistered(
+  _payload: WelcomeEmailJobData
+): Promise<void> {
   // No-op: BullMQ/Redis not available in this environment
 }
 

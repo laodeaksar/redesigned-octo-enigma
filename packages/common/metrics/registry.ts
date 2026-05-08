@@ -5,29 +5,29 @@
 // =============================================================================
 
 import {
-  Registry,
+  Counter,
   collectDefaultMetrics,
   Gauge,
-  Counter,
   Histogram,
+  Registry,
   Summary,
 } from "prom-client";
 
-// Re-export prom-client primitives for convenience
-export { Gauge, Counter, Histogram, Summary };
 export type { Registry };
+// Re-export prom-client primitives for convenience
+export { Counter, Gauge, Histogram, Summary };
 
 // ── Factory ───────────────────────────────────────────────────────────────────
 
 export interface CreateRegistryOptions {
-  /** Service name label added to every metric e.g. "api-gateway" */
-  serviceName: string;
-  /** Environment label e.g. "production" */
-  env?: string;
   /** Collect Node.js default metrics (CPU, memory, GC). Default: true */
   collectDefaults?: boolean;
   /** Default metrics collection interval ms. Default: 10000 */
   defaultMetricsInterval?: number;
+  /** Environment label e.g. "production" */
+  env?: string;
+  /** Service name label added to every metric e.g. "api-gateway" */
+  serviceName: string;
 }
 
 /**
@@ -51,8 +51,8 @@ export function createRegistry(opts: CreateRegistryOptions): Registry {
   if (collectDefaults) {
     collectDefaultMetrics({
       register: registry,
-      prefix:   "nodejs_",
-      labels:   { service: serviceName, env },
+      prefix: "nodejs_",
+      labels: { service: serviceName, env },
       gcDurationBuckets: [0.001, 0.01, 0.1, 1, 2, 5],
     });
   }
@@ -71,4 +71,3 @@ export async function getMetricsOutput(registry: Registry): Promise<string> {
 }
 
 export const CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8";
-

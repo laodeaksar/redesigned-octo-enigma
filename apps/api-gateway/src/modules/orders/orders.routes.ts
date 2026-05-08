@@ -22,46 +22,45 @@
 // =============================================================================
 
 import { Hono } from "hono";
-
-import {
-  requireAuth,
-  requireRole,
-} from "@/middleware/auth.middleware";
-import {
-  defaultRateLimit,
-  checkoutRateLimit,
-} from "@/middleware/rate-limit.middleware";
-import { proxyRequest, buildTargetUrl } from "@/lib/proxy";
 import { SERVICES } from "@/config";
 import { cartUndoManager } from "@/lib/cart-undo-manager";
 import { logger } from "@/lib/logger";
+import { buildTargetUrl, proxyRequest } from "@/lib/proxy";
+import { requireAuth, requireRole } from "@/middleware/auth.middleware";
+import {
+  checkoutRateLimit,
+  defaultRateLimit,
+} from "@/middleware/rate-limit.middleware";
 
 const app = new Hono();
 const orderBase = SERVICES.order;
 
 // ── Block internal-only endpoints from external clients ───────────────────────
 const internalBlocked = (c: any) =>
-  c.json({ success: false, error: { code: "FORBIDDEN", message: "Access denied" } }, 403);
+  c.json(
+    { success: false, error: { code: "FORBIDDEN", message: "Access denied" } },
+    403
+  );
 
 app.post("/orders/:id/paid", internalBlocked);
-app.post("/orders/expire",   internalBlocked);
+app.post("/orders/expire", internalBlocked);
 app.get("/orders/:id/verify-purchase", internalBlocked);
 
 // ── Customer: create order ────────────────────────────────────────────────────
-app.post("/orders", requireAuth, checkoutRateLimit, async (c) => {
-  return proxyRequest(c, {
+app.post("/orders", requireAuth, checkoutRateLimit, async (c) =>
+  proxyRequest(c, {
     target: buildTargetUrl(orderBase, c),
     user: c.var.user,
-  });
-});
+  })
+);
 
 // ── Customer: my orders ───────────────────────────────────────────────────────
-app.get("/orders/me", requireAuth, defaultRateLimit, async (c) => {
-  return proxyRequest(c, {
+app.get("/orders/me", requireAuth, defaultRateLimit, async (c) =>
+  proxyRequest(c, {
     target: buildTargetUrl(orderBase, c),
     user: c.var.user,
-  });
-});
+  })
+);
 
 // ── Customer: SSE order status stream (bypasses circuit-breaker timeout) ─────
 app.get("/orders/:id/stream", requireAuth, async (c) => {
@@ -72,7 +71,10 @@ app.get("/orders/:id/stream", requireAuth, async (c) => {
   headers.set("x-user-id", user.id);
   headers.set("x-user-email", user.email);
   headers.set("x-user-role", user.role);
-  headers.set("x-request-id", c.req.header("x-request-id") ?? crypto.randomUUID());
+  headers.set(
+    "x-request-id",
+    c.req.header("x-request-id") ?? crypto.randomUUID()
+  );
   headers.set("Accept", "text/event-stream");
   headers.set("Cache-Control", "no-cache");
 
@@ -87,33 +89,39 @@ app.get("/orders/:id/stream", requireAuth, async (c) => {
       headers: {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
+        Connection: "keep-alive",
         "X-Accel-Buffering": "no",
       },
     });
   } catch {
     return c.json(
-      { success: false, error: { code: "SERVICE_UNAVAILABLE", message: "Order service unavailable" } },
+      {
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Order service unavailable",
+        },
+      },
       503
     );
   }
 });
 
 // ── Customer: get order detail ────────────────────────────────────────────────
-app.get("/orders/:id", requireAuth, defaultRateLimit, async (c) => {
-  return proxyRequest(c, {
+app.get("/orders/:id", requireAuth, defaultRateLimit, async (c) =>
+  proxyRequest(c, {
     target: buildTargetUrl(orderBase, c),
     user: c.var.user,
-  });
-});
+  })
+);
 
 // ── Customer: cancel order ────────────────────────────────────────────────────
-app.post("/orders/:id/cancel", requireAuth, defaultRateLimit, async (c) => {
-  return proxyRequest(c, {
+app.post("/orders/:id/cancel", requireAuth, defaultRateLimit, async (c) =>
+  proxyRequest(c, {
     target: buildTargetUrl(orderBase, c),
     user: c.var.user,
-  });
-});
+  })
+);
 
 // ── Admin: list all orders ────────────────────────────────────────────────────
 app.get(
@@ -132,25 +140,37 @@ app.patch(
   requireRole("admin", "super_admin"),
   defaultRateLimit,
   async (c) => {
-    const id       = c.req.param("id");
-    const response = await proxyRequest(c, { target: buildTargetUrl(orderBase, c), user: c.var.user });
+    const id = c.req.param("id");
+    const response = await proxyRequest(c, {
+      target: buildTargetUrl(orderBase, c),
+      user: c.var.user,
+    });
 
     if (response.ok) {
       // Clone response to read status without consuming the original stream
-      response.clone().json().then((body: any) => {
-        const newStatus   = body?.data?.status   as string | undefined;
-        const orderNumber = body?.data?.orderNumber as string | undefined;
-        if (newStatus) {
-          fetch("http://localhost:5000/api/push/notify", {
-            method:  "POST",
-            headers: {
-              "Content-Type":   "application/json",
-              "x-internal-key": process.env.INTERNAL_NOTIFY_KEY ?? "push-notify-internal",
-            },
-            body: JSON.stringify({ orderId: id, status: newStatus, orderNumber }),
-          }).catch(() => {});
-        }
-      }).catch(() => {});
+      response
+        .clone()
+        .json()
+        .then((body: any) => {
+          const newStatus = body?.data?.status as string | undefined;
+          const orderNumber = body?.data?.orderNumber as string | undefined;
+          if (newStatus) {
+            fetch("http://localhost:5000/api/push/notify", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "x-internal-key":
+                  process.env.INTERNAL_NOTIFY_KEY ?? "push-notify-internal",
+              },
+              body: JSON.stringify({
+                orderId: id,
+                status: newStatus,
+                orderNumber,
+              }),
+            }).catch(() => {});
+          }
+        })
+        .catch(() => {});
     }
 
     return response;
@@ -158,15 +178,19 @@ app.patch(
 );
 
 // ── Vouchers: validate (authenticated customer) ───────────────────────────────
-app.post("/vouchers/validate", requireAuth, defaultRateLimit, async (c) => {
-  return proxyRequest(c, {
+app.post("/vouchers/validate", requireAuth, defaultRateLimit, async (c) =>
+  proxyRequest(c, {
     target: buildTargetUrl(orderBase, c),
     user: c.var.user,
-  });
-});
+  })
+);
 
 // ── Vouchers: admin CRUD ──────────────────────────────────────────────────────
-const adminMw = [requireAuth, requireRole("admin", "super_admin"), defaultRateLimit] as const;
+const adminMw = [
+  requireAuth,
+  requireRole("admin", "super_admin"),
+  defaultRateLimit,
+] as const;
 
 app.get("/vouchers", ...adminMw, async (c) =>
   proxyRequest(c, { target: buildTargetUrl(orderBase, c), user: c.var.user })
@@ -201,15 +225,19 @@ app.delete("/cart/items/:itemId", requireAuth, defaultRateLimit, async (c) => {
   const productData = {
     productId: "mock-product-id",
     quantity: 1,
-    unitPrice: 0
+    unitPrice: 0,
   };
 
-  const pendingItem = cartUndoManager.scheduleItemDeletion(userId, cartItemId, productData);
+  const pendingItem = cartUndoManager.scheduleItemDeletion(
+    userId,
+    cartItemId,
+    productData
+  );
 
   logger.info("Cart item delete scheduled with undo", {
     userId,
     cartItemId,
-    deletionId: pendingItem.id
+    deletionId: pendingItem.id,
   });
 
   return c.json({
@@ -218,29 +246,38 @@ app.delete("/cart/items/:itemId", requireAuth, defaultRateLimit, async (c) => {
       deletionId: pendingItem.id,
       undoAvailable: true,
       undoWindowMs: 8000,
-      message: "Item telah dihapus. Klik batalkan untuk mengembalikan."
-    }
+      message: "Item telah dihapus. Klik batalkan untuk mengembalikan.",
+    },
   });
 });
 
 /**
  * Batalkan penghapusan item keranjang
  */
-app.post("/cart/undo-delete/:deletionId", requireAuth, defaultRateLimit, async (c) => {
-  const userId = c.var.user.id;
-  const deletionId = c.req.param("deletionId");
+app.post(
+  "/cart/undo-delete/:deletionId",
+  requireAuth,
+  defaultRateLimit,
+  async (c) => {
+    const userId = c.var.user.id;
+    const deletionId = c.req.param("deletionId");
 
-  const result = await cartUndoManager.undoItemDeletion(deletionId, userId);
+    const result = await cartUndoManager.undoItemDeletion(deletionId, userId);
 
-  return c.json({
-    success: result.success,
-    message: result.message,
-    data: result.item ? {
-      item: result.item,
-      remainingTime: result.remainingTime
-    } : undefined
-  }, result.success ? 200 : 409);
-});
+    return c.json(
+      {
+        success: result.success,
+        message: result.message,
+        data: result.item
+          ? {
+              item: result.item,
+              remainingTime: result.remainingTime,
+            }
+          : undefined,
+      },
+      result.success ? 200 : 409
+    );
+  }
+);
 
 export { app as ordersRoutes };
-

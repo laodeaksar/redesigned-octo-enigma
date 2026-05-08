@@ -41,9 +41,10 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
   // Redirect logged-in users away from auth pages
   if (pathname.startsWith("/auth/")) {
     const token = ctx.cookies.get("web_access_token")?.value;
-    if (token) return ctx.redirect("/");
+    if (token) {
+      return ctx.redirect("/");
+    }
   }
 
   return next();
 });
-

@@ -2,19 +2,20 @@
 // Elysia app factory
 // =============================================================================
 
-import Elysia from "elysia";
 import { cors } from "@elysiajs/cors";
-
 import { elysiaErrorHandler } from "@repo/common/errors";
-
-import { swaggerPlugin } from "@/plugins/swagger.plugin";
-import { healthRoutes } from "@/modules/health/health.routes";
-import { ordersRoutes, ordersInternalRoutes } from "@/modules/orders/orders.routes";
-import { vouchersRoutes } from "@/modules/vouchers/vouchers.routes";
-import { shippingRoutes } from "@/modules/shipping/shipping.routes";
-import { analyticsRoutes } from "@/modules/analytics/analytics.routes";
-import { metricsRoutes } from "@/metrics";
+import Elysia from "elysia";
 import { env } from "@/config";
+import { metricsRoutes } from "@/metrics";
+import { analyticsRoutes } from "@/modules/analytics/analytics.routes";
+import { healthRoutes } from "@/modules/health/health.routes";
+import {
+  ordersInternalRoutes,
+  ordersRoutes,
+} from "@/modules/orders/orders.routes";
+import { shippingRoutes } from "@/modules/shipping/shipping.routes";
+import { vouchersRoutes } from "@/modules/vouchers/vouchers.routes";
+import { swaggerPlugin } from "@/plugins/swagger.plugin";
 
 export function createApp() {
   return new Elysia()

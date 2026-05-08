@@ -226,10 +226,14 @@ export function success<T>(data: T, message?: string) {
  */
 export function paginated<T>(
   items: T[],
-  meta: { total: number; page: number; limit: number },
+  meta: { total: number; page: number; limit: number }
 ) {
-  if (meta.limit <= 0) throw new Error("Limit must be > 0");
-  if (meta.page <= 0) throw new Error("Page must be > 0");
+  if (meta.limit <= 0) {
+    throw new Error("Limit must be > 0");
+  }
+  if (meta.page <= 0) {
+    throw new Error("Page must be > 0");
+  }
 
   const totalPages = meta.total === 0 ? 0 : Math.ceil(meta.total / meta.limit);
   return {
@@ -253,7 +257,7 @@ export function paginated<T>(
 export function failure(
   code: ApiErrorCode,
   message: string,
-  details?: Array<{ field: string; message: string }>,
+  details?: Array<{ field: string; message: string }>
 ) {
   return {
     success: false as const,

@@ -2,9 +2,9 @@
 // Config — validated env + singleton DB, Redis, S3, and BullMQ queue clients
 // =============================================================================
 
-import { env as rawEnv } from "@repo/env/product-service";
-import { createDrizzleClient } from "@repo/database/drizzle";
 import { S3Client } from "@aws-sdk/client-s3";
+import { createDrizzleClient } from "@repo/database/drizzle";
+import { env as rawEnv } from "@repo/env/product-service";
 
 export const env = rawEnv;
 
@@ -52,7 +52,9 @@ export async function initRedis(): Promise<boolean> {
       retryStrategy: (times) => Math.min(times * 200, 2000),
       lazyConnect: true,
     });
-    _cacheRedis.on("error", (err) => console.warn("[Redis:cache] Error:", err.message));
+    _cacheRedis.on("error", (err) =>
+      console.warn("[Redis:cache] Error:", err.message)
+    );
     await _cacheRedis.connect().catch(() => {});
 
     return true;
@@ -85,7 +87,7 @@ export function getPublisher() {
 // ── Null-safe queue stubs ─────────────────────────────────────────────────────
 
 export const queues = {
-  stockDeduct:  null as null,
+  stockDeduct: null as null,
   stockRestore: null as null,
 } as const;
 

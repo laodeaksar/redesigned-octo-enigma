@@ -3,14 +3,12 @@
 // Creates sample products with variants and images per category
 // =============================================================================
 
-import { eq } from "drizzle-orm";
-
 import type { DrizzleClient } from "../drizzle/client";
 import {
   categoriesTable,
+  productImagesTable,
   productsTable,
   productVariantsTable,
-  productImagesTable,
 } from "../drizzle/schema";
 
 // ── Placeholder image generator ───────────────────────────────────────────────
@@ -80,9 +78,21 @@ const PRODUCTS: ProductSeed[] = [
       },
     ],
     images: [
-      { url: img(800, 800, "TechPro X15"), altText: "TechPro X15 tampak depan", isPrimary: true },
-      { url: img(800, 800, "X15 Kamera"), altText: "TechPro X15 modul kamera", isPrimary: false },
-      { url: img(800, 800, "X15 Samping"), altText: "TechPro X15 tampak samping", isPrimary: false },
+      {
+        url: img(800, 800, "TechPro X15"),
+        altText: "TechPro X15 tampak depan",
+        isPrimary: true,
+      },
+      {
+        url: img(800, 800, "X15 Kamera"),
+        altText: "TechPro X15 modul kamera",
+        isPrimary: false,
+      },
+      {
+        url: img(800, 800, "X15 Samping"),
+        altText: "TechPro X15 tampak samping",
+        isPrimary: false,
+      },
     ],
   },
 
@@ -101,7 +111,12 @@ const PRODUCTS: ProductSeed[] = [
       {
         sku: "UBP14-i5-16-512",
         name: "Intel i5 / 16GB / 512GB SSD - Space Gray",
-        attributes: { processor: "Intel Core i5", ram: "16GB", storage: "512GB SSD", color: "Space Gray" },
+        attributes: {
+          processor: "Intel Core i5",
+          ram: "16GB",
+          storage: "512GB SSD",
+          color: "Space Gray",
+        },
         price: 12_999_000,
         compareAtPrice: 14_999_000,
         stock: 15,
@@ -110,7 +125,12 @@ const PRODUCTS: ProductSeed[] = [
       {
         sku: "UBP14-i7-16-512",
         name: "Intel i7 / 16GB / 512GB SSD - Silver",
-        attributes: { processor: "Intel Core i7", ram: "16GB", storage: "512GB SSD", color: "Silver" },
+        attributes: {
+          processor: "Intel Core i7",
+          ram: "16GB",
+          storage: "512GB SSD",
+          color: "Silver",
+        },
         price: 16_999_000,
         stock: 10,
         weight: 1350,
@@ -118,15 +138,28 @@ const PRODUCTS: ProductSeed[] = [
       {
         sku: "UBP14-i7-32-1T",
         name: "Intel i7 / 32GB / 1TB SSD - Black",
-        attributes: { processor: "Intel Core i7", ram: "32GB", storage: "1TB SSD", color: "Black" },
+        attributes: {
+          processor: "Intel Core i7",
+          ram: "32GB",
+          storage: "1TB SSD",
+          color: "Black",
+        },
         price: 21_999_000,
         stock: 5,
         weight: 1350,
       },
     ],
     images: [
-      { url: img(800, 600, "UltraBook Pro 14"), altText: "UltraBook Pro 14 tampak atas", isPrimary: true },
-      { url: img(800, 600, "Layar 2K"), altText: "Layar 2K IPS", isPrimary: false },
+      {
+        url: img(800, 600, "UltraBook Pro 14"),
+        altText: "UltraBook Pro 14 tampak atas",
+        isPrimary: true,
+      },
+      {
+        url: img(800, 600, "Layar 2K"),
+        altText: "Layar 2K IPS",
+        isPrimary: false,
+      },
     ],
   },
 
@@ -142,16 +175,66 @@ const PRODUCTS: ProductSeed[] = [
     tags: ["kaos", "fashion-pria", "casual", "cotton"],
     status: "active",
     variants: [
-      { sku: "KAOS-PRIA-S-HTM", name: "S - Hitam", attributes: { size: "S", color: "Hitam" }, price: 89_000, stock: 100, weight: 180 },
-      { sku: "KAOS-PRIA-M-HTM", name: "M - Hitam", attributes: { size: "M", color: "Hitam" }, price: 89_000, stock: 150, weight: 200 },
-      { sku: "KAOS-PRIA-L-HTM", name: "L - Hitam", attributes: { size: "L", color: "Hitam" }, price: 89_000, stock: 120, weight: 220 },
-      { sku: "KAOS-PRIA-XL-HTM", name: "XL - Hitam", attributes: { size: "XL", color: "Hitam" }, price: 89_000, stock: 80, weight: 240 },
-      { sku: "KAOS-PRIA-S-PTH", name: "S - Putih", attributes: { size: "S", color: "Putih" }, price: 89_000, stock: 100, weight: 180 },
-      { sku: "KAOS-PRIA-M-PTH", name: "M - Putih", attributes: { size: "M", color: "Putih" }, price: 89_000, stock: 150, weight: 200 },
+      {
+        sku: "KAOS-PRIA-S-HTM",
+        name: "S - Hitam",
+        attributes: { size: "S", color: "Hitam" },
+        price: 89_000,
+        stock: 100,
+        weight: 180,
+      },
+      {
+        sku: "KAOS-PRIA-M-HTM",
+        name: "M - Hitam",
+        attributes: { size: "M", color: "Hitam" },
+        price: 89_000,
+        stock: 150,
+        weight: 200,
+      },
+      {
+        sku: "KAOS-PRIA-L-HTM",
+        name: "L - Hitam",
+        attributes: { size: "L", color: "Hitam" },
+        price: 89_000,
+        stock: 120,
+        weight: 220,
+      },
+      {
+        sku: "KAOS-PRIA-XL-HTM",
+        name: "XL - Hitam",
+        attributes: { size: "XL", color: "Hitam" },
+        price: 89_000,
+        stock: 80,
+        weight: 240,
+      },
+      {
+        sku: "KAOS-PRIA-S-PTH",
+        name: "S - Putih",
+        attributes: { size: "S", color: "Putih" },
+        price: 89_000,
+        stock: 100,
+        weight: 180,
+      },
+      {
+        sku: "KAOS-PRIA-M-PTH",
+        name: "M - Putih",
+        attributes: { size: "M", color: "Putih" },
+        price: 89_000,
+        stock: 150,
+        weight: 200,
+      },
     ],
     images: [
-      { url: img(600, 800, "Kaos Pria"), altText: "Kaos polos hitam tampak depan", isPrimary: true },
-      { url: img(600, 800, "Kaos Detail"), altText: "Detail bahan kaos", isPrimary: false },
+      {
+        url: img(600, 800, "Kaos Pria"),
+        altText: "Kaos polos hitam tampak depan",
+        isPrimary: true,
+      },
+      {
+        url: img(600, 800, "Kaos Detail"),
+        altText: "Detail bahan kaos",
+        isPrimary: false,
+      },
     ],
   },
 
@@ -187,7 +270,11 @@ const PRODUCTS: ProductSeed[] = [
       },
     ],
     images: [
-      { url: img(600, 800, "Vitamin C Serum"), altText: "Glowing Serum Vitamin C", isPrimary: true },
+      {
+        url: img(600, 800, "Vitamin C Serum"),
+        altText: "Glowing Serum Vitamin C",
+        isPrimary: true,
+      },
     ],
   },
 
@@ -203,15 +290,58 @@ const PRODUCTS: ProductSeed[] = [
     tags: ["sepatu", "olahraga", "lari", "running"],
     status: "draft",
     variants: [
-      { sku: "RF-PRO-40-HTM", name: "40 - Hitam", attributes: { size: "40", color: "Hitam" }, price: 699_000, stock: 20, weight: 560 },
-      { sku: "RF-PRO-41-HTM", name: "41 - Hitam", attributes: { size: "41", color: "Hitam" }, price: 699_000, stock: 25, weight: 580 },
-      { sku: "RF-PRO-42-HTM", name: "42 - Hitam", attributes: { size: "42", color: "Hitam" }, price: 699_000, stock: 30, weight: 600 },
-      { sku: "RF-PRO-43-HTM", name: "43 - Hitam", attributes: { size: "43", color: "Hitam" }, price: 699_000, stock: 25, weight: 620 },
-      { sku: "RF-PRO-44-HTM", name: "44 - Hitam", attributes: { size: "44", color: "Hitam" }, price: 699_000, stock: 15, weight: 640 },
+      {
+        sku: "RF-PRO-40-HTM",
+        name: "40 - Hitam",
+        attributes: { size: "40", color: "Hitam" },
+        price: 699_000,
+        stock: 20,
+        weight: 560,
+      },
+      {
+        sku: "RF-PRO-41-HTM",
+        name: "41 - Hitam",
+        attributes: { size: "41", color: "Hitam" },
+        price: 699_000,
+        stock: 25,
+        weight: 580,
+      },
+      {
+        sku: "RF-PRO-42-HTM",
+        name: "42 - Hitam",
+        attributes: { size: "42", color: "Hitam" },
+        price: 699_000,
+        stock: 30,
+        weight: 600,
+      },
+      {
+        sku: "RF-PRO-43-HTM",
+        name: "43 - Hitam",
+        attributes: { size: "43", color: "Hitam" },
+        price: 699_000,
+        stock: 25,
+        weight: 620,
+      },
+      {
+        sku: "RF-PRO-44-HTM",
+        name: "44 - Hitam",
+        attributes: { size: "44", color: "Hitam" },
+        price: 699_000,
+        stock: 15,
+        weight: 640,
+      },
     ],
     images: [
-      { url: img(800, 600, "RunFast Pro"), altText: "RunFast Pro tampak samping", isPrimary: true },
-      { url: img(800, 600, "RF Sol"), altText: "Detail sol RunFast Pro", isPrimary: false },
+      {
+        url: img(800, 600, "RunFast Pro"),
+        altText: "RunFast Pro tampak samping",
+        isPrimary: true,
+      },
+      {
+        url: img(800, 600, "RF Sol"),
+        altText: "Detail sol RunFast Pro",
+        isPrimary: false,
+      },
     ],
   },
 ];
@@ -234,7 +364,9 @@ export async function seedProducts(db: DrizzleClient): Promise<void> {
   for (const product of PRODUCTS) {
     const categoryId = categoryMap[product.categorySlug];
     if (!categoryId) {
-      console.warn(`   ⚠ Category '${product.categorySlug}' not found — skipping '${product.name}'`);
+      console.warn(
+        `   ⚠ Category '${product.categorySlug}' not found — skipping '${product.name}'`
+      );
       continue;
     }
 
@@ -253,7 +385,9 @@ export async function seedProducts(db: DrizzleClient): Promise<void> {
       .onConflictDoNothing({ target: productsTable.slug })
       .returning({ id: productsTable.id });
 
-    if (!inserted) continue; // already exists
+    if (!inserted) {
+      continue; // already exists
+    }
     productCount++;
 
     // Insert variants
@@ -278,5 +412,7 @@ export async function seedProducts(db: DrizzleClient): Promise<void> {
     imageCount += insertedImages.length;
   }
 
-  console.info(`   ✓ ${productCount} products, ${variantCount} variants, ${imageCount} images inserted`);
+  console.info(
+    `   ✓ ${productCount} products, ${variantCount} variants, ${imageCount} images inserted`
+  );
 }

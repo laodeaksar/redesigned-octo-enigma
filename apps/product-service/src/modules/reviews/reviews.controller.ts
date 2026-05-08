@@ -2,13 +2,11 @@
 // Reviews controller
 // =============================================================================
 
-import { success, paginated } from "@repo/common/schemas";
 import { safeParse } from "@repo/common/errors";
-import { createReviewSchema } from "@repo/common/schemas";
+import { createReviewSchema, paginated, success } from "@repo/common/schemas";
 import type Redis from "ioredis";
-
-import * as service from "./reviews.service";
 import type { DB } from "@/config";
+import * as service from "./reviews.service";
 
 export async function handleList(
   db: DB,
@@ -16,9 +14,18 @@ export async function handleList(
   productId: string,
   query: { page?: string; limit?: string }
 ) {
-  const page = Math.max(1, parseInt(query.page ?? "1", 10));
-  const limit = Math.min(50, Math.max(1, parseInt(query.limit ?? "10", 10)));
-  const { items, total } = await service.listReviews(db, redis, productId, page, limit);
+  const page = Math.max(1, Number.parseInt(query.page ?? "1", 10));
+  const limit = Math.min(
+    50,
+    Math.max(1, Number.parseInt(query.limit ?? "10", 10))
+  );
+  const { items, total } = await service.listReviews(
+    db,
+    redis,
+    productId,
+    page,
+    limit
+  );
   return paginated(items, { total, page, limit });
 }
 
@@ -37,7 +44,10 @@ export async function handleCreate(
   body: unknown
 ) {
   const input = safeParse(createReviewSchema, body);
-  return success(await service.createReview(db, redis, userId, input), "Review submitted");
+  return success(
+    await service.createReview(db, redis, userId, input),
+    "Review submitted"
+  );
 }
 
 export async function handleDelete(
@@ -50,4 +60,3 @@ export async function handleDelete(
   await service.deleteReview(db, redis, reviewId, requesterId, requesterRole);
   return success({ reviewId }, "Review deleted");
 }
-

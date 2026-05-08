@@ -15,7 +15,9 @@ async function bootstrap() {
     console.info("✓ Redis connected (rate limiting active)");
   } else {
     console.warn("⚠ Redis unavailable — rate limiting disabled");
-    if (env.NODE_ENV === "production") process.exit(1);
+    if (env.NODE_ENV === "production") {
+      process.exit(1);
+    }
   }
 
   // ── Threat monitor (background security polling) ──────────────────────────
@@ -34,7 +36,7 @@ async function bootstrap() {
 
   console.info(`✓ api-gateway listening on http://localhost:${env.PORT}`);
   console.info(`✓ API docs available at http://localhost:${env.PORT}/docs`);
-  console.info(`\nDownstream services:`);
+  console.info("\nDownstream services:");
   console.info(`  auth-service    → ${env.AUTH_SERVICE_URL}`);
   console.info(`  product-service → ${env.PRODUCT_SERVICE_URL}`);
   console.info(`  order-service   → ${env.ORDER_SERVICE_URL}`);
@@ -64,4 +66,3 @@ async function bootstrap() {
 }
 
 await bootstrap();
-

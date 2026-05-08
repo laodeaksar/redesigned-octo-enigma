@@ -7,7 +7,7 @@
 // =============================================================================
 
 import { Hono } from "hono";
-import { SERVICES, getRedis } from "@/config";
+import { getRedis, SERVICES } from "@/config";
 import { CircuitBreakerManager } from "@/lib/circuit-breaker";
 import { requireAuth, requireRole } from "@/middleware/auth.middleware";
 
@@ -51,17 +51,20 @@ app.get("/health", async (c) => {
 
   const allOk = Object.values(checks).every((v) => v === "ok");
 
-  return c.json({
-    success: true,
-    data: {
-      status: allOk ? "ok" : "degraded",
-      service: "api-gateway",
-      version: "1.0.0",
-      uptime: process.uptime(),
-      timestamp: new Date(),
-      checks,
+  return c.json(
+    {
+      success: true,
+      data: {
+        status: allOk ? "ok" : "degraded",
+        service: "api-gateway",
+        version: "1.0.0",
+        uptime: process.uptime(),
+        timestamp: new Date(),
+        checks,
+      },
     },
-  }, allOk ? 200 : 207);
+    allOk ? 200 : 207
+  );
 });
 
 // ── Admin: circuit breaker states ─────────────────────────────────────────────
@@ -71,16 +74,21 @@ app.get(
   requireRole("admin", "super_admin"),
   async (c) => {
     const metrics = CircuitBreakerManager.getAllMetrics();
-    const allCircuitsOk = Object.values(metrics).every(m => m.state === "closed");
+    const allCircuitsOk = Object.values(metrics).every(
+      (m) => m.state === "closed"
+    );
 
-    return c.json({
-      success: true,
-      data: {
-        status: allCircuitsOk ? "ok" : "degraded",
-        timestamp: new Date(),
-        circuitBreakers: metrics,
+    return c.json(
+      {
+        success: true,
+        data: {
+          status: allCircuitsOk ? "ok" : "degraded",
+          timestamp: new Date(),
+          circuitBreakers: metrics,
+        },
       },
-    }, allCircuitsOk ? 200 : 207);
+      allCircuitsOk ? 200 : 207
+    );
   }
 );
 

@@ -1,14 +1,14 @@
+import { useStore } from "@nanostores/react";
 import { useEffect, useState } from "react";
 import {
-  $compareList,
   $compareIds,
-  MAX_COMPARE,
+  $compareList,
   addToCompare,
-  removeFromCompare,
-  hydrateCompare,
   type CompareProduct,
+  hydrateCompare,
+  MAX_COMPARE,
+  removeFromCompare,
 } from "@/stores/compare.store";
-import { useStore } from "@nanostores/react";
 
 interface Props {
   product: CompareProduct;
@@ -26,7 +26,9 @@ export default function CompareToggle({ product, size = "sm" }: Props) {
     setHydrated(true);
   }, []);
 
-  if (!hydrated) return null;
+  if (!hydrated) {
+    return null;
+  }
 
   const active = ids.includes(product.id);
   const full = list.length >= MAX_COMPARE && !active;
@@ -51,43 +53,58 @@ export default function CompareToggle({ product, size = "sm" }: Props) {
   return (
     <div className="relative">
       <button
-        type="button"
-        onClick={toggle}
-        disabled={full}
-        title={
-          active ? "Hapus dari perbandingan" :
-          full ? `Maks. ${MAX_COMPARE} produk` :
-          "Bandingkan produk ini"
-        }
-        className={`flex items-center gap-1.5 rounded-md transition-colors text-xs font-medium
-          ${isSmall ? "px-2 py-1" : "px-3 py-1.5"}
-          ${active
-            ? "bg-brand-500 text-white hover:bg-brand-600"
-            : full
-            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+        className={`flex items-center gap-1.5 rounded-md font-medium text-xs transition-colors ${isSmall ? "px-2 py-1" : "px-3 py-1.5"}
+          ${
+            active
+              ? "bg-brand-500 text-white hover:bg-brand-600"
+              : full
+                ? "cursor-not-allowed bg-gray-100 text-gray-400"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
           }
         `}
+        disabled={full}
+        onClick={toggle}
+        title={
+          active
+            ? "Hapus dari perbandingan"
+            : full
+              ? `Maks. ${MAX_COMPARE} produk`
+              : "Bandingkan produk ini"
+        }
+        type="button"
       >
         <svg
           className={isSmall ? "h-3 w-3" : "h-4 w-4"}
           fill="none"
-          viewBox="0 0 24 24"
           stroke="currentColor"
           strokeWidth={2}
+          viewBox="0 0 24 24"
         >
           {active ? (
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            <path
+              d="M5 13l4 4L19 7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           ) : (
-            <path strokeLinecap="round" strokeLinejoin="round"
-              d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 0v10m0-10a2 2 0 012 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+            <path
+              d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 0v10m0-10a2 2 0 012 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           )}
         </svg>
-        {isSmall ? (active ? "Dibandingkan" : "Bandingkan") : (active ? "✓ Ditambahkan" : "Bandingkan")}
+        {isSmall
+          ? active
+            ? "Dibandingkan"
+            : "Bandingkan"
+          : active
+            ? "✓ Ditambahkan"
+            : "Bandingkan"}
       </button>
 
       {flash === "full" && (
-        <div className="absolute bottom-full left-1/2 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-lg bg-gray-900 px-2.5 py-1 text-xs text-white shadow-lg">
+        <div className="absolute bottom-full left-1/2 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-lg bg-gray-900 px-2.5 py-1 text-white text-xs shadow-lg">
           Maks. {MAX_COMPARE} produk
         </div>
       )}

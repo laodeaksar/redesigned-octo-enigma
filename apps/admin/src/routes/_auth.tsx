@@ -17,10 +17,10 @@ function AuthLayout() {
         {/* Brand */}
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
-            <span className="text-xl text-primary-foreground">🛒</span>
+            <span className="text-primary-foreground text-xl">🛒</span>
           </div>
-          <h1 className="text-xl font-bold text-foreground">My Ecommerce</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Admin Panel</p>
+          <h1 className="font-bold text-foreground text-xl">My Ecommerce</h1>
+          <p className="mt-1 text-muted-foreground text-sm">Admin Panel</p>
         </div>
 
         <Outlet />
@@ -28,4 +28,3 @@ function AuthLayout() {
     </div>
   );
 }
-

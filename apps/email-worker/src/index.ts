@@ -4,9 +4,9 @@
 // =============================================================================
 
 import { env, redis } from "@/config";
+import { closeWorkers, startWorkers } from "@/consumer";
 import { logger } from "@/lib/logger";
 import { verifyMailer } from "@/lib/mailer";
-import { startWorkers, closeWorkers } from "@/consumer";
 import { startMetricsServer } from "@/metrics";
 
 async function bootstrap() {
@@ -37,7 +37,7 @@ async function bootstrap() {
   };
 
   process.on("SIGTERM", () => void shutdown("SIGTERM"));
-  process.on("SIGINT",  () => void shutdown("SIGINT"));
+  process.on("SIGINT", () => void shutdown("SIGINT"));
 
   process.on("unhandledRejection", (reason) => {
     logger.fatal({ reason }, "Unhandled rejection — exiting");

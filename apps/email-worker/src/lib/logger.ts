@@ -36,8 +36,9 @@ const pinoOptions: LoggerOptions = {
 };
 
 export const logger =
-  env.NODE_ENV !== "production"
-    ? pino({
+  env.NODE_ENV === "production"
+    ? pino(pinoOptions)
+    : pino({
         ...pinoOptions,
         transport: {
           target: "pino-pretty",
@@ -48,5 +49,4 @@ export const logger =
             errorLikeObjectKeys: ["err", "error"],
           },
         },
-      })
-    : pino(pinoOptions);
+      });

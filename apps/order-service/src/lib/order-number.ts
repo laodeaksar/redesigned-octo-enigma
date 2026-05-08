@@ -20,7 +20,8 @@ export async function generateOrderNumber(): Promise<string> {
  */
 export function parseOrderDate(orderNumber: string): string | null {
   const match = /^ORD-(\d{4})(\d{2})(\d{2})-/.exec(orderNumber);
-  if (!match) return null;
+  if (!match) {
+    return null;
+  }
   return `${match[1]}-${match[2]}-${match[3]}`;
 }
-

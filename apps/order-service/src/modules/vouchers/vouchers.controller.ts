@@ -2,11 +2,10 @@
 // Vouchers controller
 // =============================================================================
 
-import { success } from "@repo/common/schemas";
 import { safeParse } from "@repo/common/errors";
-import { validateVoucherSchema } from "@repo/common/schemas";
-import * as service from "./vouchers.service";
+import { success, validateVoucherSchema } from "@repo/common/schemas";
 import type { DB } from "@/config";
+import * as service from "./vouchers.service";
 
 export async function handleValidate(db: DB, body: unknown, userId?: string) {
   const { code, orderAmount } = safeParse(validateVoucherSchema, body);
@@ -28,15 +27,27 @@ export async function handleGetById(db: DB, id: string) {
 }
 
 export async function handleCreate(db: DB, body: unknown) {
-  return success(await service.createVoucher(db, body as Parameters<typeof service.createVoucher>[1]), "Voucher created");
+  return success(
+    await service.createVoucher(
+      db,
+      body as Parameters<typeof service.createVoucher>[1]
+    ),
+    "Voucher created"
+  );
 }
 
 export async function handleUpdate(db: DB, id: string, body: unknown) {
-  return success(await service.updateVoucher(db, id, body as Parameters<typeof service.updateVoucher>[2]), "Voucher updated");
+  return success(
+    await service.updateVoucher(
+      db,
+      id,
+      body as Parameters<typeof service.updateVoucher>[2]
+    ),
+    "Voucher updated"
+  );
 }
 
 export async function handleDelete(db: DB, id: string) {
   await service.deleteVoucher(db, id);
   return success({ id }, "Voucher deleted");
 }
-

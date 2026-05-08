@@ -2,35 +2,39 @@
 // Base email handler factory — DRY wrapper untuk semua BullMQ email processor
 // =============================================================================
 
-import type { Processor, Job } from "@repo/common/events";
-import type { EmailResult, EmailTemplate, EmailPayload } from "@repo/common/types";
-import { z } from "zod";
+import type { Job, Processor } from "@repo/common/events";
+import type {
+  EmailPayload,
+  EmailResult,
+  EmailTemplate,
+} from "@repo/common/types";
+import type { z } from "zod";
 import { redis } from "@/config";
-import { sendEmail } from "@/lib/mailer";
 import { logger } from "@/lib/logger";
-import { emailsSent, emailsFailed, emailSendDuration } from "@/metrics";
+import { sendEmail } from "@/lib/mailer";
+import { emailSendDuration, emailsFailed, emailsSent } from "@/metrics";
 
 export interface EmailHandlerResult {
-  status: "sent" | "skipped";
-  reason?: "rate_limited" | "expired" | "duplicate";
-  to?: string;
-  provider?: EmailResult["provider"];
   messageId?: string;
+  provider?: EmailResult["provider"];
+  reason?: "rate_limited" | "expired" | "duplicate";
   sentAt?: string;
+  status: "sent" | "skipped";
+  to?: string;
 }
 
 interface CreateEmailHandlerOpts<T extends { email: string }> {
-  queueName: string;
-  schema: z.ZodSchema<T>;
-  getTemplate: (data: T) => EmailTemplate;
-  rateLimitSec?: number;
-  timeoutMs?: number;
   checkExpiry?: (data: T) => boolean;
   getExtraHeaders?: (data: T) => Record<string, string>;
+  getTemplate: (data: T) => EmailTemplate;
+  queueName: string;
+  rateLimitSec?: number;
+  schema: z.ZodSchema<T>;
+  timeoutMs?: number;
 }
 
 export function createEmailHandler<T extends { email: string }>(
-  opts: CreateEmailHandlerOpts<T>,
+  opts: CreateEmailHandlerOpts<T>
 ): Processor<T> {
   const {
     queueName,
@@ -43,8 +47,12 @@ export function createEmailHandler<T extends { email: string }>(
   } = opts;
 
   return async (job: Job<T>): Promise<EmailHandlerResult> => {
-    const jobId     = job.id ?? "unknown";
-    const jobLogger = logger.child({ jobId, queueName, attempt: job.attemptsMade + 1 });
+    const jobId = job.id ?? "unknown";
+    const jobLogger = logger.child({
+      jobId,
+      queueName,
+      attempt: job.attemptsMade + 1,
+    });
 
     jobLogger.info("Processing job");
     const startMs = Date.now();
@@ -69,14 +77,14 @@ export function createEmailHandler<T extends { email: string }>(
       }
 
       // ── Build & send ───────────────────────────────────────────────────────
-      const template     = getTemplate(data);
+      const template = getTemplate(data);
       const extraHeaders = getExtraHeaders?.(data);
 
       const emailPayload: EmailPayload = {
-        to:      data.email,
+        to: data.email,
         subject: template.subject,
-        html:    template.html,
-        text:    template.text,
+        html: template.html,
+        text: template.text,
       };
       if (extraHeaders && Object.keys(extraHeaders).length > 0) {
         emailPayload.headers = extraHeaders;
@@ -86,9 +94,10 @@ export function createEmailHandler<T extends { email: string }>(
         sendEmail(emailPayload),
         new Promise<never>((_, reject) =>
           setTimeout(
-            () => reject(new Error(`Email provider timeout after ${timeoutMs}ms`)),
-            timeoutMs,
-          ),
+            () =>
+              reject(new Error(`Email provider timeout after ${timeoutMs}ms`)),
+            timeoutMs
+          )
         ),
       ]);
 
@@ -96,30 +105,35 @@ export function createEmailHandler<T extends { email: string }>(
 
       // ── Metrics ────────────────────────────────────────────────────────────
       emailsSent.inc({ type: queueName, provider: result.provider });
-      emailSendDuration.observe({ type: queueName, provider: result.provider }, durationSec);
+      emailSendDuration.observe(
+        { type: queueName, provider: result.provider },
+        durationSec
+      );
 
       jobLogger.info(
-        { email: data.email, provider: result.provider, messageId: result.messageId, durationSec },
-        "Job completed — email sent",
+        {
+          email: data.email,
+          provider: result.provider,
+          messageId: result.messageId,
+          durationSec,
+        },
+        "Job completed — email sent"
       );
 
       return {
-        status:    "sent",
-        to:        data.email,
-        provider:  result.provider,
+        status: "sent",
+        to: data.email,
+        provider: result.provider,
         messageId: result.messageId,
-        sentAt:    new Date().toISOString(),
+        sentAt: new Date().toISOString(),
       };
     } catch (err) {
       const durationSec = (Date.now() - startMs) / 1000;
-      const email       = (job.data as T)?.email ?? "unknown";
+      const email = (job.data as T)?.email ?? "unknown";
 
       emailsFailed.inc({ type: queueName });
 
-      jobLogger.error(
-        { err, email, durationSec },
-        "Job failed",
-      );
+      jobLogger.error({ err, email, durationSec }, "Job failed");
 
       // Prefix error message so BullMQ dashboard shows queue context
       if (err instanceof Error) {

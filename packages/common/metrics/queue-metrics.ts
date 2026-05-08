@@ -2,66 +2,75 @@
 // BullMQ queue metrics — depth, job counts, worker status
 // =============================================================================
 
-import { Gauge, Counter, type Registry } from "prom-client";
 import type { Queue, Worker } from "bullmq";
+import { Counter, Gauge, type Registry } from "prom-client";
 
 // ── Metric definitions ────────────────────────────────────────────────────────
 
 export interface QueueMetrics {
-  queueDepth:     Gauge;
-  jobsCompleted:  Counter;
-  jobsFailed:     Counter;
-  jobsDelayed:    Counter;
+  jobsCompleted: Counter;
+  jobsDelayed: Counter;
+  jobsFailed: Counter;
   processingTime: import("prom-client").Histogram;
-  workersActive:  Gauge;
+  queueDepth: Gauge;
+  workersActive: Gauge;
 }
 
 export function createQueueMetrics(registry: Registry): QueueMetrics {
   const queueDepth = new Gauge({
-    name:       "bullmq_queue_depth",
-    help:       "Number of jobs waiting in BullMQ queue",
+    name: "bullmq_queue_depth",
+    help: "Number of jobs waiting in BullMQ queue",
     labelNames: ["queue", "state"],
-    registers:  [registry],
+    registers: [registry],
   });
 
   const jobsCompleted = new Counter({
-    name:       "bullmq_jobs_completed_total",
-    help:       "Total number of completed BullMQ jobs",
+    name: "bullmq_jobs_completed_total",
+    help: "Total number of completed BullMQ jobs",
     labelNames: ["queue"],
-    registers:  [registry],
+    registers: [registry],
   });
 
   const jobsFailed = new Counter({
-    name:       "bullmq_jobs_failed_total",
-    help:       "Total number of failed BullMQ jobs",
+    name: "bullmq_jobs_failed_total",
+    help: "Total number of failed BullMQ jobs",
     labelNames: ["queue"],
-    registers:  [registry],
+    registers: [registry],
   });
 
   const jobsDelayed = new Counter({
-    name:       "bullmq_jobs_delayed_total",
-    help:       "Total number of delayed BullMQ jobs",
+    name: "bullmq_jobs_delayed_total",
+    help: "Total number of delayed BullMQ jobs",
     labelNames: ["queue"],
-    registers:  [registry],
+    registers: [registry],
   });
 
-  const { Histogram } = require("prom-client") as { Histogram: typeof import("prom-client").Histogram };
+  const { Histogram } = require("prom-client") as {
+    Histogram: typeof import("prom-client").Histogram;
+  };
   const processingTime = new Histogram({
-    name:       "bullmq_job_duration_seconds",
-    help:       "BullMQ job processing time in seconds",
+    name: "bullmq_job_duration_seconds",
+    help: "BullMQ job processing time in seconds",
     labelNames: ["queue"],
-    buckets:    [0.1, 0.5, 1, 2, 5, 10, 30, 60],
-    registers:  [registry],
+    buckets: [0.1, 0.5, 1, 2, 5, 10, 30, 60],
+    registers: [registry],
   });
 
   const workersActive = new Gauge({
-    name:       "bullmq_workers_active",
-    help:       "Number of active BullMQ worker instances",
+    name: "bullmq_workers_active",
+    help: "Number of active BullMQ worker instances",
     labelNames: ["queue"],
-    registers:  [registry],
+    registers: [registry],
   });
 
-  return { queueDepth, jobsCompleted, jobsFailed, jobsDelayed, processingTime, workersActive };
+  return {
+    queueDepth,
+    jobsCompleted,
+    jobsFailed,
+    jobsDelayed,
+    processingTime,
+    workersActive,
+  };
 }
 
 // ── Collector ─────────────────────────────────────────────────────────────────
@@ -83,14 +92,34 @@ export function startQueueCollector(
     await Promise.allSettled(
       Object.entries(queues).map(async ([name, queue]) => {
         const counts = await queue.getJobCounts(
-          "waiting", "active", "delayed", "failed", "completed", "paused"
+          "waiting",
+          "active",
+          "delayed",
+          "failed",
+          "completed",
+          "paused"
         );
 
-        metrics.queueDepth.set({ queue: name, state: "waiting"   }, counts.waiting   ?? 0);
-        metrics.queueDepth.set({ queue: name, state: "active"    }, counts.active     ?? 0);
-        metrics.queueDepth.set({ queue: name, state: "delayed"   }, counts.delayed    ?? 0);
-        metrics.queueDepth.set({ queue: name, state: "failed"    }, counts.failed     ?? 0);
-        metrics.queueDepth.set({ queue: name, state: "completed" }, counts.completed  ?? 0);
+        metrics.queueDepth.set(
+          { queue: name, state: "waiting" },
+          counts.waiting ?? 0
+        );
+        metrics.queueDepth.set(
+          { queue: name, state: "active" },
+          counts.active ?? 0
+        );
+        metrics.queueDepth.set(
+          { queue: name, state: "delayed" },
+          counts.delayed ?? 0
+        );
+        metrics.queueDepth.set(
+          { queue: name, state: "failed" },
+          counts.failed ?? 0
+        );
+        metrics.queueDepth.set(
+          { queue: name, state: "completed" },
+          counts.completed ?? 0
+        );
       })
     );
   };
@@ -133,4 +162,3 @@ export function instrumentWorker(
     metrics.workersActive.dec({ queue: queueName });
   });
 }
-

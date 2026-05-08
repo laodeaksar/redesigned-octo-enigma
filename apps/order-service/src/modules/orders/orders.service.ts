@@ -3,26 +3,25 @@
 // =============================================================================
 
 import {
-  NotFoundError,
-  ForbiddenError,
-  OrderNotPayableError,
   BadRequestError,
+  ForbiddenError,
+  NotFoundError,
+  OrderNotPayableError,
 } from "@repo/common/errors";
 import type {
-  CreateOrderInput,
   CancelOrderInput,
-  UpdateOrderStatusInput,
+  CreateOrderInput,
   ListOrdersQuery,
   MyOrdersQuery,
+  UpdateOrderStatusInput,
 } from "@repo/common/schemas";
-
-import * as repo from "./orders.repository";
-import * as productClient from "@/lib/product-client";
+import { type DB, env } from "@/config";
 import * as events from "@/lib/events";
 import { generateOrderNumber } from "@/lib/order-number";
-import { validateVoucher, calculateDiscount } from "@/modules/vouchers/vouchers.service";
+import * as productClient from "@/lib/product-client";
 import { incrementUsage } from "@/modules/vouchers/vouchers.repository";
-import { env, type DB } from "@/config";
+import { validateVoucher } from "@/modules/vouchers/vouchers.service";
+import * as repo from "./orders.repository";
 
 // ── Create Order ──────────────────────────────────────────────────────────────
 
@@ -101,7 +100,7 @@ export async function createOrder(
   if (!freeShipping) {
     const totalWeightGrams = input.items.reduce((sum, item) => {
       const variant = variantMap.get(item.variantId);
-      return sum + (variant ? 0 : 0) + (item.quantity * 500); // fallback: 500g/item
+      return sum + (variant ? 0 : 0) + item.quantity * 500; // fallback: 500g/item
     }, 0);
 
     try {
@@ -118,14 +117,20 @@ export async function createOrder(
         shippingCost = input.shippingCost;
       }
     } catch (err) {
-      console.warn("[createOrder] RajaOngkir lookup failed, using client cost:", err);
+      console.warn(
+        "[createOrder] RajaOngkir lookup failed, using client cost:",
+        err
+      );
       shippingCost = input.shippingCost;
     }
   }
 
   // 5. Calculate final pricing
   const taxTotal = 0; // add PPN 11% logic here if needed
-  const grandTotal = Math.max(0, itemSubtotal - discountTotal + shippingCost + taxTotal);
+  const grandTotal = Math.max(
+    0,
+    itemSubtotal - discountTotal + shippingCost + taxTotal
+  );
 
   // 6. Fetch shipping address (address lives in auth-service, passed in input)
   // In this design the client sends the addressId and we trust it exists
@@ -141,9 +146,7 @@ export async function createOrder(
 
   // 7. Generate order number + set expiry
   const orderNumber = await generateOrderNumber();
-  const expiresAt = new Date(
-    Date.now() + env.ORDER_EXPIRY_MINUTES * 60 * 1000
-  );
+  const expiresAt = new Date(Date.now() + env.ORDER_EXPIRY_MINUTES * 60 * 1000);
 
   // 8. Create order document in MongoDB
   const order = await repo.createOrder({
@@ -204,7 +207,9 @@ export async function getOrderById(
   requesterRole: string
 ) {
   const order = await repo.findOrderById(orderId);
-  if (!order) throw new NotFoundError("Order");
+  if (!order) {
+    throw new NotFoundError("Order");
+  }
 
   // Customers can only view their own orders
   if (requesterRole === "customer" && order.userId !== requesterId) {
@@ -215,12 +220,7 @@ export async function getOrderById(
 }
 
 export async function getMyOrders(userId: string, query: MyOrdersQuery) {
-  return repo.findOrdersByUser(
-    userId,
-    query.status,
-    query.page,
-    query.limit
-  );
+  return repo.findOrdersByUser(userId, query.status, query.page, query.limit);
 }
 
 export async function listOrders(query: ListOrdersQuery) {
@@ -237,7 +237,9 @@ export async function cancelOrder(
   input: CancelOrderInput
 ) {
   const order = await repo.findOrderById(orderId);
-  if (!order) throw new NotFoundError("Order");
+  if (!order) {
+    throw new NotFoundError("Order");
+  }
 
   if (requesterRole === "customer" && order.userId !== requesterId) {
     throw new ForbiddenError();
@@ -265,7 +267,9 @@ export async function cancelOrder(
     }
   );
 
-  if (!updated) throw new NotFoundError("Order");
+  if (!updated) {
+    throw new NotFoundError("Order");
+  }
 
   // Restore stock
   const stockItems = order.items.map((i) => ({
@@ -289,7 +293,9 @@ export async function updateOrderStatus(
   input: UpdateOrderStatusInput
 ) {
   const order = await repo.findOrderById(orderId);
-  if (!order) throw new NotFoundError("Order");
+  if (!order) {
+    throw new NotFoundError("Order");
+  }
 
   // Validate allowed transitions
   const transitions: Partial<Record<IOrder["status"], IOrder["status"][]>> = {
@@ -317,15 +323,18 @@ export async function updateOrderStatus(
     }
   );
 
-  if (!updated) throw new NotFoundError("Order");
+  if (!updated) {
+    throw new NotFoundError("Order");
+  }
 
   // Set tracking number if shipping
   if (input.status === "shipped" && input.trackingNumber) {
-    updated = await repo.setTrackingNumber(
-      orderId,
-      input.courier ?? order.shipping.courier,
-      input.trackingNumber
-    ) ?? updated;
+    updated =
+      (await repo.setTrackingNumber(
+        orderId,
+        input.courier ?? order.shipping.courier,
+        input.trackingNumber
+      )) ?? updated;
 
     await events.publishOrderShipped(orderId, updated, userEmail);
   }
@@ -335,30 +344,27 @@ export async function updateOrderStatus(
 
 // ── Internal: mark order as paid (called after payment webhook) ───────────────
 
-export async function markOrderPaid(
-  orderId: string,
-  paymentId: string
-) {
+export async function markOrderPaid(orderId: string, paymentId: string) {
   const order = await repo.findOrderById(orderId);
-  if (!order) throw new NotFoundError("Order");
+  if (!order) {
+    throw new NotFoundError("Order");
+  }
 
   if (order.status !== "pending_payment") {
     throw new OrderNotPayableError(order.status);
   }
 
-  const updated = await repo.updateOrderStatus(
-    orderId,
-    "processing",
-    {
-      status: "processing",
-      timestamp: new Date(),
-      note: "Payment confirmed",
-      actorId: "system",
-    }
-  );
+  const updated = await repo.updateOrderStatus(orderId, "processing", {
+    status: "processing",
+    timestamp: new Date(),
+    note: "Payment confirmed",
+    actorId: "system",
+  });
 
   await repo.setPaymentId(orderId, paymentId);
-  if (updated) await events.publishOrderProcessing(orderId, updated);
+  if (updated) {
+    await events.publishOrderProcessing(orderId, updated);
+  }
 
   return updated;
 }
@@ -387,10 +393,12 @@ export async function expireStaleOrders() {
       quantity: i.quantity,
     }));
 
-    await productClient.restoreStock(order.id as string, stockItems).catch(() => {
-      // Log but don't crash the expiry loop
-      console.error(`[expire] Failed to restore stock for order ${order.id}`);
-    });
+    await productClient
+      .restoreStock(order.id as string, stockItems)
+      .catch(() => {
+        // Log but don't crash the expiry loop
+        console.error(`[expire] Failed to restore stock for order ${order.id}`);
+      });
 
     count++;
   }
@@ -400,4 +408,3 @@ export async function expireStaleOrders() {
 
 // ── Local type alias needed for updateOrderStatus ─────────────────────────────
 import type { IOrder } from "@repo/database/mongo/models";
-

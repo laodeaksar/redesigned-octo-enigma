@@ -6,13 +6,13 @@
 // =============================================================================
 
 import BaseLayout from "@/components/layout/BaseLayout.astro";
-import { setAuthCookies } from "@/lib/auth";
 import { api } from "@/lib/api";
+import { setAuthCookies } from "@/lib/auth";
 
 // Better-auth appends a session token as a query param or sets a cookie.
 // We call /auth/me with the Better-auth session to get our JWT tokens.
 const betterAuthToken = Astro.url.searchParams.get("token") ?? "";
-const errorParam      = Astro.url.searchParams.get("error");
+const errorParam = Astro.url.searchParams.get("error");
 
 let redirectTo = "/";
 let errorMessage: string | null = null;
@@ -46,7 +46,9 @@ if (errorParam) {
 ---
 
 <BaseLayout title="Menghubungkan Akun">
-  <div class="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-12">
+  <div
+    class="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-12"
+  >
     <div class="w-full max-w-sm text-center">
       {errorMessage ? (
         <div class="rounded-2xl border border-red-100 bg-red-50 p-8">

@@ -6,10 +6,10 @@
 import mongoose from "mongoose";
 
 export interface MongoClientOptions {
-  url: string;
   dbName: string;
   /** Log mongoose queries — set to true in development only */
   debug?: boolean;
+  url: string;
 }
 
 let isConnected = false;
@@ -24,7 +24,9 @@ let isConnected = false;
  *   await connectMongo({ url: env.MONGODB_URL, dbName: env.MONGODB_DB_NAME })
  */
 export async function connectMongo(options: MongoClientOptions): Promise<void> {
-  if (isConnected) return;
+  if (isConnected) {
+    return;
+  }
 
   const { url, dbName, debug = false } = options;
 
@@ -50,9 +52,9 @@ export async function connectMongo(options: MongoClientOptions): Promise<void> {
       dbName,
       maxPoolSize: 10,
       minPoolSize: 2,
-      connectTimeoutMS: 3_000,
+      connectTimeoutMS: 3000,
       socketTimeoutMS: 10_000,
-      serverSelectionTimeoutMS: 3_000,
+      serverSelectionTimeoutMS: 3000,
       heartbeatFrequencyMS: 10_000,
       retryWrites: true,
       retryReads: true,
@@ -86,7 +88,9 @@ export async function connectMongo(options: MongoClientOptions): Promise<void> {
  * Call during service shutdown (SIGTERM / SIGINT).
  */
 export async function disconnectMongo(): Promise<void> {
-  if (!isConnected) return;
+  if (!isConnected) {
+    return;
+  }
 
   await mongoose.connection.close();
   isConnected = false;

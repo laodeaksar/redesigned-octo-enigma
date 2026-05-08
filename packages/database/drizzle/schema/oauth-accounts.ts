@@ -3,6 +3,7 @@
 // Managed by: auth-service (Better-auth)
 // =============================================================================
 
+import { relations } from "drizzle-orm";
 import {
   index,
   pgTable,
@@ -11,9 +12,8 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
 
-import { primaryId, oauthProviderEnum, timestamps } from "./_helpers";
+import { oauthProviderEnum, primaryId, timestamps } from "./_helpers";
 import { usersTable } from "./users";
 
 export const oauthAccountsTable = pgTable(
@@ -36,13 +36,13 @@ export const oauthAccountsTable = pgTable(
     // One account per provider per user
     oauthAccountsUserProviderIdx: index("oauth_accounts_user_provider_idx").on(
       t.userId,
-      t.provider,
+      t.provider
     ),
     // Fast lookup by provider + provider account ID (OAuth callback)
     oauthAccountsProviderAccountIdx: index(
-      "oauth_accounts_provider_account_idx",
+      "oauth_accounts_provider_account_idx"
     ).on(t.provider, t.providerAccountId),
-  }),
+  })
 );
 
 // ── Relations ─────────────────────────────────────────────────────────────────
@@ -54,7 +54,7 @@ export const oauthAccountsRelations = relations(
       fields: [oauthAccountsTable.userId],
       references: [usersTable.id],
     }),
-  }),
+  })
 );
 
 // ── Types ─────────────────────────────────────────────────────────────────────

@@ -5,8 +5,8 @@
 //  POST /shipping/rates             — get shipping rates for a destination
 // =============================================================================
 
-import Elysia, { t } from "elysia";
 import { success } from "@repo/common/schemas";
+import Elysia, { t } from "elysia";
 import { getShippingRates, searchCities } from "@/lib/rajaongkir";
 
 export const shippingRoutes = new Elysia({ prefix: "/shipping" })
@@ -20,7 +20,10 @@ export const shippingRoutes = new Elysia({ prefix: "/shipping" })
     },
     {
       query: t.Object({
-        q: t.String({ minLength: 2, description: "City/province/postal code query" }),
+        q: t.String({
+          minLength: 2,
+          description: "City/province/postal code query",
+        }),
       }),
       detail: {
         tags: ["Shipping"],
@@ -35,18 +38,19 @@ export const shippingRoutes = new Elysia({ prefix: "/shipping" })
     async ({ body }) => {
       const rates = await getShippingRates({
         destinationCityId: body.destinationCityId,
-        weightGrams:       body.weightGrams,
-        couriers:          body.couriers ?? undefined,
+        weightGrams: body.weightGrams,
+        couriers: body.couriers ?? undefined,
       });
       return success(rates);
     },
     {
       body: t.Object({
         destinationCityId: t.String({ minLength: 1 }),
-        weightGrams:       t.Number({ minimum: 1, maximum: 30_000 }),
+        weightGrams: t.Number({ minimum: 1, maximum: 30_000 }),
         couriers: t.Optional(
           t.Array(t.String(), {
-            description: "Couriers to query. Defaults to jne, jnt, sicepat, anteraja, tiki",
+            description:
+              "Couriers to query. Defaults to jne, jnt, sicepat, anteraja, tiki",
           })
         ),
       }),
@@ -56,4 +60,3 @@ export const shippingRoutes = new Elysia({ prefix: "/shipping" })
       },
     }
   );
-

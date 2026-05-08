@@ -1,7 +1,7 @@
 import { pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
 import { primaryId, timestamps } from "./_helpers";
-import { usersTable } from "./users";
 import { productsTable } from "./products";
+import { usersTable } from "./users";
 
 export const wishlistsTable = pgTable(
   "wishlists",

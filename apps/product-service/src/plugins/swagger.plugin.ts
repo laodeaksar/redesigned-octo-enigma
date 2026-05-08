@@ -5,7 +5,8 @@ export const swaggerPlugin = swagger({
     info: {
       title: "Product Service API",
       version: "1.0.0",
-      description: "Product catalogue, categories, variants, stock, and reviews",
+      description:
+        "Product catalogue, categories, variants, stock, and reviews",
     },
     tags: [
       { name: "Health", description: "Service health check" },
@@ -29,4 +30,3 @@ export const swaggerPlugin = swagger({
   },
   path: "/docs",
 });
-

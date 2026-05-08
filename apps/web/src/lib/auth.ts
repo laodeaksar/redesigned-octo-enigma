@@ -95,11 +95,13 @@ type AuthResponse = {
 };
 
 export function getTokenFromCookies(cookies: AstroCookies): string | null {
-  return cookies.get(ACCESS_COOKIE)?.value?? null;
+  return cookies.get(ACCESS_COOKIE)?.value ?? null;
 }
 
-export function getRefreshTokenFromCookies(cookies: AstroCookies): string | null {
-  return cookies.get(REFRESH_COOKIE)?.value?? null;
+export function getRefreshTokenFromCookies(
+  cookies: AstroCookies
+): string | null {
+  return cookies.get(REFRESH_COOKIE)?.value ?? null;
 }
 
 export function setAuthCookies(
@@ -109,23 +111,25 @@ export function setAuthCookies(
   expiresIn: number
 ) {
   cookies.set(ACCESS_COOKIE, accessToken, {
-   ...COOKIE_OPTS,
+    ...COOKIE_OPTS,
     maxAge: expiresIn,
   });
   cookies.set(REFRESH_COOKIE, refreshToken, {
-   ...COOKIE_OPTS,
+    ...COOKIE_OPTS,
     maxAge: 7 * 24 * 60 * 60, // 7 days
   });
 }
 
 export function clearAuthCookies(cookies: AstroCookies) {
-  cookies.set(ACCESS_COOKIE, "", {...COOKIE_OPTS, maxAge: 0 });
-  cookies.set(REFRESH_COOKIE, "", {...COOKIE_OPTS, maxAge: 0 });
+  cookies.set(ACCESS_COOKIE, "", { ...COOKIE_OPTS, maxAge: 0 });
+  cookies.set(REFRESH_COOKIE, "", { ...COOKIE_OPTS, maxAge: 0 });
 }
 
 async function tryRefreshToken(cookies: AstroCookies): Promise<string | null> {
   const refreshToken = getRefreshTokenFromCookies(cookies);
-  if (!refreshToken) return null;
+  if (!refreshToken) {
+    return null;
+  }
 
   try {
     // Sesuaikan endpoint refresh di backend kamu
@@ -147,23 +151,33 @@ async function tryRefreshToken(cookies: AstroCookies): Promise<string | null> {
   }
 }
 
-export async function getCurrentUser(cookies: AstroCookies): Promise<User | null> {
+export async function getCurrentUser(
+  cookies: AstroCookies
+): Promise<User | null> {
   let token = getTokenFromCookies(cookies);
-  if (!token) return null;
+  if (!token) {
+    return null;
+  }
 
   try {
-    const res = await api.get<{ success: true; data: User }>("/auth/me", { token });
+    const res = await api.get<{ success: true; data: User }>("/auth/me", {
+      token,
+    });
     return res.data;
   } catch (err: any) {
     // Cek kalau error karena 401 / token expired
     if (err?.status === 401 || err?.response?.status === 401) {
       // Coba refresh sekali
       token = await tryRefreshToken(cookies);
-      if (!token) return null;
+      if (!token) {
+        return null;
+      }
 
       // Retry request dengan token baru
       try {
-        const res = await api.get<{ success: true; data: User }>("/auth/me", { token });
+        const res = await api.get<{ success: true; data: User }>("/auth/me", {
+          token,
+        });
         return res.data;
       } catch {
         return null;

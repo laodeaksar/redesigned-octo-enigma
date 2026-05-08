@@ -1,7 +1,8 @@
 import type { APIRoute } from "astro";
 import { sendOrderStatusPush } from "@/lib/push.server";
 
-const GW = (import.meta.env.PUBLIC_API_URL as string) ?? "http://localhost:3000";
+const GW =
+  (import.meta.env.PUBLIC_API_URL as string) ?? "http://localhost:3000";
 
 export const GET: APIRoute = async ({ params, cookies, request }) => {
   const token = cookies.get("web_access_token")?.value;
@@ -20,7 +21,7 @@ export const GET: APIRoute = async ({ params, cookies, request }) => {
     upstream = await fetch(upstreamUrl, {
       headers: {
         Authorization: `Bearer ${token}`,
-        Accept:        "text/event-stream",
+        Accept: "text/event-stream",
         "Cache-Control": "no-cache",
       },
       signal: request.signal,
@@ -32,29 +33,34 @@ export const GET: APIRoute = async ({ params, cookies, request }) => {
     );
   }
 
-  if (!upstream.ok || !upstream.body) {
+  if (!(upstream.ok && upstream.body)) {
     return new Response(
       `event: error\ndata: ${JSON.stringify({ code: "UPSTREAM_ERROR", status: upstream.status })}\n\n`,
-      { status: upstream.status, headers: { "Content-Type": "text/event-stream" } }
+      {
+        status: upstream.status,
+        headers: { "Content-Type": "text/event-stream" },
+      }
     );
   }
 
   // ── Transform stream: parse events to detect status changes and trigger push
   const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
-  const writer  = writable.getWriter();
+  const writer = writable.getWriter();
   const decoder = new TextDecoder();
 
   (async () => {
     const reader = upstream.body!.getReader();
-    let buffer      = "";
-    let lastStatus  = "";
-    let eventName   = "";
-    let eventData   = "";
+    let buffer = "";
+    let lastStatus = "";
+    let eventName = "";
+    let eventData = "";
 
     try {
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          break;
+        }
 
         // Forward raw bytes to client unchanged
         await writer.write(value);
@@ -82,9 +88,11 @@ export const GET: APIRoute = async ({ params, cookies, request }) => {
                   lastStatus = parsed.status;
                   // Only push for genuine status transitions (not first event)
                   if (prev !== "") {
-                    sendOrderStatusPush(id!, parsed.status, parsed.orderNumber).catch(
-                      () => {}
-                    );
+                    sendOrderStatusPush(
+                      id!,
+                      parsed.status,
+                      parsed.orderNumber
+                    ).catch(() => {});
                   }
                 }
               } catch {}
@@ -103,9 +111,9 @@ export const GET: APIRoute = async ({ params, cookies, request }) => {
 
   return new Response(readable, {
     headers: {
-      "Content-Type":    "text/event-stream",
-      "Cache-Control":   "no-cache",
-      "Connection":      "keep-alive",
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
       "X-Accel-Buffering": "no",
     },
   });

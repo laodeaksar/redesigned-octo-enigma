@@ -8,7 +8,6 @@ import { z } from "zod";
 import {
   dateRangeSchema,
   idrAmountSchema,
-  objectIdSchema,
   positiveIdrAmountSchema,
   sortOrderSchema,
   uuidSchema,

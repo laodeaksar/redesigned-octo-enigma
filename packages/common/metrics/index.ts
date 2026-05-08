@@ -3,25 +3,25 @@
 // Import from: "@repo/common/metrics"
 // =============================================================================
 
-export {
-  createRegistry,
-  getMetricsOutput,
-  CONTENT_TYPE,
-  Gauge, Counter, Histogram, Summary,
-} from "./registry";
-export type { Registry, CreateRegistryOptions } from "./registry";
-
+export type { HttpMetrics } from "./http-metrics";
 export {
   createHttpMetrics,
   elysiaMetricsMiddleware,
   honoMetricsMiddleware,
 } from "./http-metrics";
-export type { HttpMetrics } from "./http-metrics";
-
+export type { QueueMetrics } from "./queue-metrics";
 export {
   createQueueMetrics,
-  startQueueCollector,
   instrumentWorker,
+  startQueueCollector,
 } from "./queue-metrics";
-export type { QueueMetrics } from "./queue-metrics";
-
+export type { CreateRegistryOptions, Registry } from "./registry";
+export {
+  CONTENT_TYPE,
+  Counter,
+  createRegistry,
+  Gauge,
+  getMetricsOutput,
+  Histogram,
+  Summary,
+} from "./registry";

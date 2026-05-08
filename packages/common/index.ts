@@ -10,7 +10,7 @@
 // This top-level barrel is available for convenience but will include all code.
 // =============================================================================
 
-export * from "./types";
-export * from "./schemas";
 export * from "./errors";
 export * from "./events";
+export * from "./schemas";
+export * from "./types";

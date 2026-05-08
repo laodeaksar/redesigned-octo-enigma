@@ -3,6 +3,7 @@
 // Managed by: product-service
 // =============================================================================
 
+import { relations } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -13,7 +14,6 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
 
 import { primaryId, timestamps } from "./_helpers";
 import { productsTable } from "./products";
@@ -53,7 +53,7 @@ export const productVariantsTable = pgTable(
     skuIdx: uniqueIndex("product_variants_sku_idx").on(t.sku), // sku biasanya unique
     priceIdx: index("product_variants_price_idx").on(t.price),
     stockIdx: index("product_variants_stock_idx").on(t.stock),
-  }),
+  })
 );
 
 // ── Relations ─────────────────────────────────────────────────────────────────
@@ -65,7 +65,7 @@ export const productVariantsRelations = relations(
       fields: [productVariantsTable.productId],
       references: [productsTable.id],
     }),
-  }),
+  })
 );
 
 // ── Types ─────────────────────────────────────────────────────────────────────

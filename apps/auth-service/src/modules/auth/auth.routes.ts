@@ -11,47 +11,38 @@
 // =============================================================================
 
 import Elysia, { t } from "elysia";
-
-import { databasePlugin } from "@/plugins/database.plugin";
 import { jwtMiddleware } from "@/middleware/jwt.middleware";
+import { databasePlugin } from "@/plugins/database.plugin";
 import * as controller from "./auth.controller";
 
 export const authRoutes = new Elysia({ prefix: "/auth" })
   .use(databasePlugin)
 
   // ── Register ───────────────────────────────────────────────────────────────
-  .post(
-    "/register",
-    ({ db, body }) => controller.handleRegister(db, body),
-    {
-      body: t.Object({
-        name: t.String({ minLength: 2, maxLength: 100 }),
-        email: t.String({ format: "email" }),
-        password: t.String({ minLength: 8, maxLength: 72 }),
-        confirmPassword: t.String(),
-      }),
-      detail: {
-        tags: ["Auth"],
-        summary: "Register a new customer account",
-      },
-    }
-  )
+  .post("/register", ({ db, body }) => controller.handleRegister(db, body), {
+    body: t.Object({
+      name: t.String({ minLength: 2, maxLength: 100 }),
+      email: t.String({ format: "email" }),
+      password: t.String({ minLength: 8, maxLength: 72 }),
+      confirmPassword: t.String(),
+    }),
+    detail: {
+      tags: ["Auth"],
+      summary: "Register a new customer account",
+    },
+  })
 
   // ── Login ──────────────────────────────────────────────────────────────────
-  .post(
-    "/login",
-    ({ db, body }) => controller.handleLogin(db, body),
-    {
-      body: t.Object({
-        email: t.String({ format: "email" }),
-        password: t.String({ minLength: 1 }),
-      }),
-      detail: {
-        tags: ["Auth"],
-        summary: "Log in with email and password",
-      },
-    }
-  )
+  .post("/login", ({ db, body }) => controller.handleLogin(db, body), {
+    body: t.Object({
+      email: t.String({ format: "email" }),
+      password: t.String({ minLength: 1 }),
+    }),
+    detail: {
+      tags: ["Auth"],
+      summary: "Log in with email and password",
+    },
+  })
 
   // ── Logout — stateless JWT, just acknowledge ───────────────────────────────
   .post(
@@ -66,19 +57,15 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
   )
 
   // ── Refresh tokens ─────────────────────────────────────────────────────────
-  .post(
-    "/refresh",
-    ({ db, body }) => controller.handleRefresh(db, body),
-    {
-      body: t.Object({
-        refreshToken: t.String({ minLength: 1 }),
-      }),
-      detail: {
-        tags: ["Auth"],
-        summary: "Exchange a refresh token for a new access + refresh token pair",
-      },
-    }
-  )
+  .post("/refresh", ({ db, body }) => controller.handleRefresh(db, body), {
+    body: t.Object({
+      refreshToken: t.String({ minLength: 1 }),
+    }),
+    detail: {
+      tags: ["Auth"],
+      summary: "Exchange a refresh token for a new access + refresh token pair",
+    },
+  })
 
   // ── Verify email ───────────────────────────────────────────────────────────
   .post(
@@ -128,17 +115,21 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
   .get(
     "/me",
     async ({ db, user }) => {
-      const { findUserById } = await import(
-        "@/modules/users/users.repository"
-      );
+      const { findUserById } = await import("@/modules/users/users.repository");
       const { success } = await import("@repo/common/schemas");
       const { UserNotFoundError } = await import("@repo/common/errors");
 
       const found = await findUserById(db, user.id);
-      if (!found) throw new UserNotFoundError();
+      if (!found) {
+        throw new UserNotFoundError();
+      }
 
-      const { passwordHash, emailVerificationToken, passwordResetToken, ...safe } =
-        found;
+      const {
+        passwordHash,
+        emailVerificationToken,
+        passwordResetToken,
+        ...safe
+      } = found;
       return success(safe);
     },
     {
@@ -149,4 +140,3 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
       },
     }
   );
-

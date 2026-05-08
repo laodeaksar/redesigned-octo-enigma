@@ -1,12 +1,14 @@
 ---
 interface Props {
+  baseUrl: string;
   page: number;
   totalPages: number;
-  baseUrl: string;
 }
 
 const { page, totalPages, baseUrl } = Astro.props;
-if (totalPages <= 1) return;
+if (totalPages <= 1) {
+  return;
+}
 
 const getUrl = (p: number) => `${baseUrl}?page=${p}`;
 const pages = Array.from({ length: Math.min(5, totalPages) }, (_, i) => {

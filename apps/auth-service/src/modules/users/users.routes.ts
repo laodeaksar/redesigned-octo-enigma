@@ -10,9 +10,8 @@
 // =============================================================================
 
 import Elysia, { t } from "elysia";
-
-import { databasePlugin } from "@/plugins/database.plugin";
 import { jwtMiddleware } from "@/middleware/jwt.middleware";
+import { databasePlugin } from "@/plugins/database.plugin";
 import * as controller from "./users.controller";
 
 export const usersRoutes = new Elysia({ prefix: "/users" })
@@ -20,17 +19,13 @@ export const usersRoutes = new Elysia({ prefix: "/users" })
   .use(jwtMiddleware)
 
   // ── Profile ──────────────────────────────────────────────────────────────
-  .get(
-    "/me",
-    ({ db, user }) => controller.handleGetProfile(db, user.id),
-    {
-      detail: {
-        tags: ["Users"],
-        summary: "Get my profile",
-        security: [{ bearerAuth: [] }],
-      },
-    }
-  )
+  .get("/me", ({ db, user }) => controller.handleGetProfile(db, user.id), {
+    detail: {
+      tags: ["Users"],
+      summary: "Get my profile",
+      security: [{ bearerAuth: [] }],
+    },
+  })
 
   .patch(
     "/me",
@@ -123,4 +118,3 @@ export const usersRoutes = new Elysia({ prefix: "/users" })
       },
     }
   );
-

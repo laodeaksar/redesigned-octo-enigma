@@ -2,14 +2,14 @@
 // Product detail page
 // =============================================================================
 
-import React from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Package, ImageOff, Tag, Layers } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+import { ImageOff, Layers, Package, Tag } from "lucide-react";
+import type React from "react";
 import { AdminLayout } from "@/components/layout/admin-layout";
 import { PageHeader } from "@/components/shared/page-header";
-import { api, type ApiResponse } from "@/lib/api";
-import { formatIDR, formatDate, cn } from "@/lib/utils";
+import { type ApiResponse, api } from "@/lib/api";
+import { cn, formatDate, formatIDR } from "@/lib/utils";
 import { productKeys } from "./index";
 
 export const Route = createFileRoute("/_admin/products/$productId")({
@@ -17,17 +17,23 @@ export const Route = createFileRoute("/_admin/products/$productId")({
 });
 
 interface ProductDetail {
-  id: string;
-  name: string;
-  slug: string;
+  category: { id: string; name: string; slug: string } | null;
+  createdAt: string;
   description: string;
+  id: string;
+  images: Array<{
+    id: string;
+    url: string;
+    altText: string | null;
+    isPrimary: boolean;
+    sortOrder: number;
+  }>;
+  name: string;
   shortDescription: string | null;
+  slug: string;
   status: "active" | "draft" | "archived";
   tags: string[];
-  weight: number | null;
-  createdAt: string;
   updatedAt: string;
-  category: { id: string; name: string; slug: string } | null;
   variants: Array<{
     id: string;
     sku: string;
@@ -38,13 +44,7 @@ interface ProductDetail {
     stock: number;
     isActive: boolean;
   }>;
-  images: Array<{
-    id: string;
-    url: string;
-    altText: string | null;
-    isPrimary: boolean;
-    sortOrder: number;
-  }>;
+  weight: number | null;
 }
 
 const STATUS_LABELS = {
@@ -67,7 +67,9 @@ function ProductDetailPage() {
     mutationFn: (status: string) =>
       api.patch(`/products/${productId}`, { status }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: productKeys.detail(productId) });
+      void queryClient.invalidateQueries({
+        queryKey: productKeys.detail(productId),
+      });
       void queryClient.invalidateQueries({ queryKey: ["products", "list"] });
     },
   });
@@ -80,7 +82,7 @@ function ProductDetailPage() {
       <AdminLayout title="Produk">
         <div className="flex h-64 items-center justify-center text-muted-foreground">
           <div className="text-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto" />
+            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             <p className="mt-2 text-sm">Memuat produk…</p>
           </div>
         </div>
@@ -101,18 +103,13 @@ function ProductDetailPage() {
   return (
     <AdminLayout title="Detail Produk">
       <PageHeader
-        title={product.name}
-        breadcrumbs={[
-          { label: "Produk", href: "/_admin/products/" },
-          { label: product.name },
-        ]}
         actions={
           <div className="flex items-center gap-2">
             {/* Status toggle */}
             <select
-              value={product.status}
-              onChange={(e) => statusMutation.mutate(e.target.value)}
               className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              onChange={(e) => statusMutation.mutate(e.target.value)}
+              value={product.status}
             >
               <option value="active">Aktif</option>
               <option value="draft">Draft</option>
@@ -120,28 +117,33 @@ function ProductDetailPage() {
             </select>
           </div>
         }
+        breadcrumbs={[
+          { label: "Produk", href: "/_admin/products/" },
+          { label: product.name },
+        ]}
+        title={product.name}
       />
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Left column */}
         <div className="space-y-6 lg:col-span-2">
           {/* Images */}
-          <Section title="Gambar Produk" icon={ImageOff}>
+          <Section icon={ImageOff} title="Gambar Produk">
             {product.images.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Belum ada gambar.</p>
+              <p className="text-muted-foreground text-sm">Belum ada gambar.</p>
             ) : (
               <div className="grid grid-cols-4 gap-3">
                 {product.images
                   .sort((a, b) => a.sortOrder - b.sortOrder)
                   .map((img) => (
-                    <div key={img.id} className="relative">
+                    <div className="relative" key={img.id}>
                       <img
-                        src={img.url}
                         alt={img.altText ?? product.name}
                         className="aspect-square w-full rounded-lg object-cover"
+                        src={img.url}
                       />
                       {img.isPrimary && (
-                        <span className="absolute left-1 top-1 rounded bg-primary px-1.5 py-0.5 text-xs font-medium text-primary-foreground">
+                        <span className="absolute top-1 left-1 rounded bg-primary px-1.5 py-0.5 font-medium text-primary-foreground text-xs">
                           Utama
                         </span>
                       )}
@@ -152,14 +154,14 @@ function ProductDetailPage() {
           </Section>
 
           {/* Variants */}
-          <Section title="Varian" icon={Layers}>
+          <Section icon={Layers} title="Varian">
             {product.variants.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Belum ada varian.</p>
+              <p className="text-muted-foreground text-sm">Belum ada varian.</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                    <tr className="border-border border-b text-left text-muted-foreground text-xs">
                       <th className="pb-2 font-medium">SKU</th>
                       <th className="pb-2 font-medium">Nama</th>
                       <th className="pb-2 font-medium">Harga</th>
@@ -174,9 +176,11 @@ function ProductDetailPage() {
                         <td className="py-2.5">{v.name}</td>
                         <td className="py-2.5">
                           <div>
-                            <span className="font-medium">{formatIDR(v.price)}</span>
+                            <span className="font-medium">
+                              {formatIDR(v.price)}
+                            </span>
                             {v.compareAtPrice && (
-                              <span className="ml-1.5 text-xs text-muted-foreground line-through">
+                              <span className="ml-1.5 text-muted-foreground text-xs line-through">
                                 {formatIDR(v.compareAtPrice)}
                               </span>
                             )}
@@ -199,7 +203,7 @@ function ProductDetailPage() {
                         <td className="py-2.5">
                           <span
                             className={cn(
-                              "rounded-full px-2 py-0.5 text-xs font-medium",
+                              "rounded-full px-2 py-0.5 font-medium text-xs",
                               v.isActive
                                 ? "bg-green-100 text-green-700"
                                 : "bg-muted text-muted-foreground"
@@ -219,12 +223,12 @@ function ProductDetailPage() {
 
         {/* Right column — metadata */}
         <div className="space-y-6">
-          <Section title="Info Produk" icon={Package}>
+          <Section icon={Package} title="Info Produk">
             <dl className="space-y-3 text-sm">
               <InfoRow label="Status">
                 <span
                   className={cn(
-                    "rounded-full px-2.5 py-0.5 text-xs font-medium",
+                    "rounded-full px-2.5 py-0.5 font-medium text-xs",
                     statusCfg?.class
                   )}
                 >
@@ -244,15 +248,15 @@ function ProductDetailPage() {
             </dl>
           </Section>
 
-          <Section title="Tags" icon={Tag}>
+          <Section icon={Tag} title="Tags">
             {product.tags.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Tidak ada tag.</p>
+              <p className="text-muted-foreground text-sm">Tidak ada tag.</p>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {product.tags.map((tag) => (
                   <span
+                    className="rounded-full bg-muted px-2.5 py-1 font-medium text-foreground text-xs"
                     key={tag}
-                    className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground"
                   >
                     {tag}
                   </span>
@@ -262,7 +266,7 @@ function ProductDetailPage() {
           </Section>
 
           <Section title="Deskripsi">
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <p className="text-muted-foreground text-sm leading-relaxed">
               {product.shortDescription ?? product.description}
             </p>
           </Section>
@@ -285,7 +289,7 @@ function Section({
 }) {
   return (
     <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
-      <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground">
+      <h3 className="mb-4 flex items-center gap-2 font-semibold text-foreground text-sm">
         {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
         {title}
       </h3>

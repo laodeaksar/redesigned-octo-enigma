@@ -9,7 +9,6 @@ import {
   dateRangeSchema,
   idrAmountSchema,
   nonNegativeIntSchema,
-  objectIdSchema,
   positiveIntSchema,
   sortOrderSchema,
   uuidSchema,
@@ -91,7 +90,7 @@ export const createOrderSchema = z.object({
       {
         message:
           "Duplicate variant IDs are not allowed — combine quantities instead",
-      },
+      }
     ),
   shippingAddressId: uuidSchema,
   courier: shippingCourierSchema,
@@ -135,7 +134,7 @@ export const updateOrderStatusSchema = z
     {
       message: "Tracking number is required when marking an order as shipped",
       path: ["trackingNumber"],
-    },
+    }
   );
 
 export type UpdateOrderStatusInput = z.infer<typeof updateOrderStatusSchema>;

@@ -2,9 +2,8 @@
 // Rate-limit middleware — wraps checkRateLimit for Hono routes
 // =============================================================================
 
-import { createMiddleware } from "hono/factory";
-
 import { failure } from "@repo/common/schemas";
+import { createMiddleware } from "hono/factory";
 
 import { getRedis } from "@/config";
 import {
@@ -22,7 +21,9 @@ import {
  *
  * @param config  One of RATE_LIMITS presets or a custom RateLimitConfig
  */
-export function rateLimitMiddleware(config: RateLimitConfig = RATE_LIMITS.default) {
+export function rateLimitMiddleware(
+  config: RateLimitConfig = RATE_LIMITS.default
+) {
   return createMiddleware(async (c, next) => {
     const redis = getRedis();
     const user = c.var.user;
@@ -43,12 +44,12 @@ export function rateLimitMiddleware(config: RateLimitConfig = RATE_LIMITS.defaul
     c.header("X-RateLimit-Reset", String(result.resetAt));
 
     if (!result.allowed) {
-      c.header("Retry-After", String(result.resetAt - Math.floor(Date.now() / 1000)));
+      c.header(
+        "Retry-After",
+        String(result.resetAt - Math.floor(Date.now() / 1000))
+      );
       return c.json(
-        failure(
-          "RATE_LIMIT_EXCEEDED",
-          "Too many requests — please slow down"
-        ),
+        failure("RATE_LIMIT_EXCEEDED", "Too many requests — please slow down"),
         429
       );
     }
@@ -75,9 +76,9 @@ export function ipRateLimitMiddleware(config: RateLimitConfig) {
 
     const result = await checkRateLimit(redis, ip, config);
 
-    c.header("X-RateLimit-Limit",     String(result.limit));
+    c.header("X-RateLimit-Limit", String(result.limit));
     c.header("X-RateLimit-Remaining", String(result.remaining));
-    c.header("X-RateLimit-Reset",     String(result.resetAt));
+    c.header("X-RateLimit-Reset", String(result.resetAt));
 
     if (!result.allowed) {
       c.header(
@@ -96,10 +97,10 @@ export function ipRateLimitMiddleware(config: RateLimitConfig) {
 
 // ── Pre-wired presets ─────────────────────────────────────────────────────────
 
-export const defaultRateLimit  = rateLimitMiddleware(RATE_LIMITS.default);
-export const authRateLimit     = rateLimitMiddleware(RATE_LIMITS.auth);
+export const defaultRateLimit = rateLimitMiddleware(RATE_LIMITS.default);
+export const authRateLimit = rateLimitMiddleware(RATE_LIMITS.auth);
 export const checkoutRateLimit = rateLimitMiddleware(RATE_LIMITS.checkout);
-export const strictRateLimit   = rateLimitMiddleware(RATE_LIMITS.strict);
+export const strictRateLimit = rateLimitMiddleware(RATE_LIMITS.strict);
 
 /**
  * Webhook rate limiter — IP-keyed, 20 deliveries / 60s by default.
@@ -108,4 +109,3 @@ export const strictRateLimit   = rateLimitMiddleware(RATE_LIMITS.strict);
  * Override the ceiling with WEBHOOK_RATE_LIMIT_MAX env var.
  */
 export const webhookRateLimit = ipRateLimitMiddleware(RATE_LIMITS.webhook);
-

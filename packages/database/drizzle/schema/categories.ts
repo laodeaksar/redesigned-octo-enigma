@@ -3,6 +3,7 @@
 // Managed by: product-service
 // =============================================================================
 
+import { relations } from "drizzle-orm";
 import {
   index,
   integer,
@@ -11,7 +12,6 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
 
 import { primaryId, softDelete, timestamps } from "./_helpers";
 import { productsTable } from "./products";
@@ -33,7 +33,7 @@ export const categoriesTable = pgTable(
   (t) => ({
     categoriesSlugIdx: index("categories_slug_idx").on(t.slug),
     categoriesParentIdIdx: index("categories_parent_id_idx").on(t.parentId),
-  }),
+  })
 );
 
 // ── Relations ─────────────────────────────────────────────────────────────────
@@ -50,7 +50,7 @@ export const categoriesRelations = relations(
       relationName: "subcategories",
     }),
     products: many(productsTable),
-  }),
+  })
 );
 
 // ── Types ─────────────────────────────────────────────────────────────────────

@@ -13,9 +13,8 @@
 // =============================================================================
 
 import Elysia, { t } from "elysia";
-
-import { databasePlugin } from "@/plugins/database.plugin";
 import { jwtMiddleware, requireRole } from "@/middleware/jwt.middleware";
+import { databasePlugin } from "@/plugins/database.plugin";
 import * as controller from "./reviews.controller";
 
 const UUID_PARAM = t.Object({ id: t.String({ format: "uuid" }) });
@@ -30,7 +29,10 @@ export const reviewsRoutes = new Elysia({ prefix: "/products" })
       controller.handleGetRatingSummary(db, redis, params.id),
     {
       params: UUID_PARAM,
-      detail: { tags: ["Reviews"], summary: "Get rating summary for a product" },
+      detail: {
+        tags: ["Reviews"],
+        summary: "Get rating summary for a product",
+      },
     }
   )
   .get(
@@ -63,7 +65,9 @@ export const reviewsRoutes = new Elysia({ prefix: "/products" })
         rating: t.Number({ minimum: 1, maximum: 5 }),
         title: t.Optional(t.Nullable(t.String({ maxLength: 150 }))),
         body: t.Optional(t.Nullable(t.String({ maxLength: 2000 }))),
-        imageUrls: t.Optional(t.Array(t.String({ format: "uri" }), { maxItems: 5 })),
+        imageUrls: t.Optional(
+          t.Array(t.String({ format: "uri" }), { maxItems: 5 })
+        ),
       }),
       detail: {
         tags: ["Reviews"],
@@ -90,4 +94,3 @@ export const reviewsRoutes = new Elysia({ prefix: "/products" })
       },
     }
   );
-

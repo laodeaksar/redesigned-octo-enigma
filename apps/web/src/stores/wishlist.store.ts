@@ -10,10 +10,7 @@ export const $wishlistedIds = atom<Set<string>>(new Set());
 
 // ── Computed ──────────────────────────────────────────────────────────────────
 
-export const $wishlistCount = computed(
-  $wishlistedIds,
-  (ids) => ids.size
-);
+export const $wishlistCount = computed($wishlistedIds, (ids) => ids.size);
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 
@@ -32,8 +29,12 @@ export async function hydrateWishlist() {
 
   try {
     const res = await fetch(API);
-    if (!res.ok) return;
-    const { data } = await res.json() as { data: { items: { product: { id: string } }[] } };
+    if (!res.ok) {
+      return;
+    }
+    const { data } = (await res.json()) as {
+      data: { items: { product: { id: string } }[] };
+    };
     const ids = data.items.map((i) => i.product.id);
     const next = new Set(ids);
     $wishlistedIds.set(next);
@@ -59,8 +60,10 @@ export async function toggleWishlist(productId: string) {
 
   try {
     const res = await fetch(`${API}/${productId}/toggle`, { method: "POST" });
-    if (!res.ok) throw new Error("toggle failed");
-    const { data } = await res.json() as { data: { wishlisted: boolean } };
+    if (!res.ok) {
+      throw new Error("toggle failed");
+    }
+    const { data } = (await res.json()) as { data: { wishlisted: boolean } };
 
     // Reconcile with server truth
     const reconciled = new Set($wishlistedIds.get());

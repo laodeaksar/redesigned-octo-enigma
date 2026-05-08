@@ -3,17 +3,16 @@
 // Managed by: product-service
 // =============================================================================
 
+import { relations, sql } from "drizzle-orm";
 import {
   boolean,
   index,
-  integer,
   pgTable,
   smallint,
   text,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { relations, sql } from "drizzle-orm";
 
 import { primaryId, timestamps } from "./_helpers";
 import { productsTable } from "./products";
@@ -35,10 +34,7 @@ export const productReviewsTable = pgTable(
     title: varchar("title", { length: 150 }),
     body: text("body"),
     /** S3 image URLs for review photos */
-    imageUrls: text("image_urls")
-      .array()
-      .notNull()
-      .default(sql`'{}'::text[]`),
+    imageUrls: text("image_urls").array().notNull().default(sql`'{}'::text[]`),
     isVerifiedPurchase: boolean("is_verified_purchase")
       .notNull()
       .default(false),
@@ -49,16 +45,16 @@ export const productReviewsTable = pgTable(
     productReviewsUniqueIdx: index("product_reviews_unique_idx").on(
       t.productId,
       t.userId,
-      t.orderId,
+      t.orderId
     ),
 
     // Indeks kolom tunggal
     productReviewsProductIdIdx: index("product_reviews_product_id_idx").on(
-      t.productId,
+      t.productId
     ),
     productReviewsUserIdIdx: index("product_reviews_user_id_idx").on(t.userId),
     productReviewsRatingIdx: index("product_reviews_rating_idx").on(t.rating),
-  }),
+  })
 );
 
 // ── Relations ─────────────────────────────────────────────────────────────────
@@ -74,7 +70,7 @@ export const productReviewsRelations = relations(
       fields: [productReviewsTable.userId],
       references: [usersTable.id],
     }),
-  }),
+  })
 );
 
 // ── Types ─────────────────────────────────────────────────────────────────────

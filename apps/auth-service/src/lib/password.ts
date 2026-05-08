@@ -2,11 +2,11 @@
 // Password helpers — Argon2id hashing via @node-rs/argon2
 // =============================================================================
 
-import { hash, verify, Algorithm } from "@node-rs/argon2";
+import { Algorithm, hash, verify } from "@node-rs/argon2";
 
 const ARGON2_OPTIONS = {
   algorithm: Algorithm.Argon2id,
-  memoryCost: 65536,   // 64 MiB
+  memoryCost: 65_536, // 64 MiB
   timeCost: 3,
   parallelism: 4,
 };
@@ -34,4 +34,3 @@ export async function verifyPassword(
     return false;
   }
 }
-

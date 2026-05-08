@@ -2,14 +2,14 @@
 // Categories repository
 // =============================================================================
 
-import { eq, isNull, asc } from "drizzle-orm";
+import type { CategoryTree } from "@repo/common/types";
 
 import {
-  categoriesTable,
   type CategoryRow,
+  categoriesTable,
   type NewCategoryRow,
 } from "@repo/database/drizzle/schema";
-import type { CategoryTree } from "@repo/common/types";
+import { asc, eq, isNull } from "drizzle-orm";
 
 import type { DB } from "@/config";
 
@@ -74,10 +74,7 @@ export async function updateCategory(
   return row;
 }
 
-export async function softDeleteCategory(
-  db: DB,
-  id: string
-): Promise<boolean> {
+export async function softDeleteCategory(db: DB, id: string): Promise<boolean> {
   const result = await db
     .update(categoriesTable)
     .set({ deletedAt: new Date() })
@@ -98,14 +95,13 @@ export function buildCategoryTree(rows: CategoryRow[]): CategoryTree[] {
   const roots: CategoryTree[] = [];
 
   for (const node of map.values()) {
-    if (!node.parentId) {
-      roots.push(node);
-    } else {
+    if (node.parentId) {
       const parent = map.get(node.parentId);
       parent?.children.push(node);
+    } else {
+      roots.push(node);
     }
   }
 
   return roots;
 }
-

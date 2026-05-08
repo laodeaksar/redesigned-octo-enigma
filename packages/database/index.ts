@@ -8,34 +8,32 @@
 //   import { OrderModel }          from "@repo/database/mongo/models"
 // =============================================================================
 
+export type { DrizzleClient, DrizzleClientOptions } from "./drizzle/client";
 // ── Drizzle ───────────────────────────────────────────────────────────────────
 export {
-  createDrizzleClient,
   closeDrizzleClient,
-} from "./drizzle/client"
-export type { DrizzleClient, DrizzleClientOptions } from "./drizzle/client";
+  createDrizzleClient,
+} from "./drizzle/client";
 
 // ── Drizzle schema ────────────────────────────────────────────────────────────
 export * from "./drizzle/schema";
-
+export type { MongoClientOptions } from "./mongo/client";
 // ── MongoDB ───────────────────────────────────────────────────────────────────
 export {
   connectMongo,
   disconnectMongo,
   isMongoConnected,
 } from "./mongo/client";
-export type { MongoClientOptions } from "./mongo/client";
-
-// ── MongoDB models ────────────────────────────────────────────────────────────
-export { OrderModel } from "./mongo/models/order.model";
 export type {
+  IAppliedDiscount,
   IOrder,
   IOrderDocument,
   IOrderItem,
-  IProductSnapshot,
-  IShippingInfo,
-  IShippingAddress,
   IOrderPricing,
-  IAppliedDiscount,
   IOrderStatusEvent,
+  IProductSnapshot,
+  IShippingAddress,
+  IShippingInfo,
 } from "./mongo/models/order.model";
+// ── MongoDB models ────────────────────────────────────────────────────────────
+export { OrderModel } from "./mongo/models/order.model";

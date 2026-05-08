@@ -30,28 +30,32 @@
 //   provider's perspective while still giving us a loggable event.
 // =============================================================================
 
-import { createMiddleware } from "hono/factory";
-import { logger } from "@/lib/logger";
-import { db } from "@/config";
 import { webhookEventsTable } from "@repo/database/drizzle/schema";
+import { createMiddleware } from "hono/factory";
+import { db } from "@/config";
+import { logger } from "@/lib/logger";
 
 // ── CIDR helpers (IPv4-only — Midtrans uses IPv4) ────────────────────────────
 
 interface CidrRange {
   base: number; // 32-bit network address (masked)
   mask: number; // 32-bit mask
-  raw:  string; // original string, for log messages
+  raw: string; // original string, for log messages
 }
 
 function parseIpv4(ip: string): number | null {
   // Strip IPv4-mapped IPv6 prefix
   const stripped = ip.startsWith("::ffff:") ? ip.slice(7) : ip;
   const parts = stripped.split(".");
-  if (parts.length !== 4) return null;
+  if (parts.length !== 4) {
+    return null;
+  }
   let n = 0;
   for (const p of parts) {
-    const byte = parseInt(p, 10);
-    if (isNaN(byte) || byte < 0 || byte > 255) return null;
+    const byte = Number.parseInt(p, 10);
+    if (isNaN(byte) || byte < 0 || byte > 255) {
+      return null;
+    }
     n = (n << 8) | byte;
   }
   // Treat as unsigned 32-bit
@@ -60,12 +64,18 @@ function parseIpv4(ip: string): number | null {
 
 function parseCidr(cidr: string): CidrRange | null {
   const [ip, bitsStr] = cidr.split("/");
-  if (!ip || !bitsStr) return null;
-  const prefix = parseInt(bitsStr, 10);
-  if (isNaN(prefix) || prefix < 0 || prefix > 32) return null;
+  if (!(ip && bitsStr)) {
+    return null;
+  }
+  const prefix = Number.parseInt(bitsStr, 10);
+  if (isNaN(prefix) || prefix < 0 || prefix > 32) {
+    return null;
+  }
 
   const addr = parseIpv4(ip);
-  if (addr === null) return null;
+  if (addr === null) {
+    return null;
+  }
 
   const mask = prefix === 0 ? 0 : (~0 << (32 - prefix)) >>> 0;
   return { base: (addr & mask) >>> 0, mask, raw: cidr };
@@ -73,19 +83,28 @@ function parseCidr(cidr: string): CidrRange | null {
 
 function isIpv4InRange(ip: string, range: CidrRange): boolean {
   const addr = parseIpv4(ip);
-  if (addr === null) return false;
-  return ((addr & range.mask) >>> 0) === range.base;
+  if (addr === null) {
+    return false;
+  }
+  return (addr & range.mask) >>> 0 === range.base;
 }
 
 // ── Loopback (exact-match, handles IPv6 forms) ───────────────────────────────
 
-const LOOPBACK_EXACT = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1", "localhost"]);
+const LOOPBACK_EXACT = new Set([
+  "127.0.0.1",
+  "::1",
+  "::ffff:127.0.0.1",
+  "localhost",
+]);
 
 function isLoopback(ip: string): boolean {
-  if (LOOPBACK_EXACT.has(ip)) return true;
+  if (LOOPBACK_EXACT.has(ip)) {
+    return true;
+  }
   // 127.x.x.x range
   const addr = parseIpv4(ip);
-  return addr !== null && (addr >>> 24) === 127;
+  return addr !== null && addr >>> 24 === 127;
 }
 
 // ── Allowlist configuration ───────────────────────────────────────────────────
@@ -97,7 +116,7 @@ function isLoopback(ip: string): boolean {
  */
 const MIDTRANS_BUILT_IN_CIDRS: string[] = [
   "202.152.187.0/24", // Midtrans production (primary)
-  "103.208.23.0/24",  // Midtrans production (newer)
+  "103.208.23.0/24", // Midtrans production (newer)
 ];
 
 function buildAllowlist(): CidrRange[] {
@@ -107,7 +126,9 @@ function buildAllowlist(): CidrRange[] {
   if (extra) {
     for (const entry of extra.split(",")) {
       const trimmed = entry.trim();
-      if (trimmed) rawList.push(trimmed);
+      if (trimmed) {
+        rawList.push(trimmed);
+      }
     }
   }
 
@@ -127,13 +148,15 @@ function buildAllowlist(): CidrRange[] {
 const ALLOWLIST: CidrRange[] = buildAllowlist();
 
 const ENABLED: boolean =
-  (process.env["MIDTRANS_WEBHOOK_ALLOWLIST_ENABLED"] ?? "true").toLowerCase() !== "false";
+  (
+    process.env["MIDTRANS_WEBHOOK_ALLOWLIST_ENABLED"] ?? "true"
+  ).toLowerCase() !== "false";
 
 // Log effective configuration once at startup
 if (ENABLED) {
   logger.info("[webhook-allowlist] Enforcement ON", {
     ranges: ALLOWLIST.map((r) => r.raw),
-    note:   "Set MIDTRANS_WEBHOOK_ALLOWLIST_ENABLED=false to disable (dev/test only)",
+    note: "Set MIDTRANS_WEBHOOK_ALLOWLIST_ENABLED=false to disable (dev/test only)",
   });
 } else {
   logger.warn(
@@ -144,7 +167,9 @@ if (ENABLED) {
 
 // ── IP extraction (same header priority as rate-limit middleware) ─────────────
 
-function extractIp(c: { req: { header: (k: string) => string | undefined } }): string {
+function extractIp(c: {
+  req: { header: (k: string) => string | undefined };
+}): string {
   return (
     c.req.header("cf-connecting-ip") ??
     c.req.header("x-real-ip") ??
@@ -162,16 +187,22 @@ function extractIp(c: { req: { header: (k: string) => string | undefined } }): s
  * Gracefully disabled when MIDTRANS_WEBHOOK_ALLOWLIST_ENABLED=false.
  */
 export const midtransAllowlistMiddleware = createMiddleware(async (c, next) => {
-  if (!ENABLED) return next();
+  if (!ENABLED) {
+    return next();
+  }
 
   const ip = extractIp(c);
 
   // If the IP cannot be determined (no forwarding headers, direct socket
   // connection in dev), fail open — mirrors ipBlocklistMiddleware convention.
-  if (ip === "unknown") return next();
+  if (ip === "unknown") {
+    return next();
+  }
 
   // Loopback always passes — covers local dev and integration-test runners.
-  if (isLoopback(ip)) return next();
+  if (isLoopback(ip)) {
+    return next();
+  }
 
   const allowed = ALLOWLIST.some((range) => isIpv4InRange(ip, range));
 
@@ -192,10 +223,11 @@ export const midtransAllowlistMiddleware = createMiddleware(async (c, next) => {
   if (db) {
     db.insert(webhookEventsTable)
       .values({
-        provider:      "midtrans",
+        provider: "midtrans",
         ip,
-        outcome:       "not_allowed",
-        outcomeDetail: "Source IP is not within any configured Midtrans CIDR range",
+        outcome: "not_allowed",
+        outcomeDetail:
+          "Source IP is not within any configured Midtrans CIDR range",
       })
       .catch((err: unknown) => {
         logger.warn("[webhook-allowlist] Failed to write audit row", { err });
@@ -208,7 +240,7 @@ export const midtransAllowlistMiddleware = createMiddleware(async (c, next) => {
     {
       success: false,
       error: {
-        code:    "WEBHOOK_IP_NOT_ALLOWED",
+        code: "WEBHOOK_IP_NOT_ALLOWED",
         message: "Webhook source IP is not in the Midtrans allowlist",
       },
     },

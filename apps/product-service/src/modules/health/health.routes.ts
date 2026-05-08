@@ -1,6 +1,6 @@
-import Elysia from "elysia";
-import { sql } from "drizzle-orm";
 import { success } from "@repo/common/schemas";
+import { sql } from "drizzle-orm";
+import Elysia from "elysia";
 import { db, getRedis } from "@/config";
 
 export const healthRoutes = new Elysia({ prefix: "/health" }).get(
@@ -38,4 +38,3 @@ export const healthRoutes = new Elysia({ prefix: "/health" }).get(
   },
   { detail: { tags: ["Health"], summary: "Service health check" } }
 );
-

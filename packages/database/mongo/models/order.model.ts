@@ -4,75 +4,84 @@
 // Stored in: MongoDB (orders database)
 // =============================================================================
 
-import mongoose, { Schema, model, type Document, type Model } from "mongoose";
+import mongoose, { type Document, type Model, model, Schema } from "mongoose";
 
 // ── Sub-document interfaces ───────────────────────────────────────────────────
 
 export interface IProductSnapshot {
-  productId: string;
-  variantId: string;
-  name: string;
-  variantName: string;
-  sku: string;
   imageUrl: string | null;
+  name: string;
   price: number;
+  productId: string;
+  sku: string;
+  variantId: string;
+  variantName: string;
 }
 
 export interface IOrderItem {
   product: IProductSnapshot;
   quantity: number;
-  unitPrice: number;
   subtotal: number;
+  unitPrice: number;
 }
 
 export interface IShippingAddress {
-  recipientName: string;
-  phone: string;
-  street: string;
   city: string;
-  province: string;
-  postalCode: string;
   country: string;
+  phone: string;
+  postalCode: string;
+  province: string;
+  recipientName: string;
+  street: string;
 }
 
 export interface IShippingInfo {
-  courier: string;
-  service: string;
-  trackingNumber: string | null;
-  estimatedDays: number;
-  cost: number;
   address: IShippingAddress;
-  shippedAt: Date | null;
+  cost: number;
+  courier: string;
   deliveredAt: Date | null;
+  estimatedDays: number;
+  service: string;
+  shippedAt: Date | null;
+  trackingNumber: string | null;
 }
 
 export interface IOrderPricing {
-  subtotal: number;
-  shippingCost: number;
   discountTotal: number;
-  taxTotal: number;
   grandTotal: number;
+  shippingCost: number;
+  subtotal: number;
+  taxTotal: number;
 }
 
 export interface IAppliedDiscount {
+  amount: number;
   code: string;
   type: "percentage" | "fixed_amount" | "free_shipping";
   value: number;
-  amount: number;
 }
 
 export interface IOrderStatusEvent {
+  actorId: string | null;
+  note: string | null;
   status: string;
   timestamp: Date;
-  note: string | null;
-  actorId: string | null;
 }
 
 // ── Order Document interface ──────────────────────────────────────────────────
 
 export interface IOrder {
+  cancellationNote: string | null;
+  cancellationReason: string | null;
+  createdAt: Date;
+  customerNote: string | null;
+  discounts: IAppliedDiscount[];
+  expiresAt: Date;
+  items: IOrderItem[];
   orderNumber: string;
-  userId: string;
+  paymentId: string | null;
+  pricing: IOrderPricing;
+  shipping: IShippingInfo;
   status:
     | "pending_payment"
     | "processing"
@@ -82,18 +91,9 @@ export interface IOrder {
     | "cancelled"
     | "refund_requested"
     | "refunded";
-  items: IOrderItem[];
-  shipping: IShippingInfo;
-  pricing: IOrderPricing;
-  discounts: IAppliedDiscount[];
-  paymentId: string | null;
   statusHistory: IOrderStatusEvent[];
-  cancellationReason: string | null;
-  cancellationNote: string | null;
-  customerNote: string | null;
-  expiresAt: Date;
-  createdAt: Date;
   updatedAt: Date;
+  userId: string;
 }
 
 export interface IOrderDocument extends IOrder, Document {}
@@ -110,7 +110,7 @@ const ProductSnapshotSchema = new Schema<IProductSnapshot>(
     imageUrl: { type: String, default: null },
     price: { type: Number, required: true },
   },
-  { _id: false }, // no separate ObjectId for snapshots
+  { _id: false } // no separate ObjectId for snapshots
 );
 
 const OrderItemSchema = new Schema<IOrderItem>(
@@ -120,7 +120,7 @@ const OrderItemSchema = new Schema<IOrderItem>(
     unitPrice: { type: Number, required: true },
     subtotal: { type: Number, required: true },
   },
-  { _id: false },
+  { _id: false }
 );
 
 const ShippingAddressSchema = new Schema<IShippingAddress>(
@@ -133,7 +133,7 @@ const ShippingAddressSchema = new Schema<IShippingAddress>(
     postalCode: { type: String, required: true },
     country: { type: String, required: true, default: "ID" },
   },
-  { _id: false },
+  { _id: false }
 );
 
 const ShippingInfoSchema = new Schema<IShippingInfo>(
@@ -147,7 +147,7 @@ const ShippingInfoSchema = new Schema<IShippingInfo>(
     shippedAt: { type: Date, default: null },
     deliveredAt: { type: Date, default: null },
   },
-  { _id: false },
+  { _id: false }
 );
 
 const OrderPricingSchema = new Schema<IOrderPricing>(
@@ -158,7 +158,7 @@ const OrderPricingSchema = new Schema<IOrderPricing>(
     taxTotal: { type: Number, required: true, default: 0 },
     grandTotal: { type: Number, required: true },
   },
-  { _id: false },
+  { _id: false }
 );
 
 const AppliedDiscountSchema = new Schema<IAppliedDiscount>(
@@ -172,7 +172,7 @@ const AppliedDiscountSchema = new Schema<IAppliedDiscount>(
     value: { type: Number, required: true },
     amount: { type: Number, required: true },
   },
-  { _id: false },
+  { _id: false }
 );
 
 const OrderStatusEventSchema = new Schema<IOrderStatusEvent>(
@@ -182,7 +182,7 @@ const OrderStatusEventSchema = new Schema<IOrderStatusEvent>(
     note: { type: String, default: null },
     actorId: { type: String, default: null },
   },
-  { _id: false },
+  { _id: false }
 );
 
 // ── Order Schema ──────────────────────────────────────────────────────────────
@@ -265,7 +265,7 @@ const OrderSchema = new Schema<IOrderDocument>(
         return ret;
       },
     },
-  },
+  }
 );
 
 // ── Indexes ───────────────────────────────────────────────────────────────────
@@ -288,7 +288,7 @@ interface IOrderModel extends Model<IOrderDocument> {
 
 OrderSchema.static(
   "generateOrderNumber",
-  async function (date = new Date()): Promise<string> {
+  async (date = new Date()): Promise<string> => {
     const datePart = date.toISOString().slice(0, 10).replace(/-/g, ""); // YYYYMMDD
 
     const startOfDay = new Date(date);
@@ -303,7 +303,7 @@ OrderSchema.static(
 
     const seq = String(count + 1).padStart(4, "0");
     return `ORD-${datePart}-${seq}`;
-  },
+  }
 );
 
 // ── Model export ──────────────────────────────────────────────────────────────

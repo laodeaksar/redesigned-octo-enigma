@@ -24,7 +24,11 @@
     stroke-width="2.5"
     xmlns="http://www.w3.org/2000/svg"
   >
-    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18" />
+    <path
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18"
+    />
   </svg>
 </button>
 
@@ -35,11 +39,11 @@
 
     function sync() {
       const visible = window.scrollY > THRESHOLD;
-      btn.classList.toggle("opacity-0",        !visible);
-      btn.classList.toggle("scale-75",         !visible);
+      btn.classList.toggle("opacity-0", !visible);
+      btn.classList.toggle("scale-75", !visible);
       btn.classList.toggle("pointer-events-none", !visible);
-      btn.classList.toggle("opacity-100",       visible);
-      btn.classList.toggle("scale-100",         visible);
+      btn.classList.toggle("opacity-100", visible);
+      btn.classList.toggle("scale-100", visible);
     }
 
     window.addEventListener("scroll", sync, { passive: true });

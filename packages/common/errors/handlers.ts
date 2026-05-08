@@ -3,8 +3,8 @@
 // Converts AppError / ZodError / unknown into structured API responses
 // =============================================================================
 
+import type { ZodTypeAny, z } from "zod";
 import { ZodError } from "zod";
-import type { ZodSchema, ZodTypeAny, z } from "zod";
 
 import { AppError, InternalError } from "./app-error";
 import { ValidationError } from "./http-error";
@@ -91,7 +91,7 @@ export function elysiaErrorHandler({
  */
 export function honoErrorHandler(
   error: unknown,
-  c: { json: (body: unknown, status: number) => Response },
+  c: { json: (body: unknown, status: number) => Response }
 ): Response {
   const appError = normalizeError(error);
 
@@ -121,7 +121,7 @@ export function honoErrorHandler(
  */
 export function safeParse<T extends ZodTypeAny>(
   schema: T,
-  data: unknown,
+  data: unknown
 ): z.infer<T> {
   const result = schema.safeParse(data);
 

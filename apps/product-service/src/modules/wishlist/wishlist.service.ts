@@ -1,5 +1,4 @@
 import { wishlistRepository } from "./wishlist.repository";
-import { NotFoundError } from "@repo/common/errors";
 
 export const wishlistService = {
   async addToWishlist(userId: string, productId: string) {

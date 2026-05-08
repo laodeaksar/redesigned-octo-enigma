@@ -17,4 +17,3 @@ export const requestIdMiddleware = createMiddleware(async (c, next) => {
 
   c.header("x-request-id", requestId);
 });
-

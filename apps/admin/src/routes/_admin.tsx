@@ -13,4 +13,3 @@ export const Route = createFileRoute("/_admin")({
 function AdminLayoutWrapper() {
   return <Outlet />;
 }
-

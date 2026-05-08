@@ -8,16 +8,16 @@
 // =============================================================================
 
 import {
-  Worker,
-  type Processor,
-  type WorkerOptions,
   type ConnectionOptions,
   type Job,
+  type Processor,
+  Worker,
+  type WorkerOptions,
 } from "bullmq";
 import type Redis from "ioredis";
 
 // ── Re-export BullMQ types used by handlers ───────────────────────────────────
-export type { Processor, Job };
+export type { Job, Processor };
 
 // ── Worker factory ────────────────────────────────────────────────────────────
 
@@ -45,11 +45,7 @@ export function createWorker<TData = unknown, TResult = void>(
   redis: Redis,
   opts: CreateWorkerOptions = {}
 ): Worker<TData, TResult> {
-  const {
-    concurrency = 10,
-    limiter,
-    stalledInterval = 30_000,
-  } = opts;
+  const { concurrency = 10, limiter, stalledInterval = 30_000 } = opts;
 
   const workerOptions: WorkerOptions = {
     connection: redis as unknown as ConnectionOptions,
@@ -58,7 +54,11 @@ export function createWorker<TData = unknown, TResult = void>(
     ...(limiter ? { limiter } : {}),
   };
 
-  const worker = new Worker<TData, TResult>(queueName, processor, workerOptions);
+  const worker = new Worker<TData, TResult>(
+    queueName,
+    processor,
+    workerOptions
+  );
 
   // ── Event listeners ────────────────────────────────────────────────────────
 
@@ -93,9 +93,7 @@ export function createWorker<TData = unknown, TResult = void>(
     console.warn(`[${queueName}] Job ${jobId} stalled — will be retried`);
   });
 
-  console.info(
-    `[${queueName}] Worker started (concurrency: ${concurrency})`
-  );
+  console.info(`[${queueName}] Worker started (concurrency: ${concurrency})`);
 
   return worker;
 }
@@ -103,9 +101,9 @@ export function createWorker<TData = unknown, TResult = void>(
 // ── Multi-queue worker setup ──────────────────────────────────────────────────
 
 export interface WorkerBinding<TData = any> {
-  queue: string;
-  processor: Processor<TData>;
   options?: CreateWorkerOptions;
+  processor: Processor<TData>;
+  queue: string;
 }
 
 /**
@@ -141,4 +139,3 @@ export async function closeWorkers(
   );
   console.info("All workers closed.");
 }
-

@@ -2,12 +2,11 @@
 // Health module — GET /health
 // =============================================================================
 
-import Elysia from "elysia";
-import { sql } from "drizzle-orm";
-
 import { success } from "@repo/common/schemas";
+import { sql } from "drizzle-orm";
+import Elysia from "elysia";
 
-import { db, env } from "@/config";
+import { db } from "@/config";
 
 export const healthRoutes = new Elysia({ prefix: "/health" }).get(
   "/",
@@ -37,4 +36,3 @@ export const healthRoutes = new Elysia({ prefix: "/health" }).get(
     detail: { tags: ["Health"], summary: "Service health check" },
   }
 );
-

@@ -7,10 +7,9 @@
 // =============================================================================
 
 import { Hono } from "hono";
-import { optionalAuth } from "@/middleware/auth.middleware";
-import { defaultRateLimit } from "@/middleware/rate-limit.middleware";
-import { proxyRequest, buildTargetUrl } from "@/lib/proxy";
 import { SERVICES } from "@/config";
+import { buildTargetUrl, proxyRequest } from "@/lib/proxy";
+import { defaultRateLimit } from "@/middleware/rate-limit.middleware";
 
 const app = new Hono();
 const orderBase = SERVICES.order;
@@ -24,4 +23,3 @@ app.post("/shipping/rates", defaultRateLimit, async (c) =>
 );
 
 export { app as shippingRoutes };
-

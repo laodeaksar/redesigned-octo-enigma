@@ -9,13 +9,13 @@ import { env } from "@/config";
 // ── Design tokens ─────────────────────────────────────────────────────────────
 
 const COLORS = {
-  brand:  "#1a1a2e",
+  brand: "#1a1a2e",
   accent: "#e94560",
-  text:   "#333333",
-  muted:  "#666666",
+  text: "#333333",
+  muted: "#666666",
   border: "#e5e7eb",
-  bg:     "#f9fafb",
-  white:  "#ffffff",
+  bg: "#f9fafb",
+  white: "#ffffff",
 } as const;
 
 // ── Formatters ────────────────────────────────────────────────────────────────
@@ -31,9 +31,9 @@ export function formatIDR(amount: number): string {
 export function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("id-ID", {
     weekday: "long",
-    year:    "numeric",
-    month:   "long",
-    day:     "numeric",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
   });
 }
 
@@ -142,8 +142,8 @@ function orderItemRow(item: {
 // ── 1. Welcome ────────────────────────────────────────────────────────────────
 
 export interface WelcomePayload {
-  name: string;
   email: string;
+  name: string;
 }
 
 export function welcomeTemplate(payload: WelcomePayload): {
@@ -177,16 +177,17 @@ export function welcomeTemplate(payload: WelcomePayload): {
 
 export interface OrderConfirmationItem {
   name: string;
-  variantName: string;
   quantity: number;
-  unitPrice: number;
   subtotal: number;
+  unitPrice: number;
+  variantName: string;
 }
 
 export interface OrderConfirmationPayload {
-  orderNumber: string;
   email: string;
+  expiresAt: string;
   items: OrderConfirmationItem[];
+  orderNumber: string;
   pricing: {
     subtotal: number;
     shippingCost: number;
@@ -206,7 +207,6 @@ export interface OrderConfirmationPayload {
       postalCode: string;
     };
   };
-  expiresAt: string;
 }
 
 export function orderConfirmationTemplate(p: OrderConfirmationPayload): {
@@ -215,7 +215,7 @@ export function orderConfirmationTemplate(p: OrderConfirmationPayload): {
   text: string;
 } {
   const subject = `Pesanan ${p.orderNumber} Menunggu Pembayaran`;
-  const payUrl  = appUrl(`/orders/${p.orderNumber}/pay`);
+  const payUrl = appUrl(`/orders/${p.orderNumber}/pay`);
 
   const itemRows = p.items.map(orderItemRow).join("");
 
@@ -278,15 +278,15 @@ export function orderConfirmationTemplate(p: OrderConfirmationPayload): {
 // ── 3. Order shipped ──────────────────────────────────────────────────────────
 
 export interface OrderShippedPayload {
-  orderNumber: string;
-  email: string;
-  courier: string;
-  trackingNumber: string | null;
   address: {
     recipientName: string;
     city: string;
     province: string;
   };
+  courier: string;
+  email: string;
+  orderNumber: string;
+  trackingNumber: string | null;
 }
 
 export function orderShippedTemplate(p: OrderShippedPayload): {
@@ -294,7 +294,7 @@ export function orderShippedTemplate(p: OrderShippedPayload): {
   html: string;
   text: string;
 } {
-  const subject  = `Pesanan ${p.orderNumber} Sedang Dikirim 🚚`;
+  const subject = `Pesanan ${p.orderNumber} Sedang Dikirim 🚚`;
   const trackUrl = appUrl(`/orders/${p.orderNumber}/track`);
 
   const content = `
@@ -308,11 +308,15 @@ export function orderShippedTemplate(p: OrderShippedPayload): {
         <td style="font-size:14px;color:${COLORS.muted};">Kurir</td>
         <td style="font-size:14px;font-weight:600;color:${COLORS.text};text-align:right;">${p.courier.toUpperCase()}</td>
       </tr>
-      ${p.trackingNumber ? `
+      ${
+        p.trackingNumber
+          ? `
       <tr>
         <td style="font-size:14px;color:${COLORS.muted};padding-top:8px;">No. Resi</td>
         <td style="font-size:16px;font-weight:700;color:${COLORS.brand};text-align:right;padding-top:8px;font-family:monospace;">${p.trackingNumber}</td>
-      </tr>` : ""}
+      </tr>`
+          : ""
+      }
     </table>
 
     ${p.trackingNumber ? button("Lacak Paket", trackUrl) : ""}
@@ -331,18 +335,18 @@ export function orderShippedTemplate(p: OrderShippedPayload): {
 // ── 4. Order cancelled ────────────────────────────────────────────────────────
 
 export interface OrderCancelledPayload {
-  orderNumber: string;
   email: string;
-  reason: string | null;
   grandTotal: number;
+  orderNumber: string;
+  reason: string | null;
 }
 
 const CANCEL_REASON_LABELS: Record<string, string> = {
-  payment_expired:  "Batas waktu pembayaran habis",
+  payment_expired: "Batas waktu pembayaran habis",
   customer_request: "Permintaan pelanggan",
-  out_of_stock:     "Stok habis",
-  fraud_detected:   "Terdeteksi aktivitas mencurigakan",
-  admin_action:     "Dibatalkan oleh tim kami",
+  out_of_stock: "Stok habis",
+  fraud_detected: "Terdeteksi aktivitas mencurigakan",
+  admin_action: "Dibatalkan oleh tim kami",
 };
 
 export function orderCancelledTemplate(p: OrderCancelledPayload): {
@@ -350,7 +354,7 @@ export function orderCancelledTemplate(p: OrderCancelledPayload): {
   html: string;
   text: string;
 } {
-  const subject     = `Pesanan ${p.orderNumber} Dibatalkan`;
+  const subject = `Pesanan ${p.orderNumber} Dibatalkan`;
   const reasonLabel = p.reason
     ? (CANCEL_REASON_LABELS[p.reason] ?? p.reason)
     : "Tidak disebutkan";
@@ -389,8 +393,8 @@ export function orderCancelledTemplate(p: OrderCancelledPayload): {
 
 export interface PasswordResetPayload {
   email: string;
-  resetToken: string;
   expiresAt: string;
+  resetToken: string;
 }
 
 export function passwordResetTemplate(p: PasswordResetPayload): {
@@ -398,7 +402,7 @@ export function passwordResetTemplate(p: PasswordResetPayload): {
   html: string;
   text: string;
 } {
-  const subject  = "Reset Password My Ecommerce";
+  const subject = "Reset Password My Ecommerce";
   const resetUrl = appUrl(`/auth/reset-password?token=${p.resetToken}`);
 
   const content = `

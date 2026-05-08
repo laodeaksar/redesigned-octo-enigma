@@ -3,13 +3,9 @@
 // Works with AWS S3, MinIO, Cloudflare R2, and any S3-compatible provider
 // =============================================================================
 
-import {
-  PutObjectCommand,
-  DeleteObjectCommand,
-  GetObjectCommand,
-} from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "node:crypto";
+import { DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 import { ServiceUnavailableError } from "@repo/common/errors";
 import { env, s3Client } from "@/config";
@@ -61,7 +57,9 @@ export async function uploadImage(
   }
 
   if (!ALLOWED_TYPES.has(mimeType)) {
-    throw new Error(`Unsupported file type: ${mimeType}. Allowed: JPEG, PNG, WebP, GIF`);
+    throw new Error(
+      `Unsupported file type: ${mimeType}. Allowed: JPEG, PNG, WebP, GIF`
+    );
   }
 
   if (buffer.byteLength > MAX_FILE_SIZE) {
@@ -133,12 +131,12 @@ export async function getPresignedUploadUrl(
  * Silent no-op if S3 is not configured.
  */
 export async function deleteImage(key: string): Promise<void> {
-  if (!s3Client) return;
+  if (!s3Client) {
+    return;
+  }
 
   try {
-    await s3Client.send(
-      new DeleteObjectCommand({ Bucket: BUCKET, Key: key })
-    );
+    await s3Client.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
   } catch (err) {
     console.warn("[Storage] Failed to delete object:", key, err);
   }
@@ -157,7 +155,8 @@ export function buildPublicUrl(key: string): string {
   }
 
   // Fallback: construct from endpoint + bucket + key
-  const endpoint = env.S3_ENDPOINT ?? `https://s3.${env.S3_REGION}.amazonaws.com`;
+  const endpoint =
+    env.S3_ENDPOINT ?? `https://s3.${env.S3_REGION}.amazonaws.com`;
   return `${endpoint.replace(/\/$/, "")}/${BUCKET}/${key}`;
 }
 
@@ -173,10 +172,11 @@ export function extractKeyFromUrl(url: string): string | null {
     const urlObj = new URL(url);
     // Path format: /<bucket>/<key> or just /<key>
     const parts = urlObj.pathname.replace(/^\//, "").split("/");
-    if (parts[0] === BUCKET) return parts.slice(1).join("/");
+    if (parts[0] === BUCKET) {
+      return parts.slice(1).join("/");
+    }
     return parts.join("/");
   } catch {
     return null;
   }
 }
-

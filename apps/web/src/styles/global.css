@@ -1,8 +1,18 @@
 @import "tailwindcss";
 
 @layer base {
-  html { font-family: "Inter", system-ui, sans-serif; }
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { border-radius: 9999px; background-color: #e5e7eb; }
+  html {
+    font-family: "Inter", system-ui, sans-serif;
+  }
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: #e5e7eb;
+    border-radius: 9999px;
+  }
 }

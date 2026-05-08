@@ -6,22 +6,21 @@
 // ── Success Response ──────────────────────────────────────────────────────────
 
 export interface ApiResponse<T> {
-  success: true;
   data: T;
   message?: string;
+  success: true;
 }
 
 export interface ApiResponseWithMeta<T> {
-  success: true;
   data: T;
-  meta: ResponseMeta;
   message?: string;
+  meta: ResponseMeta;
+  success: true;
 }
 
 // ── Error Response ────────────────────────────────────────────────────────────
 
 export interface ApiErrorResponse {
-  success: false;
   error: {
     code: ApiErrorCode;
     message: string;
@@ -30,6 +29,7 @@ export interface ApiErrorResponse {
     /** Unique request ID for tracing */
     requestId?: string;
   };
+  success: false;
 }
 
 export type ApiResult<T> = ApiResponse<T> | ApiErrorResponse;
@@ -74,9 +74,9 @@ export type ApiErrorCode =
   | "PAYMENT_GATEWAY_ERROR";
 
 export interface ValidationError {
+  code?: string;
   field: string;
   message: string;
-  code?: string;
 }
 
 // ── Pagination ────────────────────────────────────────────────────────────────
@@ -89,25 +89,25 @@ export interface CursorPaginationParams {
 
 /** Standard offset-based pagination params */
 export interface OffsetPaginationParams {
-  page?: number;
   limit?: number;
+  page?: number;
 }
 
 export interface PaginationMeta {
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
   hasNextPage: boolean;
   hasPrevPage: boolean;
+  limit: number;
+  page: number;
+  total: number;
+  totalPages: number;
 }
 
 export interface CursorPaginationMeta {
-  nextCursor: string | null;
-  prevCursor: string | null;
   hasNextPage: boolean;
   hasPrevPage: boolean;
   limit: number;
+  nextCursor: string | null;
+  prevCursor: string | null;
 }
 
 export type ResponseMeta = PaginationMeta | CursorPaginationMeta;
@@ -150,10 +150,10 @@ export interface SlugParam {
 
 /** Health check response */
 export interface HealthCheckResponse {
-  status: "ok" | "degraded" | "down";
-  service: string;
-  version: string;
-  uptime: number;
-  timestamp: Date;
   checks: Record<string, "ok" | "error">;
+  service: string;
+  status: "ok" | "degraded" | "down";
+  timestamp: Date;
+  uptime: number;
+  version: string;
 }

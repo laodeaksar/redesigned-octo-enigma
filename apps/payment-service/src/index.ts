@@ -8,8 +8,15 @@ import { env } from "@/config";
 // Suppress non-fatal unhandled rejections from Redis/BullMQ when unavailable
 process.on("unhandledRejection", (reason) => {
   const msg = String(reason);
-  if (msg.includes("ECONNREFUSED") || msg.includes("Connection is closed") || msg.includes("connect")) {
-    console.warn("[Redis/BullMQ] Connection warning (non-fatal):", msg.split("\n")[0]);
+  if (
+    msg.includes("ECONNREFUSED") ||
+    msg.includes("Connection is closed") ||
+    msg.includes("connect")
+  ) {
+    console.warn(
+      "[Redis/BullMQ] Connection warning (non-fatal):",
+      msg.split("\n")[0]
+    );
     return;
   }
   console.error("[FATAL] Unhandled rejection:", reason);

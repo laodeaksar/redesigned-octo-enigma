@@ -6,7 +6,9 @@
 
 import { env } from "@/config";
 
-const BASE = (env as Record<string, string>)["ORDER_SERVICE_URL"]?.replace(/\/$/, "") ?? "";
+const BASE =
+  (env as Record<string, string>)["ORDER_SERVICE_URL"]?.replace(/\/$/, "") ??
+  "";
 
 /**
  * Check whether a user has a completed/delivered order containing a
@@ -25,7 +27,9 @@ export async function verifyPurchase(
   // If ORDER_SERVICE_URL is not configured, skip verification
   // (allows local dev without order-service running)
   if (!BASE) {
-    console.warn("[order-client] ORDER_SERVICE_URL not set — skipping purchase verification");
+    console.warn(
+      "[order-client] ORDER_SERVICE_URL not set — skipping purchase verification"
+    );
     return true;
   }
 
@@ -41,9 +45,11 @@ export async function verifyPurchase(
       }
     );
 
-    if (!res.ok) return false;
+    if (!res.ok) {
+      return false;
+    }
 
-    const body = await res.json() as { data: { verified: boolean } };
+    const body = (await res.json()) as { data: { verified: boolean } };
     return body.data?.verified === true;
   } catch (err) {
     // Network failure — fail open with warning rather than blocking all reviews
@@ -54,4 +60,3 @@ export async function verifyPurchase(
     return true;
   }
 }
-

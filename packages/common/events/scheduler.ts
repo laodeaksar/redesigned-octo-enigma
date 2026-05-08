@@ -3,7 +3,7 @@
 // Replaces: setInterval patterns + RabbitMQ TTL-based scheduling
 // =============================================================================
 
-import { Queue, type JobsOptions } from "bullmq";
+import type { JobsOptions, Queue } from "bullmq";
 
 // ── Recurring jobs ────────────────────────────────────────────────────────────
 
@@ -26,7 +26,7 @@ export async function scheduleRecurring<TData>(
   schedulerId: string,
   everyMs: number,
   data: TData,
-  options: Omit<JobsOptions, "repeat"> = {},
+  options: Omit<JobsOptions, "repeat"> = {}
 ): Promise<void> {
   await queue.upsertJobScheduler(
     schedulerId,
@@ -39,7 +39,7 @@ export async function scheduleRecurring<TData>(
         removeOnFail: { age: 86_400 },
         ...options,
       },
-    },
+    }
   );
 }
 
@@ -56,7 +56,7 @@ export async function scheduleCron<TData>(
   schedulerId: string,
   cronExpression: string,
   data: TData,
-  options: Omit<JobsOptions, "repeat"> = {},
+  options: Omit<JobsOptions, "repeat"> = {}
 ): Promise<void> {
   await queue.upsertJobScheduler(
     schedulerId,
@@ -69,7 +69,7 @@ export async function scheduleCron<TData>(
         removeOnFail: { age: 86_400 },
         ...options,
       },
-    },
+    }
   );
 }
 
@@ -78,7 +78,7 @@ export async function scheduleCron<TData>(
  */
 export async function removeScheduler(
   queue: Queue,
-  schedulerId: string,
+  schedulerId: string
 ): Promise<void> {
   await queue.removeJobScheduler(schedulerId);
 }

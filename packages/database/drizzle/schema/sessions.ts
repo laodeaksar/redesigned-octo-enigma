@@ -3,6 +3,7 @@
 // Managed by: auth-service (Better-auth)
 // =============================================================================
 
+import { relations } from "drizzle-orm";
 import {
   index,
   pgTable,
@@ -12,7 +13,6 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
 
 import { primaryId, timestamps } from "./_helpers";
 import { usersTable } from "./users";
@@ -36,7 +36,7 @@ export const sessionsTable = pgTable(
     userIdIdx: index("sessions_user_id_idx").on(t.userId),
     tokenIdx: uniqueIndex("sessions_token_idx").on(t.token),
     expiresAtIdx: index("sessions_expires_at_idx").on(t.expiresAt),
-  }),
+  })
 );
 
 // ── Relations ─────────────────────────────────────────────────────────────────

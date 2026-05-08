@@ -5,13 +5,12 @@
 const BASE = import.meta.env.PUBLIC_API_URL ?? "http://localhost:3000";
 
 export interface ApiResponse<T> {
-  success: true;
   data: T;
   message?: string;
+  success: true;
 }
 
 export interface PaginatedResponse<T> {
-  success: true;
   data: T[];
   meta: {
     total: number;
@@ -21,6 +20,7 @@ export interface PaginatedResponse<T> {
     hasNextPage: boolean;
     hasPrevPage: boolean;
   };
+  success: true;
 }
 
 export class ApiError extends Error {
@@ -37,28 +37,37 @@ export class ApiError extends Error {
 // ── Core fetch ────────────────────────────────────────────────────────────────
 
 interface FetchOptions extends RequestInit {
-  token?: string;
   params?: Record<string, string | number | boolean | undefined | null>;
+  token?: string;
 }
 
-async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T> {
+async function apiFetch<T>(
+  path: string,
+  options: FetchOptions = {}
+): Promise<T> {
   const { token, params, ...init } = options;
 
   const url = new URL(`${BASE}${path}`);
   if (params) {
     for (const [k, v] of Object.entries(params)) {
-      if (v !== undefined && v !== null && v !== "") url.searchParams.set(k, String(v));
+      if (v !== undefined && v !== null && v !== "") {
+        url.searchParams.set(k, String(v));
+      }
     }
   }
 
   const headers = new Headers(init.headers);
   headers.set("Content-Type", "application/json");
-  if (token) headers.set("Authorization", `Bearer ${token}`);
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
 
   const res = await fetch(url.toString(), { ...init, headers });
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({ error: { code: "UNKNOWN", message: res.statusText } })) as { error?: { code?: string; message?: string } };
+    const body = (await res.json().catch(() => ({
+      error: { code: "UNKNOWN", message: res.statusText },
+    }))) as { error?: { code?: string; message?: string } };
     throw new ApiError(
       body.error?.code ?? "UNKNOWN",
       body.error?.message ?? res.statusText,
@@ -88,56 +97,122 @@ export const api = {
 // ── Domain helpers ────────────────────────────────────────────────────────────
 
 export type Product = {
-  id: string; name: string; slug: string; status: string;
-  primaryImage: string | null; lowestPrice: number; highestPrice: number;
-  totalStock: number; tags: string[]; categoryId: string; createdAt: string;
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+  primaryImage: string | null;
+  lowestPrice: number;
+  highestPrice: number;
+  totalStock: number;
+  tags: string[];
+  categoryId: string;
+  createdAt: string;
 };
 
 export type ProductDetail = Product & {
-  description: string; shortDescription: string | null; weight: number | null;
+  description: string;
+  shortDescription: string | null;
+  weight: number | null;
   category: { id: string; name: string; slug: string } | null;
   variants: Array<{
-    id: string; sku: string; name: string;
+    id: string;
+    sku: string;
+    name: string;
     attributes: Record<string, string>;
-    price: number; compareAtPrice: number | null;
-    stock: number; isActive: boolean;
+    price: number;
+    compareAtPrice: number | null;
+    stock: number;
+    isActive: boolean;
   }>;
-  images: Array<{ id: string; url: string; altText: string | null; isPrimary: boolean; sortOrder: number }>;
+  images: Array<{
+    id: string;
+    url: string;
+    altText: string | null;
+    isPrimary: boolean;
+    sortOrder: number;
+  }>;
 };
 
 export type Category = {
-  id: string; name: string; slug: string;
-  description: string | null; imageUrl: string | null; parentId: string | null;
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  imageUrl: string | null;
+  parentId: string | null;
 };
 
 export type Order = {
-  id: string; orderNumber: string; status: string;
-  itemCount: number; grandTotal: number; createdAt: string;
+  id: string;
+  orderNumber: string;
+  status: string;
+  itemCount: number;
+  grandTotal: number;
+  createdAt: string;
 };
 
 export type OrderDetail = Order & {
   userId: string;
   items: Array<{
-    product: { productId?: string; name: string; variantName: string; sku: string; imageUrl: string | null; price: number };
-    quantity: number; unitPrice: number; subtotal: number;
+    product: {
+      productId?: string;
+      name: string;
+      variantName: string;
+      sku: string;
+      imageUrl: string | null;
+      price: number;
+    };
+    quantity: number;
+    unitPrice: number;
+    subtotal: number;
   }>;
   shipping: {
-    courier: string; service: string; trackingNumber: string | null; estimatedDays?: number; cost: number;
-    address: { recipientName: string; phone: string; street: string; city: string; province: string; postalCode: string };
-    shippedAt: string | null; deliveredAt: string | null;
+    courier: string;
+    service: string;
+    trackingNumber: string | null;
+    estimatedDays?: number;
+    cost: number;
+    address: {
+      recipientName: string;
+      phone: string;
+      street: string;
+      city: string;
+      province: string;
+      postalCode: string;
+    };
+    shippedAt: string | null;
+    deliveredAt: string | null;
   };
-  pricing: { subtotal: number; shippingCost: number; discountTotal: number; taxTotal: number; grandTotal: number };
-  discounts?: Array<{ code: string; type: string; value: number; amount: number }>;
+  pricing: {
+    subtotal: number;
+    shippingCost: number;
+    discountTotal: number;
+    taxTotal: number;
+    grandTotal: number;
+  };
+  discounts?: Array<{
+    code: string;
+    type: string;
+    value: number;
+    amount: number;
+  }>;
   statusHistory?: Array<{ status: string; timestamp: string; note?: string }>;
   cancellationReason?: string | null;
   cancellationNote?: string | null;
   customerNote?: string | null;
-  paymentId: string | null; expiresAt: string; updatedAt: string;
+  paymentId: string | null;
+  expiresAt: string;
+  updatedAt: string;
 };
 
 export type User = {
-  id: string; email: string; name: string; role: string;
-  avatarUrl: string | null; emailVerified: boolean;
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  avatarUrl: string | null;
+  emailVerified: boolean;
   status: string;
   // Admin plugin fields
   banned: boolean | null;
@@ -146,10 +221,19 @@ export type User = {
 };
 
 export type Payment = {
-  id: string; orderId: string; status: string; method: string | null;
-  amount: number; snapToken: string | null; snapRedirectUrl: string | null;
+  id: string;
+  orderId: string;
+  status: string;
+  method: string | null;
+  amount: number;
+  snapToken: string | null;
+  snapRedirectUrl: string | null;
   virtualAccount: { bank: string; vaNumber: string; expiresAt: string } | null;
-  eWallet: { provider: string; qrCodeUrl: string | null; expiresAt: string } | null;
+  eWallet: {
+    provider: string;
+    qrCodeUrl: string | null;
+    expiresAt: string;
+  } | null;
   expiresAt: string;
 };
 
@@ -177,4 +261,3 @@ export type RatingSummary = {
   count: number;
   breakdown: Record<string, number>;
 };
-

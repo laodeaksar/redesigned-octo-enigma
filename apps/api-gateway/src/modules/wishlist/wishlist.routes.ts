@@ -12,11 +12,10 @@
 // =============================================================================
 
 import { Hono } from "hono";
-
+import { SERVICES } from "@/config";
+import { buildTargetUrl, proxyRequest } from "@/lib/proxy";
 import { requireAuth } from "@/middleware/auth.middleware";
 import { defaultRateLimit } from "@/middleware/rate-limit.middleware";
-import { proxyRequest, buildTargetUrl } from "@/lib/proxy";
-import { SERVICES } from "@/config";
 
 const app = new Hono();
 const productBase = SERVICES.product;
@@ -29,8 +28,15 @@ app.get("/wishlist", requireAuth, defaultRateLimit, async (c) =>
   proxyRequest(c, { target: buildTargetUrl(productBase, c), user: c.var.user })
 );
 
-app.get("/wishlist/status/:productId", requireAuth, defaultRateLimit, async (c) =>
-  proxyRequest(c, { target: buildTargetUrl(productBase, c), user: c.var.user })
+app.get(
+  "/wishlist/status/:productId",
+  requireAuth,
+  defaultRateLimit,
+  async (c) =>
+    proxyRequest(c, {
+      target: buildTargetUrl(productBase, c),
+      user: c.var.user,
+    })
 );
 
 app.post("/wishlist/status/bulk", requireAuth, defaultRateLimit, async (c) =>
@@ -45,8 +51,15 @@ app.delete("/wishlist/:productId", requireAuth, defaultRateLimit, async (c) =>
   proxyRequest(c, { target: buildTargetUrl(productBase, c), user: c.var.user })
 );
 
-app.post("/wishlist/:productId/toggle", requireAuth, defaultRateLimit, async (c) =>
-  proxyRequest(c, { target: buildTargetUrl(productBase, c), user: c.var.user })
+app.post(
+  "/wishlist/:productId/toggle",
+  requireAuth,
+  defaultRateLimit,
+  async (c) =>
+    proxyRequest(c, {
+      target: buildTargetUrl(productBase, c),
+      user: c.var.user,
+    })
 );
 
 export { app as wishlistRoutes };

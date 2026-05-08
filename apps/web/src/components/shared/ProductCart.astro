@@ -1,20 +1,29 @@
 ---
-import Badge from "./Badge.astro";
 import { formatIDR } from "@/lib/utils";
+import Badge from "./Badge.astro";
 
 interface Props {
-  id: string;
-  name: string;
-  slug: string;
-  primaryImage: string | null;
-  lowestPrice: number;
   highestPrice: number;
-  totalStock: number;
-  tags?: string[];
+  id: string;
   isLoggedIn?: boolean;
+  lowestPrice: number;
+  name: string;
+  primaryImage: string | null;
+  slug: string;
+  tags?: string[];
+  totalStock: number;
 }
 
-const { name, slug, primaryImage, lowestPrice, highestPrice, totalStock, tags, isLoggedIn } = Astro.props;
+const {
+  name,
+  slug,
+  primaryImage,
+  lowestPrice,
+  highestPrice,
+  totalStock,
+  tags,
+  isLoggedIn,
+} = Astro.props;
 
 const isOutOfStock = totalStock === 0;
 const hasDiscount = lowestPrice !== highestPrice;
@@ -29,15 +38,14 @@ const priceLabel = hasDiscount
     "group flex flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
     isOutOfStock && "opacity-70",
   ]}
-    >
-
-    <!-- Heart button (island) -->
+>
+  <!-- Heart button (island) -->
   <WishlistButton
     productId={product.id}
     variant="icon"
     isLoggedIn={isLoggedIn}
     client:idle
-    />
+  />
 
   <!-- Image -->
   <div class="aspect-square overflow-hidden bg-gray-50">
@@ -57,7 +65,9 @@ const priceLabel = hasDiscount
 
   <!-- Info -->
   <div class="flex flex-1 flex-col p-4">
-    <p class="line-clamp-2 text-sm font-medium text-gray-900 leading-snug">{name}</p>
+    <p class="line-clamp-2 text-sm font-medium text-gray-900 leading-snug">
+      {name}
+    </p>
 
     <div class="mt-2 flex items-center gap-2">
       <span class="text-base font-bold text-gray-900">{priceLabel}</span>

@@ -2,24 +2,15 @@
 // Categories service
 // =============================================================================
 
-import type Redis from "ioredis";
-
-import {
-  NotFoundError,
-  ConflictError,
-} from "@repo/common/errors";
+import { ConflictError, NotFoundError } from "@repo/common/errors";
 import type {
   CreateCategoryInput,
   UpdateCategoryInput,
 } from "@repo/common/schemas";
-
-import * as repo from "./categories.repository";
-import {
-  CacheKey,
-  cacheWrap,
-  invalidateCategories,
-} from "@/lib/cache";
+import type Redis from "ioredis";
 import type { DB } from "@/config";
+import { CacheKey, cacheWrap, invalidateCategories } from "@/lib/cache";
+import * as repo from "./categories.repository";
 
 export async function getCategoryTree(db: DB, redis: Redis | null) {
   return cacheWrap(
@@ -42,14 +33,12 @@ export async function listCategories(db: DB, redis: Redis | null) {
   );
 }
 
-export async function getCategoryById(
-  db: DB,
-  redis: Redis | null,
-  id: string
-) {
+export async function getCategoryById(db: DB, redis: Redis | null, id: string) {
   return cacheWrap(redis, CacheKey.category(id), async () => {
     const cat = await repo.findCategoryById(db, id);
-    if (!cat || cat.deletedAt) throw new NotFoundError("Category");
+    if (!cat || cat.deletedAt) {
+      throw new NotFoundError("Category");
+    }
     return cat;
   });
 }
@@ -60,11 +49,18 @@ export async function createCategory(
   input: CreateCategoryInput
 ) {
   const existing = await repo.findCategoryBySlug(db, input.slug);
-  if (existing) throw new ConflictError(`Slug '${input.slug}' is already in use`, "SLUG_ALREADY_EXISTS");
+  if (existing) {
+    throw new ConflictError(
+      `Slug '${input.slug}' is already in use`,
+      "SLUG_ALREADY_EXISTS"
+    );
+  }
 
   if (input.parentId) {
     const parent = await repo.findCategoryById(db, input.parentId);
-    if (!parent || parent.deletedAt) throw new NotFoundError("Parent category");
+    if (!parent || parent.deletedAt) {
+      throw new NotFoundError("Parent category");
+    }
   }
 
   const category = await repo.createCategory(db, input);
@@ -79,11 +75,18 @@ export async function updateCategory(
   input: UpdateCategoryInput
 ) {
   const existing = await repo.findCategoryById(db, id);
-  if (!existing || existing.deletedAt) throw new NotFoundError("Category");
+  if (!existing || existing.deletedAt) {
+    throw new NotFoundError("Category");
+  }
 
   if (input.slug && input.slug !== existing.slug) {
     const slugConflict = await repo.findCategoryBySlug(db, input.slug);
-    if (slugConflict) throw new ConflictError(`Slug '${input.slug}' is already in use`, "SLUG_ALREADY_EXISTS");
+    if (slugConflict) {
+      throw new ConflictError(
+        `Slug '${input.slug}' is already in use`,
+        "SLUG_ALREADY_EXISTS"
+      );
+    }
   }
 
   const updated = await repo.updateCategory(db, id, input);
@@ -91,16 +94,13 @@ export async function updateCategory(
   return updated!;
 }
 
-export async function deleteCategory(
-  db: DB,
-  redis: Redis | null,
-  id: string
-) {
+export async function deleteCategory(db: DB, redis: Redis | null, id: string) {
   const existing = await repo.findCategoryById(db, id);
-  if (!existing || existing.deletedAt) throw new NotFoundError("Category");
+  if (!existing || existing.deletedAt) {
+    throw new NotFoundError("Category");
+  }
 
   await repo.softDeleteCategory(db, id);
   await invalidateCategories(redis);
   return { message: "Category deleted successfully" };
 }
-

@@ -15,11 +15,12 @@ app.use("/admin/queues/*", requireAuth, requireRole("admin", "super_admin"));
 
 // Bull Board is disabled in this environment (no Redis / serveStatic incompatibility).
 // Return a simple status page instead.
-app.get("/admin/queues", async (c) => {
-  return c.json({
+app.get("/admin/queues", async (c) =>
+  c.json({
     status: "disabled",
-    message: "Bull Board UI is not available in this environment (requires Redis + compatible hono adapter).",
-  });
-});
+    message:
+      "Bull Board UI is not available in this environment (requires Redis + compatible hono adapter).",
+  })
+);
 
 export { app as bullBoardRoutes };

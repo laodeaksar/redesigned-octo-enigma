@@ -2,13 +2,12 @@
 // Vouchers repository — PostgreSQL via Drizzle
 // =============================================================================
 
-import { eq, and, lte, gte, isNull, or, sql } from "drizzle-orm";
-
 import {
-  vouchersTable,
-  type VoucherRow,
   type NewVoucherRow,
+  type VoucherRow,
+  vouchersTable,
 } from "@repo/database/drizzle/schema";
+import { and, eq, isNull, or, sql } from "drizzle-orm";
 
 import type { DB } from "@/config";
 
@@ -58,10 +57,7 @@ export async function updateVoucher(
 }
 
 /** Atomically increment usageCount. Returns false if limit reached. */
-export async function incrementUsage(
-  db: DB,
-  id: string
-): Promise<boolean> {
+export async function incrementUsage(db: DB, id: string): Promise<boolean> {
   const result = await db
     .update(vouchersTable)
     .set({
@@ -83,10 +79,7 @@ export async function incrementUsage(
 }
 
 export async function listVouchers(db: DB): Promise<VoucherRow[]> {
-  return db
-    .select()
-    .from(vouchersTable)
-    .orderBy(vouchersTable.createdAt);
+  return db.select().from(vouchersTable).orderBy(vouchersTable.createdAt);
 }
 
 export async function deleteVoucher(
@@ -99,4 +92,3 @@ export async function deleteVoucher(
     .returning();
   return row;
 }
-

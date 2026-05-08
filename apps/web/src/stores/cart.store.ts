@@ -5,13 +5,13 @@
 import { atom, computed } from "nanostores";
 
 export interface CartItem {
-  variantId: string;
-  productName: string;
-  variantName: string;
-  sku: string;
   imageUrl: string | null;
   price: number;
+  productName: string;
   quantity: number;
+  sku: string;
+  variantId: string;
+  variantName: string;
 }
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -57,14 +57,12 @@ export function updateQuantity(variantId: string, quantity: number) {
     return;
   }
   $cart.set(
-    $cart.get().map((i) =>
-      i.variantId === variantId ? { ...i, quantity } : i
-    )
+    $cart.get().map((i) => (i.variantId === variantId ? { ...i, quantity } : i))
   );
   persistCart();
 }
 
-export function removeFromCart(variantId: string, withUndo: boolean = true) {
+export function removeFromCart(variantId: string, withUndo = true) {
   if (withUndo && typeof window !== "undefined") {
     // @ts-expect-error undo handler di-inject oleh UndoToast component
     if (window.removeFromCartWithUndo) {
@@ -73,7 +71,7 @@ export function removeFromCart(variantId: string, withUndo: boolean = true) {
       return;
     }
   }
-  
+
   $cart.set($cart.get().filter((i) => i.variantId !== variantId));
   persistCart();
 }
@@ -94,12 +92,15 @@ function persistCart() {
 }
 
 export function hydrateCart() {
-  if (typeof localStorage === "undefined") return;
+  if (typeof localStorage === "undefined") {
+    return;
+  }
   try {
     const raw = localStorage.getItem("cart");
-    if (raw) $cart.set(JSON.parse(raw) as CartItem[]);
+    if (raw) {
+      $cart.set(JSON.parse(raw) as CartItem[]);
+    }
   } catch {
     // ignore corrupt storage
   }
 }
-

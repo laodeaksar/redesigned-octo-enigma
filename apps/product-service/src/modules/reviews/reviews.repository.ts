@@ -2,13 +2,12 @@
 // Reviews repository
 // =============================================================================
 
-import { eq, desc, count, avg, sql } from "drizzle-orm";
-
 import {
-  productReviewsTable,
-  type ProductReviewRow,
   type NewProductReviewRow,
+  type ProductReviewRow,
+  productReviewsTable,
 } from "@repo/database/drizzle/schema";
+import { count, desc, eq, sql } from "drizzle-orm";
 
 import type { DB } from "@/config";
 
@@ -77,7 +76,11 @@ export async function deleteReview(
 export async function getRatingSummary(
   db: DB,
   productId: string
-): Promise<{ average: number; count: number; breakdown: Record<number, number> }> {
+): Promise<{
+  average: number;
+  count: number;
+  breakdown: Record<number, number>;
+}> {
   const rows = await db
     .select({
       rating: productReviewsTable.rating,
@@ -100,9 +103,9 @@ export async function getRatingSummary(
   }
 
   return {
-    average: totalCount > 0 ? Math.round((totalScore / totalCount) * 10) / 10 : 0,
+    average:
+      totalCount > 0 ? Math.round((totalScore / totalCount) * 10) / 10 : 0,
     count: totalCount,
     breakdown: breakdown as Record<1 | 2 | 3 | 4 | 5, number>,
   };
 }
-

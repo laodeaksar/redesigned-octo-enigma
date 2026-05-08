@@ -8,12 +8,12 @@
 // =============================================================================
 
 import {
+  index,
+  jsonb,
   pgTable,
   text,
   timestamp,
   varchar,
-  jsonb,
-  index,
 } from "drizzle-orm/pg-core";
 
 import { primaryId } from "./_helpers";
@@ -88,5 +88,5 @@ export const webhookEventsTable = pgTable(
   ]
 );
 
-export type WebhookEventRow    = typeof webhookEventsTable.$inferSelect;
+export type WebhookEventRow = typeof webhookEventsTable.$inferSelect;
 export type NewWebhookEventRow = typeof webhookEventsTable.$inferInsert;

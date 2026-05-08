@@ -4,6 +4,7 @@
 // Stores Midtrans transaction records
 // =============================================================================
 
+import { relations } from "drizzle-orm";
 import {
   index,
   integer,
@@ -14,12 +15,11 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
 
 import {
-  primaryId,
   paymentMethodEnum,
   paymentStatusEnum,
+  primaryId,
   timestamps,
 } from "./_helpers";
 import { refundsTable } from "./refunds";
@@ -86,13 +86,13 @@ export const paymentsTable = pgTable(
     paymentsUserIdIdx: index("payments_user_id_idx").on(t.userId),
     paymentsStatusIdx: index("payments_status_idx").on(t.status),
     paymentsTransactionIdIdx: index("payments_transaction_id_idx").on(
-      t.transactionId,
+      t.transactionId
     ),
     paymentsMidtransOrderIdIdx: index("payments_midtrans_order_id_idx").on(
-      t.midtransOrderId,
+      t.midtransOrderId
     ),
     paymentsExpiresAtIdx: index("payments_expires_at_idx").on(t.expiresAt),
-  }),
+  })
 );
 
 // ── Relations ─────────────────────────────────────────────────────────────────

@@ -1,5 +1,5 @@
-import { z } from "zod";
 import { createEnv } from "@t3-oss/env-core";
+import { z } from "zod";
 
 import {
   jwtSecretSchema,
@@ -44,4 +44,3 @@ export const env = createEnv({
   },
   runtimeEnv: process.env,
 });
-

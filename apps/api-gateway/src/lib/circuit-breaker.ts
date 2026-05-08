@@ -13,33 +13,33 @@ import { logger } from "./logger";
 export enum CircuitState {
   CLOSED = "closed",
   OPEN = "open",
-  HALF_OPEN = "half_open"
+  HALF_OPEN = "half_open",
 }
 
 export interface CircuitBreakerConfig {
-  /** Nama service untuk identifikasi */
-  serviceName: string;
   /** Jumlah kegagalan berturut sebelum circuit terbuka */
   failureThreshold: number;
-  /** Waktu tunggu sebelum mencoba recovery (ms) */
-  resetTimeout: number;
-  /** Timeout permintaan individual (ms) */
-  requestTimeout: number;
-  /** Jumlah permintaan sukses berturut di half-open untuk menutup circuit */
-  successThreshold: number;
   /** Jumlah maksimum permintaan diizinkan saat half-open */
   halfOpenMaxRequests: number;
+  /** Timeout permintaan individual (ms) */
+  requestTimeout: number;
+  /** Waktu tunggu sebelum mencoba recovery (ms) */
+  resetTimeout: number;
+  /** Nama service untuk identifikasi */
+  serviceName: string;
+  /** Jumlah permintaan sukses berturut di half-open untuk menutup circuit */
+  successThreshold: number;
 }
 
 export interface CircuitBreakerMetrics {
-  state: CircuitState;
-  failureCount: number;
   consecutiveSuccesses: number;
+  failureCount: number;
   lastFailureTime: number | null;
   lastStateChange: number;
+  state: CircuitState;
   totalFailures: number;
-  totalSuccesses: number;
   totalRejected: number;
+  totalSuccesses: number;
   uptimeSinceReset: number;
 }
 
@@ -59,58 +59,61 @@ export type CircuitOperation<T> = (signal: AbortSignal) => Promise<T>;
 
 const DEFAULT_CONFIG: Partial<CircuitBreakerConfig> = {
   failureThreshold: 5,
-  resetTimeout: 30000,
+  resetTimeout: 30_000,
   requestTimeout: 5000,
   successThreshold: 3,
-  halfOpenMaxRequests: 2
+  halfOpenMaxRequests: 2,
 };
 
 /**
  * Konfigurasi spesifik per service berdasarkan karakteristik beban kerja
  */
-export const SERVICE_CIRCUIT_CONFIG: Record<string, Partial<CircuitBreakerConfig>> = {
+export const SERVICE_CIRCUIT_CONFIG: Record<
+  string,
+  Partial<CircuitBreakerConfig>
+> = {
   "auth-service": {
     failureThreshold: 8,
-    resetTimeout: 15000,
+    resetTimeout: 15_000,
     requestTimeout: 3000,
     successThreshold: 2,
-    halfOpenMaxRequests: 3
+    halfOpenMaxRequests: 3,
   },
   "product-service": {
     failureThreshold: 10,
-    resetTimeout: 20000,
+    resetTimeout: 20_000,
     requestTimeout: 4000,
     successThreshold: 3,
-    halfOpenMaxRequests: 5
+    halfOpenMaxRequests: 5,
   },
   "order-service": {
     failureThreshold: 6,
-    resetTimeout: 45000,
+    resetTimeout: 45_000,
     requestTimeout: 8000,
     successThreshold: 2,
-    halfOpenMaxRequests: 2
+    halfOpenMaxRequests: 2,
   },
   "payment-service": {
     failureThreshold: 4,
-    resetTimeout: 60000,
-    requestTimeout: 15000,
+    resetTimeout: 60_000,
+    requestTimeout: 15_000,
     successThreshold: 1,
-    halfOpenMaxRequests: 1
+    halfOpenMaxRequests: 1,
   },
   "shipping-service": {
     failureThreshold: 12,
-    resetTimeout: 120000,
-    requestTimeout: 10000,
+    resetTimeout: 120_000,
+    requestTimeout: 10_000,
     successThreshold: 5,
-    halfOpenMaxRequests: 3
+    halfOpenMaxRequests: 3,
   },
   "email-worker": {
     failureThreshold: 20,
-    resetTimeout: 30000,
+    resetTimeout: 30_000,
     requestTimeout: 5000,
     successThreshold: 10,
-    halfOpenMaxRequests: 10
-  }
+    halfOpenMaxRequests: 10,
+  },
 };
 
 export class CircuitBreaker {
@@ -148,12 +151,15 @@ export class CircuitBreaker {
         this.halfOpenRequestCount = 0;
       } else {
         this.totalRejected++;
-        logger.warn(`Circuit OPEN request rejected`, {
+        logger.warn("Circuit OPEN request rejected", {
           service: this.config.serviceName,
           failureCount: this.failureCount,
           remainingWait: this.lastFailureTime
-            ? Math.max(0, this.config.resetTimeout - (Date.now() - this.lastFailureTime))
-            : 0
+            ? Math.max(
+                0,
+                this.config.resetTimeout - (Date.now() - this.lastFailureTime)
+              )
+            : 0,
         });
 
         if (fallback) {
@@ -170,12 +176,14 @@ export class CircuitBreaker {
     if (this.state === CircuitState.HALF_OPEN) {
       if (this.halfOpenRequestCount >= this.config.halfOpenMaxRequests) {
         this.totalRejected++;
-        logger.debug(`Half-open limit reached, request rejected`, {
+        logger.debug("Half-open limit reached, request rejected", {
           service: this.config.serviceName,
-          currentRequests: this.halfOpenRequestCount
+          currentRequests: this.halfOpenRequestCount,
         });
 
-        if (fallback) return fallback();
+        if (fallback) {
+          return fallback();
+        }
         throw new CircuitBreakerOpenError(
           `Service ${this.config.serviceName} dalam masa pemulihan. Coba lagi sebentar lagi.`,
           this.config.serviceName
@@ -191,9 +199,9 @@ export class CircuitBreaker {
     } catch (error) {
       this.onFailure(error);
       if (fallback) {
-        logger.info(`Using fallback response`, {
+        logger.info("Using fallback response", {
           service: this.config.serviceName,
-          error: error instanceof Error ? error.message : "Unknown error"
+          error: error instanceof Error ? error.message : "Unknown error",
         });
         return fallback();
       }
@@ -233,7 +241,10 @@ export class CircuitBreaker {
 
       // Jangan biarkan timer menahan proses keluar saat shutdown.
       // `unref` tidak ada di semua runtime (mis. browser test), jadi kita guard.
-      if (timer && typeof (timer as unknown as { unref?: () => void }).unref === "function") {
+      if (
+        timer &&
+        typeof (timer as unknown as { unref?: () => void }).unref === "function"
+      ) {
         (timer as unknown as { unref: () => void }).unref();
       }
     });
@@ -262,10 +273,10 @@ export class CircuitBreaker {
 
     if (this.state === CircuitState.HALF_OPEN) {
       this.consecutiveSuccesses++;
-      logger.debug(`Half-open success`, {
+      logger.debug("Half-open success", {
         service: this.config.serviceName,
         consecutiveSuccesses: this.consecutiveSuccesses,
-        requiredSuccesses: this.config.successThreshold
+        requiredSuccesses: this.config.successThreshold,
       });
 
       if (this.consecutiveSuccesses >= this.config.successThreshold) {
@@ -289,12 +300,12 @@ export class CircuitBreaker {
     this.lastFailureTime = Date.now();
     this.consecutiveSuccesses = 0;
 
-    logger.error(`Circuit breaker operation failure`, {
+    logger.error("Circuit breaker operation failure", {
       service: this.config.serviceName,
       failureCount: this.failureCount,
       threshold: this.config.failureThreshold,
       error: error instanceof Error ? error.message : "Unknown error",
-      stack: error instanceof Error ? error.stack : undefined
+      stack: error instanceof Error ? error.stack : undefined,
     });
 
     if (this.state === CircuitState.HALF_OPEN) {
@@ -311,25 +322,32 @@ export class CircuitBreaker {
    * Buka circuit dan hentikan semua permintaan masuk
    */
   private openCircuit(): void {
-    if (this.state === CircuitState.OPEN) return;
+    if (this.state === CircuitState.OPEN) {
+      return;
+    }
 
     this.changeState(CircuitState.OPEN);
     this.halfOpenRequestCount = 0;
 
-    logger.critical(`CIRCUIT BREAKER TRIGGERED - SERVICE UNHEALTHY`, {
+    logger.critical("CIRCUIT BREAKER TRIGGERED - SERVICE UNHEALTHY", {
       service: this.config.serviceName,
       failureCount: this.failureCount,
       resetAfterMs: this.config.resetTimeout,
-      alert: true
+      alert: true,
     });
 
     // Schedule automatic reset attempt
-    if (this.resetTimer) clearTimeout(this.resetTimer);
+    if (this.resetTimer) {
+      clearTimeout(this.resetTimer);
+    }
     this.resetTimer = setTimeout(() => {
       if (this.state === CircuitState.OPEN) {
-        logger.info(`Circuit breaker cooling period ended, attempting recovery`, {
-          service: this.config.serviceName
-        });
+        logger.info(
+          "Circuit breaker cooling period ended, attempting recovery",
+          {
+            service: this.config.serviceName,
+          }
+        );
       }
     }, this.config.resetTimeout);
 
@@ -337,7 +355,8 @@ export class CircuitBreaker {
     // transition aktual ke HALF_OPEN dipicu lazily oleh shouldAttemptReset().
     if (
       this.resetTimer &&
-      typeof (this.resetTimer as unknown as { unref?: () => void }).unref === "function"
+      typeof (this.resetTimer as unknown as { unref?: () => void }).unref ===
+        "function"
     ) {
       (this.resetTimer as unknown as { unref: () => void }).unref();
     }
@@ -352,10 +371,10 @@ export class CircuitBreaker {
     this.consecutiveSuccesses = 0;
     this.halfOpenRequestCount = 0;
 
-    logger.info(`CIRCUIT BREAKER CLOSED - SERVICE RECOVERED`, {
+    logger.info("CIRCUIT BREAKER CLOSED - SERVICE RECOVERED", {
       service: this.config.serviceName,
       totalFailures: this.totalFailures,
-      downtimeMs: Date.now() - this.lastStateChange
+      downtimeMs: Date.now() - this.lastStateChange,
     });
 
     if (this.resetTimer) {
@@ -371,10 +390,10 @@ export class CircuitBreaker {
     const oldState = this.state;
     this.state = newState;
     this.lastStateChange = Date.now();
-    logger.debug(`Circuit breaker state changed`, {
+    logger.debug("Circuit breaker state changed", {
       service: this.config.serviceName,
       oldState,
-      newState
+      newState,
     });
   }
 
@@ -389,8 +408,12 @@ export class CircuitBreaker {
    * Cek apakah sudah waktunya untuk mencoba reset
    */
   shouldAttemptReset(): boolean {
-    if (this.state !== CircuitState.OPEN) return false;
-    if (!this.lastFailureTime) return false;
+    if (this.state !== CircuitState.OPEN) {
+      return false;
+    }
+    if (!this.lastFailureTime) {
+      return false;
+    }
     return Date.now() - this.lastFailureTime >= this.config.resetTimeout;
   }
 
@@ -407,7 +430,7 @@ export class CircuitBreaker {
       totalFailures: this.totalFailures,
       totalSuccesses: this.totalSuccesses,
       totalRejected: this.totalRejected,
-      uptimeSinceReset: Date.now() - this.lastStateChange
+      uptimeSinceReset: Date.now() - this.lastStateChange,
     };
   }
 
@@ -427,8 +450,8 @@ export class CircuitBreaker {
       this.resetTimer = null;
     }
 
-    logger.info(`Circuit breaker manually reset`, {
-      service: this.config.serviceName
+    logger.info("Circuit breaker manually reset", {
+      service: this.config.serviceName,
     });
   }
 }
@@ -442,20 +465,29 @@ export class CircuitBreakerManager {
   /**
    * Dapatkan atau buat instance circuit breaker untuk service tertentu
    */
-  static get(serviceName: string, customConfig?: Partial<CircuitBreakerConfig>): CircuitBreaker {
-    if (!this.instances.has(serviceName)) {
+  static get(
+    serviceName: string,
+    customConfig?: Partial<CircuitBreakerConfig>
+  ): CircuitBreaker {
+    if (!CircuitBreakerManager.instances.has(serviceName)) {
       const baseConfig = SERVICE_CIRCUIT_CONFIG[serviceName] || {};
       const mergedConfig = {
         serviceName,
         ...DEFAULT_CONFIG,
         ...baseConfig,
-        ...customConfig
+        ...customConfig,
       } as CircuitBreakerConfig;
 
-      this.instances.set(serviceName, new CircuitBreaker(mergedConfig));
-      logger.debug(`Circuit breaker initialized`, { serviceName, config: mergedConfig });
+      CircuitBreakerManager.instances.set(
+        serviceName,
+        new CircuitBreaker(mergedConfig)
+      );
+      logger.debug("Circuit breaker initialized", {
+        serviceName,
+        config: mergedConfig,
+      });
     }
-    return this.instances.get(serviceName)!;
+    return CircuitBreakerManager.instances.get(serviceName)!;
   }
 
   /**
@@ -463,7 +495,7 @@ export class CircuitBreakerManager {
    */
   static getAllMetrics(): Record<string, CircuitBreakerMetrics> {
     const metrics: Record<string, CircuitBreakerMetrics> = {};
-    for (const [name, cb] of this.instances.entries()) {
+    for (const [name, cb] of CircuitBreakerManager.instances.entries()) {
       metrics[name] = cb.getMetrics();
     }
     return metrics;
@@ -473,10 +505,10 @@ export class CircuitBreakerManager {
    * Reset semua circuit breaker
    */
   static resetAll(): void {
-    for (const cb of this.instances.values()) {
+    for (const cb of CircuitBreakerManager.instances.values()) {
       cb.reset();
     }
-    logger.info(`All circuit breakers manually reset`);
+    logger.info("All circuit breakers manually reset");
   }
 }
 
@@ -487,17 +519,24 @@ export class CircuitBreakerOpenError extends Error {
   readonly statusCode = 503;
   readonly retryAfter: number;
 
-  constructor(message: string, public readonly serviceName: string) {
+  constructor(
+    message: string,
+    public readonly serviceName: string
+  ) {
     super(message);
     this.name = "CircuitBreakerOpenError";
-    this.retryAfter = SERVICE_CIRCUIT_CONFIG[serviceName]?.resetTimeout || 30000;
+    this.retryAfter =
+      SERVICE_CIRCUIT_CONFIG[serviceName]?.resetTimeout || 30_000;
   }
 }
 
 export class CircuitTimeoutError extends Error {
   readonly statusCode = 504;
 
-  constructor(message: string, public readonly serviceName: string) {
+  constructor(
+    message: string,
+    public readonly serviceName: string
+  ) {
     super(message);
     this.name = "CircuitTimeoutError";
   }

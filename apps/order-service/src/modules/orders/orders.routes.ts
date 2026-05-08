@@ -18,9 +18,12 @@
 // =============================================================================
 
 import Elysia, { t } from "elysia";
-
+import {
+  internalMiddleware,
+  jwtMiddleware,
+  requireRole,
+} from "@/middleware/jwt.middleware";
 import { databasePlugin } from "@/plugins/database.plugin";
-import { jwtMiddleware, requireRole, internalMiddleware } from "@/middleware/jwt.middleware";
 import * as controller from "./orders.controller";
 import * as repo from "./orders.repository";
 
@@ -35,8 +38,11 @@ export const ordersInternalRoutes = new Elysia({ prefix: "/orders" })
   .get(
     "/:id/verify-purchase",
     async ({ params, query }) => {
-      const { userId, productId } = query as { userId?: string; productId?: string };
-      if (!userId || !productId) {
+      const { userId, productId } = query as {
+        userId?: string;
+        productId?: string;
+      };
+      if (!(userId && productId)) {
         return { success: true, data: { verified: false } };
       }
       const order = await repo.findOrderById(params.id);
@@ -51,7 +57,8 @@ export const ordersInternalRoutes = new Elysia({ prefix: "/orders" })
       params: t.Object({ id: t.String({ minLength: 1 }) }),
       detail: {
         tags: ["Orders"],
-        summary: "Verify user purchased a product (internal — requires x-internal-key)",
+        summary:
+          "Verify user purchased a product (internal — requires x-internal-key)",
       },
     }
   )
@@ -69,16 +76,13 @@ export const ordersInternalRoutes = new Elysia({ prefix: "/orders" })
     }
   )
 
-  .post(
-    "/expire",
-    () => controller.handleExpireOrders(),
-    {
-      detail: {
-        tags: ["Orders"],
-        summary: "Expire stale pending-payment orders (internal — requires x-internal-key)",
-      },
-    }
-  );
+  .post("/expire", () => controller.handleExpireOrders(), {
+    detail: {
+      tags: ["Orders"],
+      summary:
+        "Expire stale pending-payment orders (internal — requires x-internal-key)",
+    },
+  });
 
 // ── Customer + admin routes (user JWT required) ───────────────────────────────
 export const ordersRoutes = new Elysia({ prefix: "/orders" })
@@ -99,10 +103,16 @@ export const ordersRoutes = new Elysia({ prefix: "/orders" })
           { minItems: 1, maxItems: 50 }
         ),
         shippingAddressId: t.String({ format: "uuid" }),
-        destinationCityId: t.String({ minLength: 1, description: "RajaOngkir city ID" }),
+        destinationCityId: t.String({
+          minLength: 1,
+          description: "RajaOngkir city ID",
+        }),
         courier: t.String({ minLength: 1 }),
         courierService: t.String({ minLength: 1 }),
-        shippingCost: t.Number({ minimum: 0, description: "Verified by server via RajaOngkir" }),
+        shippingCost: t.Number({
+          minimum: 0,
+          description: "Verified by server via RajaOngkir",
+        }),
         voucherCode: t.Optional(t.String({ maxLength: 50 })),
         customerNote: t.Optional(t.String({ maxLength: 500 })),
       }),
@@ -143,7 +153,7 @@ export const ordersRoutes = new Elysia({ prefix: "/orders" })
       try {
         order = await repo.findOrderById(params.id);
       } catch {
-        return new Response("data: {\"error\":\"db_unavailable\"}\n\n", {
+        return new Response('data: {"error":"db_unavailable"}\n\n', {
           status: 200,
           headers: {
             "Content-Type": "text/event-stream",
@@ -173,14 +183,21 @@ export const ordersRoutes = new Elysia({ prefix: "/orders" })
       const stream = new ReadableStream({
         start(controller) {
           const send = (event: string, data: unknown) => {
-            if (closed) return;
+            if (closed) {
+              return;
+            }
             try {
               controller.enqueue(
-                encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
+                encoder.encode(
+                  `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
+                )
               );
             } catch {
               closed = true;
-              if (timerId) { clearInterval(timerId); timerId = null; }
+              if (timerId) {
+                clearInterval(timerId);
+                timerId = null;
+              }
             }
           };
 
@@ -203,41 +220,73 @@ export const ordersRoutes = new Elysia({ prefix: "/orders" })
           let lastUpdatedAt = String(order!.updatedAt);
 
           timerId = setInterval(async () => {
-            if (closed) return;
+            if (closed) {
+              return;
+            }
             try {
               const fresh = await repo.findOrderById(params.id);
               if (!fresh) {
-                if (timerId) { clearInterval(timerId); timerId = null; }
-                if (!closed) { closed = true; try { controller.close(); } catch {} }
+                if (timerId) {
+                  clearInterval(timerId);
+                  timerId = null;
+                }
+                if (!closed) {
+                  closed = true;
+                  try {
+                    controller.close();
+                  } catch {}
+                }
                 return;
               }
 
               const freshStatus = fresh.status;
               const freshUpdated = String(fresh.updatedAt);
 
-              if (freshStatus !== lastStatus || freshUpdated !== lastUpdatedAt) {
+              if (
+                freshStatus !== lastStatus ||
+                freshUpdated !== lastUpdatedAt
+              ) {
                 lastStatus = freshStatus;
                 lastUpdatedAt = freshUpdated;
                 send("order-update", extractUpdate(fresh));
 
                 if (TERMINAL.has(freshStatus)) {
-                  if (timerId) { clearInterval(timerId); timerId = null; }
+                  if (timerId) {
+                    clearInterval(timerId);
+                    timerId = null;
+                  }
                   setTimeout(() => {
-                    if (!closed) { closed = true; try { controller.close(); } catch {} }
+                    if (!closed) {
+                      closed = true;
+                      try {
+                        controller.close();
+                      } catch {}
+                    }
                   }, 500);
                 }
               } else {
                 send("heartbeat", { ts: Date.now() });
               }
             } catch {
-              if (timerId) { clearInterval(timerId); timerId = null; }
-              if (!closed) { closed = true; try { controller.close(); } catch {} }
+              if (timerId) {
+                clearInterval(timerId);
+                timerId = null;
+              }
+              if (!closed) {
+                closed = true;
+                try {
+                  controller.close();
+                } catch {}
+              }
             }
           }, 3000);
         },
         cancel() {
           closed = true;
-          if (timerId) { clearInterval(timerId); timerId = null; }
+          if (timerId) {
+            clearInterval(timerId);
+            timerId = null;
+          }
         },
       });
 
@@ -245,14 +294,17 @@ export const ordersRoutes = new Elysia({ prefix: "/orders" })
         headers: {
           "Content-Type": "text/event-stream",
           "Cache-Control": "no-cache",
-          "Connection": "keep-alive",
+          Connection: "keep-alive",
           "X-Accel-Buffering": "no",
         },
       });
     },
     {
       params: ID_PARAM,
-      detail: { tags: ["Orders"], summary: "Stream order status updates via SSE (authenticated)" },
+      detail: {
+        tags: ["Orders"],
+        summary: "Stream order status updates via SSE (authenticated)",
+      },
     }
   )
 
@@ -286,22 +338,18 @@ export const ordersRoutes = new Elysia({ prefix: "/orders" })
   // ── Admin routes ────────────────────────────────────────────────────────────
   .use(requireRole("admin", "super_admin"))
 
-  .get(
-    "/",
-    ({ query }) => controller.handleListOrders(query),
-    {
-      query: t.Object({
-        page: t.Optional(t.String()),
-        limit: t.Optional(t.String()),
-        status: t.Optional(t.String()),
-        userId: t.Optional(t.String()),
-        search: t.Optional(t.String()),
-        sortBy: t.Optional(t.String()),
-        sortOrder: t.Optional(t.String()),
-      }),
-      detail: { tags: ["Orders"], summary: "List all orders (admin)" },
-    }
-  )
+  .get("/", ({ query }) => controller.handleListOrders(query), {
+    query: t.Object({
+      page: t.Optional(t.String()),
+      limit: t.Optional(t.String()),
+      status: t.Optional(t.String()),
+      userId: t.Optional(t.String()),
+      search: t.Optional(t.String()),
+      sortBy: t.Optional(t.String()),
+      sortOrder: t.Optional(t.String()),
+    }),
+    detail: { tags: ["Orders"], summary: "List all orders (admin)" },
+  })
 
   .patch(
     "/:id/status",

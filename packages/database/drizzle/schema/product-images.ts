@@ -3,6 +3,7 @@
 // Managed by: product-service
 // =============================================================================
 
+import { relations } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -12,7 +13,6 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
 
 import { primaryId, timestamps } from "./_helpers";
 import { productsTable } from "./products";
@@ -32,12 +32,12 @@ export const productImagesTable = pgTable(
   },
   (t) => ({
     productImagesProductIdIdx: index("product_images_product_id_idx").on(
-      t.productId,
+      t.productId
     ),
     productImagesIsPrimaryIdx: index("product_images_is_primary_idx").on(
-      t.isPrimary,
+      t.isPrimary
     ),
-  }),
+  })
 );
 
 // ── Relations ─────────────────────────────────────────────────────────────────
@@ -49,7 +49,7 @@ export const productImagesRelations = relations(
       fields: [productImagesTable.productId],
       references: [productsTable.id],
     }),
-  }),
+  })
 );
 
 // ── Types ─────────────────────────────────────────────────────────────────────

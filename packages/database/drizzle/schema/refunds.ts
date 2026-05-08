@@ -3,6 +3,7 @@
 // Managed by: payment-service
 // =============================================================================
 
+import { relations } from "drizzle-orm";
 import {
   index,
   integer,
@@ -11,7 +12,6 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
 
 import { primaryId, timestamps } from "./_helpers";
 import { paymentsTable } from "./payments";
@@ -56,7 +56,7 @@ export const refundsTable = pgTable(
     paymentIdIdx: index("refunds_payment_id_idx").on(t.paymentId),
     orderIdIdx: index("refunds_order_id_idx").on(t.orderId),
     statusIdx: index("refunds_status_idx").on(t.status),
-  }),
+  })
 );
 
 // ── Relations ─────────────────────────────────────────────────────────────────

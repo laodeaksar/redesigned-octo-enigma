@@ -4,7 +4,7 @@
  * Run with: bun test apps/api-gateway/src/lib/circuit-breaker.test.ts
  */
 
-import { describe, it, expect, beforeEach } from "bun:test";
+import { beforeEach, describe, expect, it } from "bun:test";
 import {
   CircuitBreaker,
   CircuitBreakerManager,
@@ -14,7 +14,7 @@ import {
 const cfg = {
   serviceName: "test-service",
   failureThreshold: 3,
-  resetTimeout: 1_000,
+  resetTimeout: 1000,
   requestTimeout: 100,
   successThreshold: 1,
   halfOpenMaxRequests: 1,

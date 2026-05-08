@@ -1,11 +1,14 @@
 ---
 interface Props {
-  title?: string;
   class?: string;
+  title?: string;
 }
 const { title, class: cls } = Astro.props;
 ---
-<div class:list={["rounded-2xl border border-gray-100 bg-white p-5 shadow-sm", cls]}>
+
+<div
+  class:list={["rounded-2xl border border-gray-100 bg-white p-5 shadow-sm", cls]}
+>
   {title && <h2 class="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-400">{title}</h2>}
   <slot />
 </div>

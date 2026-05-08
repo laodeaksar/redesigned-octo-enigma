@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
-import { clearAuthCookies } from "@/lib/auth";
 import { api } from "@/lib/api";
+import { clearAuthCookies } from "@/lib/auth";
 
 export const POST: APIRoute = async ({ cookies, redirect }) => {
   const token = cookies.get("web_access_token")?.value;
@@ -13,4 +13,3 @@ export const POST: APIRoute = async ({ cookies, redirect }) => {
   clearAuthCookies(cookies);
   return redirect("/", 302);
 };
-

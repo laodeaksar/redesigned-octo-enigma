@@ -29,4 +29,3 @@ export const swaggerPlugin = swagger({
   },
   path: "/docs",
 });
-

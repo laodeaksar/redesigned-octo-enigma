@@ -6,10 +6,12 @@ export { z } from "zod";
 import { z } from "zod";
 
 /** Standard JWT secret field — min 32 chars */
-export const jwtSecretSchema = z.string().min(32, "JWT secret must be at least 32 characters");
+export const jwtSecretSchema = z
+  .string()
+  .min(32, "JWT secret must be at least 32 characters");
 
 /** Standard port field */
-export const portSchema = z.coerce.number().int().min(1024).max(65535);
+export const portSchema = z.coerce.number().int().min(1024).max(65_535);
 
 /** Standard database URL */
 export const postgresUrlSchema = z

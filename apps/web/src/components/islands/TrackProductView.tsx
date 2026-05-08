@@ -1,5 +1,9 @@
 import { useEffect } from "react";
-import { trackView, hydrateRecentlyViewed, type RecentProduct } from "@/stores/recentlyViewed.store";
+import {
+  hydrateRecentlyViewed,
+  type RecentProduct,
+  trackView,
+} from "@/stores/recentlyViewed.store";
 
 export default function TrackProductView(props: RecentProduct) {
   useEffect(() => {

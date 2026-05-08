@@ -2,14 +2,15 @@
 // Server-side Web Push helpers
 // =============================================================================
 
-import webpush from "web-push";
 import { createDrizzleClient } from "@repo/database/drizzle";
 import { pushSubscriptionsTable } from "@repo/database/drizzle/schema";
 import { eq } from "drizzle-orm";
+import webpush from "web-push";
 
-export const VAPID_PUBLIC_KEY  = process.env.VAPID_PUBLIC_KEY  ?? "";
+export const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY ?? "";
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY ?? "";
-const VAPID_EMAIL       = process.env.VAPID_EMAIL       ?? "mailto:support@my-ecommerce.com";
+const VAPID_EMAIL =
+  process.env.VAPID_EMAIL ?? "mailto:support@my-ecommerce.com";
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
   webpush.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
@@ -31,46 +32,53 @@ function getDb() {
 // ── Status labels ────────────────────────────────────────────────────────────
 
 const STATUS_LABELS: Record<string, string> = {
-  pending_payment:  "Menunggu Pembayaran",
-  processing:       "Diproses",
-  shipped:          "Dikirim",
-  delivered:        "Terkirim",
-  completed:        "Selesai",
-  cancelled:        "Dibatalkan",
+  pending_payment: "Menunggu Pembayaran",
+  processing: "Diproses",
+  shipped: "Dikirim",
+  delivered: "Terkirim",
+  completed: "Selesai",
+  cancelled: "Dibatalkan",
   refund_requested: "Minta Refund",
-  refunded:         "Direfund",
+  refunded: "Direfund",
 };
 
 // ── Send push notifications for an order status change ───────────────────────
 
 export async function sendOrderStatusPush(
-  orderId:      string,
-  status:       string,
+  orderId: string,
+  status: string,
   orderNumber?: string | null
 ): Promise<void> {
-  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return;
+  if (!(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY)) {
+    return;
+  }
 
-  const db   = getDb();
+  const db = getDb();
   const subs = await db
     .select()
     .from(pushSubscriptionsTable)
     .where(eq(pushSubscriptionsTable.orderId, orderId));
 
-  if (subs.length === 0) return;
+  if (subs.length === 0) {
+    return;
+  }
 
-  const label    = STATUS_LABELS[status] ?? status;
+  const label = STATUS_LABELS[status] ?? status;
   const orderRef = orderNumber ? `Pesanan #${orderNumber}` : "Pesananmu";
-  const payload  = JSON.stringify({
-    title:   "Status Pesanan Diperbarui",
-    body:    `${orderRef} kini berstatus: ${label}`,
+  const payload = JSON.stringify({
+    title: "Status Pesanan Diperbarui",
+    body: `${orderRef} kini berstatus: ${label}`,
     orderId,
-    url:     `/orders/${orderId}`,
+    url: `/orders/${orderId}`,
   });
 
   const results = await Promise.allSettled(
     subs.map((sub) =>
       webpush.sendNotification(
-        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+        {
+          endpoint: sub.endpoint,
+          keys: { p256dh: sub.p256dh, auth: sub.auth },
+        },
         payload
       )
     )
@@ -80,8 +88,10 @@ export async function sendOrderStatusPush(
   const expired = subs
     .filter((_, i) => {
       const r = results[i];
-      return r.status === "rejected" &&
-        (r.reason?.statusCode === 410 || r.reason?.statusCode === 404);
+      return (
+        r.status === "rejected" &&
+        (r.reason?.statusCode === 410 || r.reason?.statusCode === 404)
+      );
     })
     .map((s) => s.endpoint);
 
@@ -96,12 +106,12 @@ export async function sendOrderStatusPush(
 // ── Save a new push subscription ────────────────────────────────────────────
 
 export async function savePushSubscription(opts: {
-  userId:       string;
-  orderId:      string;
+  userId: string;
+  orderId: string;
   orderNumber?: string;
-  endpoint:     string;
-  p256dh:       string;
-  auth:         string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
 }): Promise<void> {
   const db = getDb();
   await db
@@ -110,8 +120,8 @@ export async function savePushSubscription(opts: {
     .onConflictDoUpdate({
       target: pushSubscriptionsTable.endpoint,
       set: {
-        userId:      opts.userId,
-        orderId:     opts.orderId,
+        userId: opts.userId,
+        orderId: opts.orderId,
         orderNumber: opts.orderNumber,
       },
     });

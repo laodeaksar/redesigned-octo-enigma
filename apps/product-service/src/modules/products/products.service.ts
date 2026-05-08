@@ -2,32 +2,26 @@
 // Products service
 // =============================================================================
 
-import type Redis from "ioredis";
-
 import {
-  NotFoundError,
   ConflictError,
   InsufficientStockError,
+  NotFoundError,
 } from "@repo/common/errors";
 import type {
-  CreateProductInput,
-  UpdateProductInput,
-  ProductVariantInput,
-  UpdateVariantInput,
-  StockAdjustmentInput,
   BatchStockDeductInput,
+  CreateProductInput,
   ListProductsQuery,
+  ProductVariantInput,
+  StockAdjustmentInput,
+  UpdateProductInput,
+  UpdateVariantInput,
 } from "@repo/common/schemas";
-
-import * as repo from "./products.repository";
-import {
-  CacheKey,
-  cacheWrap,
-  invalidateProduct,
-} from "@/lib/cache";
-import { deleteImage as deleteS3Image, extractKeyFromUrl } from "@/lib/storage";
-import { getPublisher } from "@/config";
+import type Redis from "ioredis";
 import type { DB } from "@/config";
+import { getPublisher } from "@/config";
+import { CacheKey, cacheWrap, invalidateProduct } from "@/lib/cache";
+import { deleteImage as deleteS3Image, extractKeyFromUrl } from "@/lib/storage";
+import * as repo from "./products.repository";
 
 // ── Products ──────────────────────────────────────────────────────────────────
 
@@ -42,7 +36,14 @@ export async function searchProducts(
   return cacheWrap(
     redis,
     cacheKey,
-    () => repo.fullTextSearch(db, input.query, input.page, input.limit, input.categoryId),
+    () =>
+      repo.fullTextSearch(
+        db,
+        input.query,
+        input.page,
+        input.limit,
+        input.categoryId
+      ),
     60 // 1 min TTL for search results
   );
 }
@@ -59,17 +60,27 @@ export async function listProducts(
 export async function getProductById(db: DB, redis: Redis | null, id: string) {
   return cacheWrap(redis, CacheKey.product(id), async () => {
     const product = await repo.findProductWithRelations(db, id);
-    if (!product) throw new NotFoundError("Product");
+    if (!product) {
+      throw new NotFoundError("Product");
+    }
     return product;
   });
 }
 
-export async function getProductBySlug(db: DB, redis: Redis | null, slug: string) {
+export async function getProductBySlug(
+  db: DB,
+  redis: Redis | null,
+  slug: string
+) {
   return cacheWrap(redis, CacheKey.productBySlug(slug), async () => {
     const row = await repo.findProductBySlug(db, slug);
-    if (!row) throw new NotFoundError("Product");
+    if (!row) {
+      throw new NotFoundError("Product");
+    }
     const product = await repo.findProductWithRelations(db, row.id);
-    if (!product) throw new NotFoundError("Product");
+    if (!product) {
+      throw new NotFoundError("Product");
+    }
     return product;
   });
 }
@@ -81,7 +92,12 @@ export async function createProduct(
 ) {
   // Check slug uniqueness
   const existing = await repo.findProductBySlug(db, input.slug);
-  if (existing) throw new ConflictError(`Slug '${input.slug}' is already in use`, "SLUG_ALREADY_EXISTS");
+  if (existing) {
+    throw new ConflictError(
+      `Slug '${input.slug}' is already in use`,
+      "SLUG_ALREADY_EXISTS"
+    );
+  }
 
   // Check SKU uniqueness across all variants
   const skus = input.variants.map((v) => v.sku);
@@ -124,11 +140,18 @@ export async function updateProduct(
   input: UpdateProductInput
 ) {
   const existing = await repo.findProductById(db, id);
-  if (!existing) throw new NotFoundError("Product");
+  if (!existing) {
+    throw new NotFoundError("Product");
+  }
 
   if (input.slug && input.slug !== existing.slug) {
     const conflict = await repo.findProductBySlug(db, input.slug);
-    if (conflict) throw new ConflictError(`Slug '${input.slug}' is already in use`, "SLUG_ALREADY_EXISTS");
+    if (conflict) {
+      throw new ConflictError(
+        `Slug '${input.slug}' is already in use`,
+        "SLUG_ALREADY_EXISTS"
+      );
+    }
   }
 
   await repo.updateProduct(db, id, input);
@@ -136,13 +159,11 @@ export async function updateProduct(
   return repo.findProductWithRelations(db, id);
 }
 
-export async function deleteProduct(
-  db: DB,
-  redis: Redis | null,
-  id: string
-) {
+export async function deleteProduct(db: DB, redis: Redis | null, id: string) {
   const existing = await repo.findProductById(db, id);
-  if (!existing) throw new NotFoundError("Product");
+  if (!existing) {
+    throw new NotFoundError("Product");
+  }
 
   await repo.softDeleteProduct(db, id);
   await invalidateProduct(redis, id, existing.slug);
@@ -158,10 +179,14 @@ export async function addVariant(
   input: ProductVariantInput
 ) {
   const product = await repo.findProductById(db, productId);
-  if (!product) throw new NotFoundError("Product");
+  if (!product) {
+    throw new NotFoundError("Product");
+  }
 
   const [existing] = await repo.findVariantsBySku(db, [input.sku]);
-  if (existing) throw new ConflictError(`SKU '${input.sku}' is already in use`, "CONFLICT");
+  if (existing) {
+    throw new ConflictError(`SKU '${input.sku}' is already in use`, "CONFLICT");
+  }
 
   const variant = await repo.createVariant(db, { ...input, productId });
   await invalidateProduct(redis, productId, product.slug);
@@ -176,7 +201,9 @@ export async function updateVariant(
   input: UpdateVariantInput
 ) {
   const variant = await repo.findVariantById(db, variantId);
-  if (!variant || variant.productId !== productId) throw new NotFoundError("Variant");
+  if (!variant || variant.productId !== productId) {
+    throw new NotFoundError("Variant");
+  }
 
   const updated = await repo.updateVariant(db, variantId, input);
   const product = await repo.findProductById(db, productId);
@@ -191,7 +218,9 @@ export async function deleteVariant(
   variantId: string
 ) {
   const variant = await repo.findVariantById(db, variantId);
-  if (!variant || variant.productId !== productId) throw new NotFoundError("Variant");
+  if (!variant || variant.productId !== productId) {
+    throw new NotFoundError("Variant");
+  }
 
   await repo.deleteVariant(db, variantId);
   const product = await repo.findProductById(db, productId);
@@ -207,7 +236,9 @@ export async function adjustStock(
   input: StockAdjustmentInput
 ) {
   const variant = await repo.findVariantById(db, input.variantId);
-  if (!variant) throw new NotFoundError("Variant");
+  if (!variant) {
+    throw new NotFoundError("Variant");
+  }
 
   const updated = await repo.adjustStock(db, input.variantId, input.delta);
   await invalidateProduct(redis, variant.productId);
@@ -263,9 +294,11 @@ export async function batchDeductStock(
 
   // 3. Invalidate cache for affected products
   const affectedProductIds = new Set(
-    (await Promise.all(
-      input.items.map((item) => repo.findVariantById(db, item.variantId))
-    ))
+    (
+      await Promise.all(
+        input.items.map((item) => repo.findVariantById(db, item.variantId))
+      )
+    )
       .filter(Boolean)
       .map((v) => v!.productId)
   );
@@ -286,7 +319,9 @@ export async function addImage(
   data: { url: string; altText?: string | null; isPrimary?: boolean }
 ) {
   const product = await repo.findProductById(db, productId);
-  if (!product) throw new NotFoundError("Product");
+  if (!product) {
+    throw new NotFoundError("Product");
+  }
 
   if (data.isPrimary) {
     await repo.setPrimaryImage(db, productId, ""); // unset all first
@@ -311,16 +346,21 @@ export async function removeImage(
   imageId: string
 ) {
   const product = await repo.findProductById(db, productId);
-  if (!product) throw new NotFoundError("Product");
+  if (!product) {
+    throw new NotFoundError("Product");
+  }
 
   const deleted = await repo.deleteImage(db, imageId);
-  if (!deleted) throw new NotFoundError("Image");
+  if (!deleted) {
+    throw new NotFoundError("Image");
+  }
 
   // Delete from S3 if key is embedded in URL
   const key = extractKeyFromUrl(deleted.url);
-  if (key) await deleteS3Image(key);
+  if (key) {
+    await deleteS3Image(key);
+  }
 
   await invalidateProduct(redis, productId, product.slug);
   return { message: "Image deleted successfully" };
 }
-

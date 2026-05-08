@@ -2,16 +2,15 @@
 // Users controller
 // =============================================================================
 
-import { success } from "@repo/common/schemas";
 import { safeParse } from "@repo/common/errors";
 import {
-  updateProfileSchema,
   createAddressSchema,
+  success,
   updateAddressSchema,
+  updateProfileSchema,
 } from "@repo/common/schemas";
-
-import * as usersService from "./users.service";
 import type { DB } from "@/config";
+import * as usersService from "./users.service";
 
 export async function handleGetProfile(db: DB, userId: string) {
   const profile = await usersService.getProfile(db, userId);
@@ -50,7 +49,12 @@ export async function handleUpdateAddress(
   body: unknown
 ) {
   const input = safeParse(updateAddressSchema, body);
-  const address = await usersService.updateAddress(db, userId, addressId, input);
+  const address = await usersService.updateAddress(
+    db,
+    userId,
+    addressId,
+    input
+  );
   return success(address, "Address updated successfully");
 }
 
@@ -62,4 +66,3 @@ export async function handleDeleteAddress(
   const result = await usersService.deleteAddress(db, userId, addressId);
   return success(result);
 }
-

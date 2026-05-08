@@ -2,28 +2,28 @@
 // Auth store — React context + TanStack Query for server state
 // =============================================================================
 
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import React, {
   createContext,
-  useContext,
-  useCallback,
   type ReactNode,
+  useCallback,
+  useContext,
 } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  type AdminUser,
   login as apiLogin,
   logout as apiLogout,
   getMe,
-  type AdminUser,
 } from "@/lib/auth";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface AuthState {
-  user: AdminUser | null;
-  isLoading: boolean;
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  user: AdminUser | null;
 }
 
 // ── Context ───────────────────────────────────────────────────────────────────
@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const loggedInUser = await apiLogin(email, password);
       queryClient.setQueryData(authKeys.me, loggedInUser);
     },
-    [queryClient],
+    [queryClient]
   );
 
   const logout = useCallback(async () => {
@@ -77,6 +77,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth(): AuthState {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
+  if (!ctx) {
+    throw new Error("useAuth must be used inside <AuthProvider>");
+  }
   return ctx;
 }

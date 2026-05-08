@@ -1,11 +1,11 @@
 ---
 import BaseLayout from "@/components/layout/BaseLayout.astro";
-import ProductCard from "@/components/shared/ProductCard.astro";
 import Pagination from "@/components/shared/Pagination.astro";
-import { api, type Product, type Category } from "@/lib/api";
+import ProductCard from "@/components/shared/ProductCard.astro";
+import { api, type Category, type Product } from "@/lib/api";
 
 const { searchParams } = Astro.url;
-const page = parseInt(searchParams.get("page") ?? "1", 10);
+const page = Number.parseInt(searchParams.get("page") ?? "1", 10);
 const search = searchParams.get("q") ?? "";
 const categoryId = searchParams.get("categoryId") ?? "";
 const sortBy = searchParams.get("sortBy") ?? "createdAt";
@@ -18,17 +18,21 @@ let categories: Category[] = [];
 
 try {
   const [productsRes, categoriesRes] = await Promise.all([
-    api.get<{ success: true; data: Product[]; meta: { total: number; page: number; limit: number; totalPages: number } }>(
-      "/products",
-      {
-        params: {
-          page, limit: 24, status: "active",
-          search: search || undefined,
-          categoryId: categoryId || undefined,
-          sortBy, sortOrder,
-        },
-      }
-    ),
+    api.get<{
+      success: true;
+      data: Product[];
+      meta: { total: number; page: number; limit: number; totalPages: number };
+    }>("/products", {
+      params: {
+        page,
+        limit: 24,
+        status: "active",
+        search: search || undefined,
+        categoryId: categoryId || undefined,
+        sortBy,
+        sortOrder,
+      },
+    }),
     api.get<{ success: true; data: Category[] }>("/categories"),
   ]);
 
@@ -55,14 +59,14 @@ const sortOptions = [
 <BaseLayout title={pageTitle}>
   <div class="container mx-auto px-4 py-10">
     <div class="flex flex-col gap-8 lg:flex-row">
-
       <!-- Sidebar filters -->
       <aside class="w-full lg:w-56 shrink-0">
         <div class="sticky top-24 space-y-6">
-
           <!-- Search -->
           <form method="get" action="/products">
-            <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <label
+              class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500"
+            >
               Cari
             </label>
             <div class="flex overflow-hidden rounded-lg border border-gray-200">
@@ -72,15 +76,22 @@ const sortOptions = [
                 value={search}
                 placeholder="Nama produk…"
                 class="flex-1 px-3 py-2 text-sm outline-none"
-              />
-              <button type="submit" class="px-3 text-gray-400 hover:text-gray-700">🔍</button>
+              >
+              <button
+                type="submit"
+                class="px-3 text-gray-400 hover:text-gray-700"
+              >
+                🔍
+              </button>
             </div>
             {categoryId && <input type="hidden" name="categoryId" value={categoryId} />}
           </form>
 
           <!-- Categories -->
           <div>
-            <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <p
+              class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500"
+            >
               Kategori
             </p>
             <ul class="space-y-1">
@@ -117,7 +128,6 @@ const sortOptions = [
 
       <!-- Main content -->
       <div class="flex-1">
-
         <!-- Header bar -->
         <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>

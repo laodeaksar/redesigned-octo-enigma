@@ -8,19 +8,21 @@ const STORAGE_KEY = "compare_products";
 export const MAX_COMPARE = 3;
 
 export interface CompareProduct {
-  id: string;
-  name: string;
-  slug: string;
-  primaryImage: string | null;
-  lowestPrice: number;
-  highestPrice: number;
-  totalStock: number;
-  tags: string[];
   categoryName?: string | null;
+  highestPrice: number;
+  id: string;
+  lowestPrice: number;
+  name: string;
+  primaryImage: string | null;
+  slug: string;
+  tags: string[];
+  totalStock: number;
 }
 
 function load(): CompareProduct[] {
-  if (typeof localStorage === "undefined") return [];
+  if (typeof localStorage === "undefined") {
+    return [];
+  }
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
   } catch {
@@ -29,7 +31,9 @@ function load(): CompareProduct[] {
 }
 
 function save(items: CompareProduct[]) {
-  if (typeof localStorage === "undefined") return;
+  if (typeof localStorage === "undefined") {
+    return;
+  }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 }
 
@@ -45,8 +49,12 @@ export function hydrateCompare() {
 
 export function addToCompare(product: CompareProduct): boolean {
   const current = $compareList.get();
-  if (current.length >= MAX_COMPARE) return false;
-  if (current.some((p) => p.id === product.id)) return false;
+  if (current.length >= MAX_COMPARE) {
+    return false;
+  }
+  if (current.some((p) => p.id === product.id)) {
+    return false;
+  }
   const updated = [...current, product];
   $compareList.set(updated);
   save(updated);

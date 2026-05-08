@@ -4,7 +4,7 @@
 
 import { createApp } from "@/app";
 import { env, initRedis } from "@/config";
-import { startWorkers, closeWorkers } from "@/worker";
+import { closeWorkers, startWorkers } from "@/worker";
 
 async function bootstrap() {
   console.info(`\n🚀 Starting product-service [${env.NODE_ENV}]…`);
@@ -44,7 +44,9 @@ async function bootstrap() {
 
   process.on("unhandledRejection", (reason) => {
     console.error("[FATAL] Unhandled rejection:", reason);
-    if (env.NODE_ENV === "production") process.exit(1);
+    if (env.NODE_ENV === "production") {
+      process.exit(1);
+    }
   });
 }
 

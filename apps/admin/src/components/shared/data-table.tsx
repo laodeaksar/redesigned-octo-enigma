@@ -2,30 +2,35 @@
 // DataTable — generic table with sort, pagination, empty state, loading state
 // =============================================================================
 
-import { type ReactNode } from "react";
-import { ChevronLeft, ChevronRight, ChevronsUpDown, Loader2 } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsUpDown,
+  Loader2,
+} from "lucide-react";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 // ── Column definition ─────────────────────────────────────────────────────────
 
 export interface Column<T> {
-  key: string;
-  header: string;
   cell: (row: T) => ReactNode;
-  sortable?: boolean;
   className?: string;
+  header: string;
   headerClassName?: string;
+  key: string;
+  sortable?: boolean;
 }
 
 // ── Pagination meta ───────────────────────────────────────────────────────────
 
 export interface PaginationMeta {
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
   hasNextPage: boolean;
   hasPrevPage: boolean;
+  limit: number;
+  page: number;
+  total: number;
+  totalPages: number;
 }
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -33,14 +38,14 @@ export interface PaginationMeta {
 interface DataTableProps<T> {
   columns: Column<T>[];
   data: T[];
-  meta?: PaginationMeta | undefined;
-  isLoading?: boolean;
   emptyMessage?: string;
+  getRowKey?: (row: T) => string;
+  isLoading?: boolean;
+  meta?: PaginationMeta | undefined;
   onPageChange?: (page: number) => void;
   onSortChange?: (key: string, dir: "asc" | "desc") => void;
-  sortKey?: string;
   sortDir?: "asc" | "desc";
-  getRowKey?: (row: T) => string;
+  sortKey?: string;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -63,19 +68,22 @@ export function DataTable<T extends object>({
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border bg-muted/50">
+            <tr className="border-border border-b bg-muted/50">
               {columns.map((col) => (
                 <th
-                  key={col.key}
                   className={cn(
-                    "px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground",
-                    col.sortable && "cursor-pointer select-none hover:text-foreground",
+                    "px-4 py-3 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider",
+                    col.sortable &&
+                      "cursor-pointer select-none hover:text-foreground",
                     col.headerClassName
                   )}
+                  key={col.key}
                   onClick={() => {
                     if (col.sortable && onSortChange) {
                       const newDir =
-                        sortKey === col.key && sortDir === "asc" ? "desc" : "asc";
+                        sortKey === col.key && sortDir === "asc"
+                          ? "desc"
+                          : "asc";
                       onSortChange(col.key, newDir);
                     }
                   }}
@@ -102,8 +110,8 @@ export function DataTable<T extends object>({
             {isLoading ? (
               <tr>
                 <td
-                  colSpan={columns.length}
                   className="py-16 text-center text-muted-foreground"
+                  colSpan={columns.length}
                 >
                   <Loader2 className="mx-auto h-6 w-6 animate-spin" />
                   <p className="mt-2 text-sm">Memuat data…</p>
@@ -112,8 +120,8 @@ export function DataTable<T extends object>({
             ) : data.length === 0 ? (
               <tr>
                 <td
-                  colSpan={columns.length}
                   className="py-16 text-center text-muted-foreground"
+                  colSpan={columns.length}
                 >
                   <p className="text-sm">{emptyMessage}</p>
                 </td>
@@ -121,16 +129,13 @@ export function DataTable<T extends object>({
             ) : (
               data.map((row, rowIndex) => (
                 <tr
-                  key={getRowKey ? getRowKey(row) : rowIndex}
                   className="transition-colors hover:bg-muted/30"
+                  key={getRowKey ? getRowKey(row) : rowIndex}
                 >
                   {columns.map((col) => (
                     <td
+                      className={cn("px-4 py-3 text-foreground", col.className)}
                       key={col.key}
-                      className={cn(
-                        "px-4 py-3 text-foreground",
-                        col.className
-                      )}
                     >
                       {col.cell(row)}
                     </td>
@@ -144,8 +149,8 @@ export function DataTable<T extends object>({
 
       {/* Pagination */}
       {meta && meta.totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-border px-4 py-3">
-          <p className="text-sm text-muted-foreground">
+        <div className="flex items-center justify-between border-border border-t px-4 py-3">
+          <p className="text-muted-foreground text-sm">
             Menampilkan{" "}
             <span className="font-medium">
               {(meta.page - 1) * meta.limit + 1}–
@@ -156,26 +161,28 @@ export function DataTable<T extends object>({
 
           <div className="flex items-center gap-1">
             <button
-              onClick={() => onPageChange?.(meta.page - 1)}
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-input text-sm hover:bg-accent disabled:opacity-40"
               disabled={!meta.hasPrevPage}
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-input text-sm disabled:opacity-40 hover:bg-accent"
+              onClick={() => onPageChange?.(meta.page - 1)}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
 
             {Array.from({ length: Math.min(5, meta.totalPages) }, (_, i) => {
               const page = getPageNumbers(meta.page, meta.totalPages)[i];
-              if (!page) return null;
+              if (!page) {
+                return null;
+              }
               return (
                 <button
-                  key={page}
-                  onClick={() => onPageChange?.(page)}
                   className={cn(
                     "flex h-8 w-8 items-center justify-center rounded-md border text-sm",
                     page === meta.page
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-input hover:bg-accent"
                   )}
+                  key={page}
+                  onClick={() => onPageChange?.(page)}
                 >
                   {page}
                 </button>
@@ -183,9 +190,9 @@ export function DataTable<T extends object>({
             })}
 
             <button
-              onClick={() => onPageChange?.(meta.page + 1)}
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-input text-sm hover:bg-accent disabled:opacity-40"
               disabled={!meta.hasNextPage}
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-input text-sm disabled:opacity-40 hover:bg-accent"
+              onClick={() => onPageChange?.(meta.page + 1)}
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -205,4 +212,3 @@ function getPageNumbers(current: number, total: number): number[] {
   start = Math.max(1, end - 4);
   return Array.from({ length: end - start + 1 }, (_, i) => start + i);
 }
-

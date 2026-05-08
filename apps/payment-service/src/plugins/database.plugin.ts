@@ -7,5 +7,5 @@ import { db } from "@/config";
 
 export const databasePlugin = new Elysia({ name: "database" }).decorate(
   "db",
-  db,
+  db
 );

@@ -1,19 +1,22 @@
 // @ts-check
+
+import react from "@astrojs/react";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
-import react from "@astrojs/react";
 import { loadEnv } from "vite";
 
-const { PUBLIC_API_URL } = loadEnv(process.env.NODE_ENV ?? "development", process.cwd(), "");
+const { PUBLIC_API_URL } = loadEnv(
+  process.env.NODE_ENV ?? "development",
+  process.cwd(),
+  ""
+);
 
 // https://astro.build/config
 export default defineConfig({
   // SSR mode — pages rendered on-demand by Node/Bun
   output: "server",
 
-  integrations: [
-    react(),
-  ],
+  integrations: [react()],
 
   // Dev server configuration
   server: {
@@ -22,10 +25,12 @@ export default defineConfig({
   },
 
   vite: {
-    //@ts-ignore
+    //@ts-expect-error
     plugins: [tailwindcss()],
     define: {
-      "import.meta.env.PUBLIC_API_URL": JSON.stringify(PUBLIC_API_URL ?? "http://localhost:3000"),
+      "import.meta.env.PUBLIC_API_URL": JSON.stringify(
+        PUBLIC_API_URL ?? "http://localhost:3000"
+      ),
     },
     server: {
       allowedHosts: true,

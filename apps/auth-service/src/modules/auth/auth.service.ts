@@ -6,36 +6,36 @@ import { randomBytes } from "node:crypto";
 
 import {
   EmailAlreadyExistsError,
-  InvalidCredentialsError,
-  NotFoundError,
-  TokenInvalidError,
   EmailNotVerifiedError,
-  UserNotFoundError,
+  InvalidCredentialsError,
+  TokenInvalidError,
 } from "@repo/common/errors";
 import type {
-  RegisterInput,
-  LoginInput,
   ForgotPasswordInput,
+  LoginInput,
+  RegisterInput,
   ResetPasswordInput,
 } from "@repo/common/schemas";
-
-import { hashPassword, verifyPassword } from "@/lib/password";
+import { type DB, env } from "@/config";
 import {
+  publishPasswordResetRequested,
+  publishUserRegistered,
+} from "@/lib/events";
+import {
+  expiryToMs,
   signAccessToken,
   signRefreshToken,
   verifyRefreshToken,
-  expiryToMs,
 } from "@/lib/jwt";
-import { publishUserRegistered, publishPasswordResetRequested } from "@/lib/events";
+import { hashPassword, verifyPassword } from "@/lib/password";
 import {
+  createUser,
   findUserByEmail,
   findUserById,
-  findUserByVerificationToken,
   findUserByResetToken,
-  createUser,
+  findUserByVerificationToken,
   updateUser,
 } from "@/modules/users/users.repository";
-import { env, type DB } from "@/config";
 
 // ── Token helpers ─────────────────────────────────────────────────────────────
 
@@ -43,8 +43,11 @@ function generateToken(bytes = 32): string {
   return randomBytes(bytes).toString("hex");
 }
 
-function stripSensitive(user: NonNullable<Awaited<ReturnType<typeof findUserById>>>) {
-  const { passwordHash, emailVerificationToken, passwordResetToken, ...safe } = user;
+function stripSensitive(
+  user: NonNullable<Awaited<ReturnType<typeof findUserById>>>
+) {
+  const { passwordHash, emailVerificationToken, passwordResetToken, ...safe } =
+    user;
   return safe;
 }
 
@@ -52,7 +55,9 @@ function stripSensitive(user: NonNullable<Awaited<ReturnType<typeof findUserById
 
 export async function register(db: DB, input: RegisterInput) {
   const existing = await findUserByEmail(db, input.email);
-  if (existing) throw new EmailAlreadyExistsError(input.email);
+  if (existing) {
+    throw new EmailAlreadyExistsError(input.email);
+  }
 
   const passwordHash = await hashPassword(input.password);
   const emailVerificationToken = generateToken();
@@ -87,7 +92,7 @@ export async function login(db: DB, input: LoginInput) {
   const storedHash = user?.passwordHash ?? dummyHash;
   const isValid = await verifyPassword(input.password, storedHash);
 
-  if (!user || !isValid) {
+  if (!(user && isValid)) {
     throw new InvalidCredentialsError();
   }
 
@@ -103,7 +108,9 @@ export async function login(db: DB, input: LoginInput) {
 
   if (isBanned) {
     const reason = user.banReason ? `: ${user.banReason}` : "";
-    throw new InvalidCredentialsError(`Your account has been suspended${reason}`);
+    throw new InvalidCredentialsError(
+      `Your account has been suspended${reason}`
+    );
   }
 
   const [accessToken, refreshToken] = await Promise.all([
@@ -145,7 +152,11 @@ export async function refreshTokens(db: DB, refreshToken: string) {
 
 export async function verifyEmail(db: DB, token: string) {
   const user = await findUserByVerificationToken(db, token);
-  if (!user) throw new TokenInvalidError("Email verification token is invalid or expired");
+  if (!user) {
+    throw new TokenInvalidError(
+      "Email verification token is invalid or expired"
+    );
+  }
 
   await updateUser(db, user.id, {
     emailVerified: true,
@@ -163,7 +174,9 @@ export async function forgotPassword(db: DB, input: ForgotPasswordInput) {
 
   // Always return success — don't reveal whether email exists
   if (!user) {
-    return { message: "If that email is registered, a reset link has been sent" };
+    return {
+      message: "If that email is registered, a reset link has been sent",
+    };
   }
 
   const resetToken = generateToken();
@@ -185,7 +198,9 @@ export async function forgotPassword(db: DB, input: ForgotPasswordInput) {
 
 export async function resetPassword(db: DB, input: ResetPasswordInput) {
   const user = await findUserByResetToken(db, input.token);
-  if (!user) throw new TokenInvalidError("Password reset token is invalid or expired");
+  if (!user) {
+    throw new TokenInvalidError("Password reset token is invalid or expired");
+  }
 
   const passwordHash = await hashPassword(input.password);
 
@@ -197,4 +212,3 @@ export async function resetPassword(db: DB, input: ResetPasswordInput) {
 
   return { message: "Password reset successfully" };
 }
-

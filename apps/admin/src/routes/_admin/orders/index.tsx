@@ -2,20 +2,20 @@
 // Orders list page
 // =============================================================================
 
-import React, { useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Eye } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Eye, Search } from "lucide-react";
+import { useState } from "react";
 import { AdminLayout } from "@/components/layout/admin-layout";
+import { type Column, DataTable } from "@/components/shared/data-table";
 import { PageHeader } from "@/components/shared/page-header";
-import { DataTable, type Column } from "@/components/shared/data-table";
 import { api, type PaginatedResponse } from "@/lib/api";
 import {
-  formatIDR,
-  formatDateTime,
-  ORDER_STATUS_LABELS,
-  ORDER_STATUS_COLORS,
   cn,
+  formatDateTime,
+  formatIDR,
+  ORDER_STATUS_COLORS,
+  ORDER_STATUS_LABELS,
 } from "@/lib/utils";
 
 export const Route = createFileRoute("/_admin/orders/")({
@@ -25,14 +25,14 @@ export const Route = createFileRoute("/_admin/orders/")({
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface Order {
-  id: string;
-  orderNumber: string;
-  userId: string;
-  status: string;
-  itemCount: number;
-  grandTotal: number;
-  primaryItemName: string;
   createdAt: string;
+  grandTotal: number;
+  id: string;
+  itemCount: number;
+  orderNumber: string;
+  primaryItemName: string;
+  status: string;
+  userId: string;
 }
 
 // ── Query keys ────────────────────────────────────────────────────────────────
@@ -60,7 +60,7 @@ export function OrderStatusBadge({ status }: { status: string }) {
   return (
     <span
       className={cn(
-        "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium",
+        "inline-flex rounded-full px-2.5 py-0.5 font-medium text-xs",
         COLOR_MAP[color]
       )}
     >
@@ -105,7 +105,9 @@ function OrdersPage() {
       key: "orderNumber",
       header: "No. Pesanan",
       cell: (row) => (
-        <span className="font-mono text-xs font-semibold">{row.orderNumber}</span>
+        <span className="font-mono font-semibold text-xs">
+          {row.orderNumber}
+        </span>
       ),
     },
     {
@@ -113,10 +115,10 @@ function OrdersPage() {
       header: "Produk",
       cell: (row) => (
         <div>
-          <p className="text-sm font-medium text-foreground truncate max-w-[180px]">
+          <p className="max-w-[180px] truncate font-medium text-foreground text-sm">
             {row.primaryItemName}
           </p>
-          <p className="text-xs text-muted-foreground">{row.itemCount} item</p>
+          <p className="text-muted-foreground text-xs">{row.itemCount} item</p>
         </div>
       ),
     },
@@ -138,7 +140,7 @@ function OrdersPage() {
       header: "Tanggal",
       sortable: true,
       cell: (row) => (
-        <span className="text-xs text-muted-foreground">
+        <span className="text-muted-foreground text-xs">
           {formatDateTime(row.createdAt)}
         </span>
       ),
@@ -149,9 +151,9 @@ function OrdersPage() {
       className: "w-12",
       cell: (row) => (
         <Link
-          to="/_admin/orders/$orderId"
-          params={{ orderId: row.id }}
           className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-accent"
+          params={{ orderId: row.id }}
+          to="/_admin/orders/$orderId"
         >
           <Eye className="h-3.5 w-3.5 text-muted-foreground" />
         </Link>
@@ -162,32 +164,32 @@ function OrdersPage() {
   return (
     <AdminLayout title="Pesanan">
       <PageHeader
-        title="Pesanan"
         description={`${data?.meta.total ?? 0} total pesanan`}
+        title="Pesanan"
       />
 
       {/* Filters */}
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <div className="relative min-w-[200px] flex-1">
+          <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
-            type="search"
-            placeholder="Cari nomor pesanan..."
-            value={search}
+            className="h-9 w-full rounded-md border border-input bg-background pr-3 pl-9 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             onChange={(e) => {
               setSearch(e.target.value);
               setPage(1);
             }}
-            className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            placeholder="Cari nomor pesanan..."
+            type="search"
+            value={search}
           />
         </div>
         <select
-          value={status}
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           onChange={(e) => {
             setStatus(e.target.value);
             setPage(1);
           }}
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          value={status}
         >
           <option value="">Semua Status</option>
           {ALL_STATUSES.map((s) => (
@@ -201,19 +203,18 @@ function OrdersPage() {
       <DataTable
         columns={columns}
         data={data?.data ?? []}
-        meta={data?.meta}
-        isLoading={isLoading}
         emptyMessage="Belum ada pesanan"
+        getRowKey={(row) => row.id}
+        isLoading={isLoading}
+        meta={data?.meta}
         onPageChange={setPage}
         onSortChange={(key, dir) => {
           setSortBy(key);
           setSortOrder(dir);
         }}
-        sortKey={sortBy}
         sortDir={sortOrder}
-        getRowKey={(row) => row.id}
+        sortKey={sortBy}
       />
     </AdminLayout>
   );
 }
-

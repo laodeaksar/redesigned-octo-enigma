@@ -2,10 +2,9 @@
 // JWT middleware — reads x-user-* headers forwarded by api-gateway
 // =============================================================================
 
-import Elysia from "elysia";
-
-import { UnauthorizedError, InsufficientRoleError } from "@repo/common/errors";
+import { InsufficientRoleError, UnauthorizedError } from "@repo/common/errors";
 import type { UserRole } from "@repo/common/types";
+import Elysia from "elysia";
 
 export const jwtMiddleware = new Elysia({ name: "jwt-middleware" }).derive(
   { as: "scoped" },
@@ -14,12 +13,12 @@ export const jwtMiddleware = new Elysia({ name: "jwt-middleware" }).derive(
     const email = headers["x-user-email"];
     const role = headers["x-user-role"] as UserRole | undefined;
 
-    if (!id || !email || !role) {
+    if (!(id && email && role)) {
       throw new UnauthorizedError();
     }
 
     return { user: { id, email, role } };
-  },
+  }
 );
 
 export const requireRole = (...roles: UserRole[]) =>

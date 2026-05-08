@@ -8,16 +8,18 @@ const STORAGE_KEY = "recently_viewed";
 const MAX_ITEMS = 10;
 
 export interface RecentProduct {
-  id: string;
-  name: string;
-  slug: string;
-  primaryImage: string | null;
-  lowestPrice: number;
   highestPrice: number;
+  id: string;
+  lowestPrice: number;
+  name: string;
+  primaryImage: string | null;
+  slug: string;
 }
 
 function load(): RecentProduct[] {
-  if (typeof localStorage === "undefined") return [];
+  if (typeof localStorage === "undefined") {
+    return [];
+  }
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
   } catch {
@@ -26,7 +28,9 @@ function load(): RecentProduct[] {
 }
 
 function save(items: RecentProduct[]) {
-  if (typeof localStorage === "undefined") return;
+  if (typeof localStorage === "undefined") {
+    return;
+  }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 }
 

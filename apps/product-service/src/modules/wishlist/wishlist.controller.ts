@@ -2,10 +2,10 @@
 // Wishlist controller
 // =============================================================================
 
+import { paginated, success } from "@repo/common/schemas";
 import Elysia, { t } from "elysia";
-import { wishlistService } from "./wishlist.service";
-import { success, paginated } from "@repo/common/schemas";
 import { jwtMiddleware } from "@/middleware/jwt.middleware";
+import { wishlistService } from "./wishlist.service";
 
 export const wishlistController = new Elysia({ prefix: "/wishlist" })
   .use(jwtMiddleware)

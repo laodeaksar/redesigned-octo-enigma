@@ -1,26 +1,44 @@
 // =============================================================================
-// Webhook signature verification middleware
+// Webhook signature verification + replay-attack protection middleware
 //
-// Provides a factory for cryptographic webhook verification at the gateway
-// layer — a first line of defense before requests reach downstream services.
+// Two independent defenses applied at the API Gateway before any request
+// reaches a downstream service:
 //
-// Currently implemented providers:
-//   • Midtrans — SHA512(order_id + status_code + gross_amount + server_key)
+//   1. Signature verification
+//      Cryptographically proves the payload came from the declared provider.
+//      Provider: Midtrans — SHA512(order_id + status_code + gross_amount + key)
+//
+//   2. Replay / duplicate-delivery protection
+//      Stores a processed-notification fingerprint in Redis using SET NX EX
+//      (atomic "set if not exists" with TTL).  A second delivery of the same
+//      notification is detected and acknowledged with a 200 (so the provider
+//      stops retrying) but NOT forwarded to the service.
 //
 // Design decisions:
-//   • Reads body as ArrayBuffer once, re-injects it so the proxy can still
-//     forward the raw bytes unchanged.
-//   • Uses timing-safe comparison to prevent signature oracle attacks.
-//   • If MIDTRANS_SERVER_KEY is not set, verification is SKIPPED (soft-fail)
-//     with a warning — the payment-service still verifies independently.
-//   • Adds x-webhook-verified: <provider> header so downstream services know
-//     the signature was already checked at the edge.
+//   • Reads body bytes once, re-injects them so the proxy can forward unchanged.
+//   • Timing-safe comparison prevents signature oracle attacks.
+//   • Both checks degrade gracefully: if the server key / Redis is absent the
+//     check is skipped and the downstream service remains the sole verifier.
+//   • Returns HTTP 200 (not 4xx) on signature failure and duplicates — Midtrans
+//     (and most providers) retry any non-2xx response indefinitely.
+//   • x-webhook-verified: <provider> is added to the forwarded request so the
+//     downstream service knows the gateway already pre-checked the signature.
 // =============================================================================
 
 import { timingSafeEqual, createHash } from "node:crypto";
 import type { Context, MiddlewareHandler } from "hono";
-import { env } from "@/config";
+import { env, getRedis } from "@/config";
 import { logger } from "@/lib/logger";
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+/**
+ * How long (seconds) a processed-notification ID is remembered in Redis.
+ * 7 days — well beyond Midtrans's 24-hour retry window.
+ */
+const IDEMPOTENCY_TTL_SECONDS = 7 * 24 * 60 * 60; // 604 800
+
+const IDEMPOTENCY_KEY_PREFIX = "webhook:idempotency";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -43,49 +61,68 @@ function safeCompare(a: string, b: string): boolean {
  * Re-inject a body ArrayBuffer back into the Hono context's raw request so
  * downstream middleware and the proxy helper can still read it.
  *
- * Hono's Context.req.raw is writable at runtime even though types say
- * otherwise — this is a well-known body re-injection pattern.
+ * Hono's Context.req.raw is writable at runtime even though the TypeScript
+ * types don't expose it — this is a well-known body re-injection pattern.
  */
-function reInjectBody(c: Context, body: ArrayBuffer): void {
+function reInjectBody(c: Context, body: ArrayBuffer, extraHeaders?: Headers): void {
   const original = c.req.raw;
+  const headers = extraHeaders ?? original.headers;
   const patched = new Request(original.url, {
     method: original.method,
-    headers: original.headers,
+    headers,
     body,
-    // @ts-expect-error — Bun requires duplex for streaming bodies
+    // @ts-expect-error — Bun requires duplex for streaming request bodies
     duplex: "half",
   });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (c.req as any).raw = patched;
 }
 
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
 // ── Generic factory ───────────────────────────────────────────────────────────
 
 export interface WebhookVerifyOptions {
-  /** Provider name used in logs and headers (e.g. "midtrans") */
+  /** Provider name used in logs and forwarded headers (e.g. "midtrans") */
   provider: string;
+
   /**
-   * Return null/undefined if the key is not configured (verification skipped).
-   * Return true if signature is valid, false if invalid.
+   * Signature verifier.
+   * - Return `null`  → key not configured, skip silently
+   * - Return `true`  → signature is valid
+   * - Return `false` → signature is invalid, block request
    */
   verify: (rawBody: ArrayBuffer, bodyJson: unknown) => boolean | null;
+
+  /**
+   * Optional: extract a stable unique ID from the parsed body for
+   * replay-attack / duplicate-delivery deduplication via Redis.
+   *
+   * For Midtrans this is `transaction_id` — Midtrans guarantees it is unique
+   * per notification event and reuses it on retries of the same event.
+   *
+   * Return `null` / `undefined` to skip idempotency for this delivery
+   * (e.g. the field is missing in a test notification).
+   */
+  idempotencyKey?: (bodyJson: unknown) => string | null | undefined;
 }
 
 /**
- * Create a webhook verification middleware for a specific provider.
+ * Create a webhook verification + replay-protection middleware.
  *
- * The middleware:
- *  1. Reads the raw request body once
- *  2. Parses it as JSON
- *  3. Calls the provider's verify() function
- *  4. Rejects with 401 on failure (or 400 if body is not valid JSON)
- *  5. Re-injects the body so downstream handlers can still read it
- *  6. Adds x-webhook-verified header for downstream services
+ * Processing order:
+ *  1. Read raw body bytes
+ *  2. Parse as JSON
+ *  3. Verify provider signature  → 200 + WEBHOOK_SIGNATURE_INVALID on failure
+ *  4. Check Redis idempotency    → 200 + WEBHOOK_DUPLICATE on replay
+ *  5. Re-inject body + set headers, call next()
  */
 export function createWebhookVerifier(
   options: WebhookVerifyOptions
 ): MiddlewareHandler {
-  const { provider, verify } = options;
+  const { provider, verify, idempotencyKey } = options;
 
   return async (c, next) => {
     const ip =
@@ -94,55 +131,47 @@ export function createWebhookVerifier(
       c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ??
       "unknown";
 
-    // 1. Read raw body bytes
+    // ── 1. Read raw body ──────────────────────────────────────────────────────
     let rawBody: ArrayBuffer;
     try {
       rawBody = await c.req.raw.arrayBuffer();
     } catch {
       logger.warn(`[webhook-verify:${provider}] Failed to read body`, { ip });
-      return c.json(
-        { success: false, error: "Failed to read request body" },
-        400
-      );
+      return c.json({ success: false, error: "Failed to read request body" }, 400);
     }
 
-    // 2. Parse body as JSON (needed for most provider signature schemes)
+    // ── 2. Parse JSON ─────────────────────────────────────────────────────────
     let bodyJson: unknown;
     try {
       bodyJson = JSON.parse(new TextDecoder().decode(rawBody));
     } catch {
       logger.warn(`[webhook-verify:${provider}] Invalid JSON body`, { ip });
-      // Re-inject raw bytes anyway so downstream gets the body
       reInjectBody(c, rawBody);
-      return c.json(
-        { success: false, error: "Webhook body must be valid JSON" },
-        400
-      );
+      return c.json({ success: false, error: "Webhook body must be valid JSON" }, 400);
     }
 
-    // 3. Verify signature
-    const result = verify(rawBody, bodyJson);
+    // ── 3. Signature verification ─────────────────────────────────────────────
+    const sigResult = verify(rawBody, bodyJson);
 
-    if (result === null) {
-      // Key not configured — soft skip with warning
+    if (sigResult === null) {
       logger.warn(
         `[webhook-verify:${provider}] Signature key not configured — skipping verification`,
         { ip, path: c.req.path }
       );
+      // Skip both sig check and idempotency (can't safely deduplicate without
+      // verifying identity first)
       reInjectBody(c, rawBody);
       await next();
       return;
     }
 
-    if (!result) {
+    if (!sigResult) {
       logger.warn(`[webhook-verify:${provider}] Invalid signature`, {
         ip,
         path: c.req.path,
-        // Log a safe subset of the body for forensics (no PII beyond order_id)
         orderId: isRecord(bodyJson) ? bodyJson["order_id"] : undefined,
       });
-      // Return 200 to prevent Midtrans (and other providers) from retrying
-      // spoofed requests indefinitely — but include a clear error flag.
+      // Return 200 so Midtrans stops retrying this spoofed request
       return c.json(
         {
           success: false,
@@ -155,23 +184,64 @@ export function createWebhookVerifier(
       );
     }
 
-    // 4. Valid — re-inject body and mark as verified for downstream
-    reInjectBody(c, rawBody);
-    c.res.headers.set("x-webhook-verified", provider);
-    // Also forward as a request header so the proxied service knows
-    const patchedRaw = c.req.raw;
-    const newHeaders = new Headers(patchedRaw.headers);
-    newHeaders.set("x-webhook-verified", provider);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (c.req as any).raw = new Request(patchedRaw.url, {
-      method: patchedRaw.method,
-      headers: newHeaders,
-      body: patchedRaw.body,
-      // @ts-expect-error — Bun duplex
-      duplex: "half",
-    });
+    // ── 4. Replay-attack / duplicate-delivery protection ──────────────────────
+    if (idempotencyKey) {
+      const redis = getRedis();
+      const notifId = idempotencyKey(bodyJson);
 
-    logger.debug(`[webhook-verify:${provider}] Signature verified`, {
+      if (!redis) {
+        logger.warn(
+          `[webhook-verify:${provider}] Redis unavailable — skipping idempotency check`,
+          { ip }
+        );
+      } else if (notifId) {
+        const redisKey = `${IDEMPOTENCY_KEY_PREFIX}:${provider}:${notifId}`;
+
+        // SET key 1 NX EX <ttl> — atomic "set if not exists"
+        // Returns "OK" on first delivery, null on subsequent deliveries
+        const setResult = await redis.set(redisKey, "1", "EX", IDEMPOTENCY_TTL_SECONDS, "NX");
+
+        if (setResult === null) {
+          // Key already existed → this is a duplicate delivery
+          logger.info(`[webhook-verify:${provider}] Duplicate notification — already processed`, {
+            ip,
+            notifId,
+            redisKey,
+          });
+          // Acknowledge with 200 so the provider stops retrying
+          return c.json(
+            {
+              success: true,
+              data: {
+                code: "WEBHOOK_DUPLICATE",
+                message: "Notification already processed",
+                notificationId: notifId,
+              },
+            },
+            200
+          );
+        }
+
+        logger.debug(`[webhook-verify:${provider}] Idempotency key recorded`, {
+          notifId,
+          ttlDays: IDEMPOTENCY_TTL_SECONDS / 86400,
+        });
+      } else {
+        logger.warn(
+          `[webhook-verify:${provider}] No idempotency key extracted — skipping dedup`,
+          { ip, path: c.req.path }
+        );
+      }
+    }
+
+    // ── 5. Pass through — re-inject body + mark as verified ───────────────────
+    const newHeaders = new Headers(c.req.raw.headers);
+    newHeaders.set("x-webhook-verified", provider);
+
+    reInjectBody(c, rawBody, newHeaders);
+    c.res.headers.set("x-webhook-verified", provider);
+
+    logger.debug(`[webhook-verify:${provider}] Verified and forwarded`, {
       ip,
       path: c.req.path,
     });
@@ -186,33 +256,29 @@ export function createWebhookVerifier(
  * Midtrans signature formula:
  *   SHA512(order_id + status_code + gross_amount + server_key)
  *
- * Reference: https://docs.midtrans.com/reference/verifying-payment-status
+ * Idempotency key: `transaction_id` — unique per Midtrans payment event,
+ * reused on retries so duplicates are naturally deduplicated.
  *
- * If MIDTRANS_SERVER_KEY is not configured in the gateway env, verification
- * is skipped and the payment-service acts as the sole verifier.
+ * Reference: https://docs.midtrans.com/reference/verifying-payment-status
  */
 export const verifyMidtransWebhook = createWebhookVerifier({
   provider: "midtrans",
 
   verify(_rawBody, bodyJson): boolean | null {
     const serverKey = env.MIDTRANS_SERVER_KEY;
-
-    if (!serverKey) {
-      return null; // soft skip
-    }
+    if (!serverKey) return null; // soft skip
 
     if (!isRecord(bodyJson)) return false;
 
-    const orderId = bodyJson["order_id"];
-    const statusCode = bodyJson["status_code"];
-    const grossAmount = bodyJson["gross_amount"];
+    const orderId      = bodyJson["order_id"];
+    const statusCode   = bodyJson["status_code"];
+    const grossAmount  = bodyJson["gross_amount"];
     const signatureKey = bodyJson["signature_key"];
 
-    // Require all four fields
     if (
-      typeof orderId !== "string" ||
-      typeof statusCode !== "string" ||
-      typeof grossAmount !== "string" ||
+      typeof orderId      !== "string" ||
+      typeof statusCode   !== "string" ||
+      typeof grossAmount  !== "string" ||
       typeof signatureKey !== "string"
     ) {
       return false;
@@ -224,10 +290,10 @@ export const verifyMidtransWebhook = createWebhookVerifier({
 
     return safeCompare(expected, signatureKey);
   },
+
+  idempotencyKey(bodyJson): string | null {
+    if (!isRecord(bodyJson)) return null;
+    const txId = bodyJson["transaction_id"];
+    return typeof txId === "string" && txId.length > 0 ? txId : null;
+  },
 });
-
-// ── Type guard ────────────────────────────────────────────────────────────────
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null && !Array.isArray(v);
-}

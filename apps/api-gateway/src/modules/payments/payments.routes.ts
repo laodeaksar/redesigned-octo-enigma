@@ -26,26 +26,42 @@ import {
 } from "@/middleware/rate-limit.middleware";
 import { proxyRequest, buildTargetUrl } from "@/lib/proxy";
 import { verifyMidtransWebhook } from "@/middleware/webhook-verify.middleware";
+import { midtransAllowlistMiddleware } from "@/middleware/webhook-allowlist.middleware";
 import { SERVICES } from "@/config";
 
 const app = new Hono();
 const paymentBase = SERVICES.payment;
 
-// ── Midtrans webhook — PUBLIC, rate-limited then signature-verified ───────────
-// Middleware order matters:
-//   1. webhookRateLimit  — drops floods by IP before any crypto or DB work
-//   2. verifyMidtransWebhook — SHA512 signature check + replay dedup + audit log
-//   3. proxyRequest      — forward verified delivery to payment-service
+// ── Midtrans webhook — PUBLIC, layered defenses ───────────────────────────────
+// Middleware order is intentional — each layer is cheaper than the next:
 //
-// If MIDTRANS_SERVER_KEY is absent from gateway env, signature verification is
-// skipped and the payment-service remains the sole verifier (defense in depth).
-app.post("/payments/webhook", webhookRateLimit, verifyMidtransWebhook, async (c) => {
-  return proxyRequest(c, {
-    target: buildTargetUrl(paymentBase, c),
-    user: null,
-    extraHeaders: { "x-webhook-source": "midtrans" },
-  });
-});
+//   1. midtransAllowlistMiddleware
+//      Hard outer wall: rejects any IP not in the Midtrans CIDR ranges before
+//      consuming rate-limit budget, doing crypto, or touching the DB.
+//      Returns 200 (not 4xx) so Midtrans does not retry on misconfiguration.
+//      Disable with MIDTRANS_WEBHOOK_ALLOWLIST_ENABLED=false (dev/test only).
+//
+//   2. webhookRateLimit
+//      Sliding-window cap: max 20 req/min per IP (WEBHOOK_RATE_LIMIT_MAX env).
+//      Throttles the small set of IPs that passed the allowlist check.
+//
+//   3. verifyMidtransWebhook
+//      SHA512 signature check + Redis replay dedup + DB audit log.
+//
+//   4. proxyRequest → payment-service
+app.post(
+  "/payments/webhook",
+  midtransAllowlistMiddleware,
+  webhookRateLimit,
+  verifyMidtransWebhook,
+  async (c) => {
+    return proxyRequest(c, {
+      target: buildTargetUrl(paymentBase, c),
+      user: null,
+      extraHeaders: { "x-webhook-source": "midtrans" },
+    });
+  }
+);
 
 // ── Customer: create payment ──────────────────────────────────────────────────
 app.post("/payments", requireAuth, defaultRateLimit, async (c) => {

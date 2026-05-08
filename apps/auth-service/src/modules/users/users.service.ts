@@ -2,13 +2,15 @@
 // Users service — profile and address management
 // =============================================================================
 
+import type { DB } from "@/config";
+
 import { NotFoundError, UserNotFoundError } from "@repo/common/errors";
 import type {
   CreateAddressInput,
   UpdateAddressInput,
   UpdateProfileInput,
 } from "@repo/common/schemas";
-import type { DB } from "@/config";
+
 import * as repo from "./users.repository";
 
 // ── Profile ───────────────────────────────────────────────────────────────────

@@ -25,8 +25,9 @@ const loadingIndicatorVariants = cva(
   }
 );
 
-export interface LoadingIndicatorProps
-  extends VariantProps<typeof loadingIndicatorVariants> {
+export interface LoadingIndicatorProps extends VariantProps<
+  typeof loadingIndicatorVariants
+> {
   className?: string;
 }
 

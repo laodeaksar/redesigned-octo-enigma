@@ -3,6 +3,7 @@
 // =============================================================================
 
 import { defineMiddleware } from "astro:middleware";
+
 import { getCurrentUser } from "@/lib/auth";
 
 // Routes that require authentication
@@ -15,7 +16,7 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
   ctx.request.headers.set("x-request-id", crypto.randomUUID());
 
   // Protect authenticated routes
-  if (PROTECTED_PATHS.some((p) => pathname.startsWith(p))) {
+  if (PROTECTED_PATHS.some(p => pathname.startsWith(p))) {
     const token = ctx.cookies.get("web_access_token")?.value;
     if (!token) {
       const loginUrl = new URL("/auth/login", ctx.url);

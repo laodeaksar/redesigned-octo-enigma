@@ -3,9 +3,11 @@
 // Queue: email.order-shipped
 // =============================================================================
 
+import { z } from "zod";
+
 import { QUEUES } from "@repo/common/events";
 import type { OrderShippedEmailJobData } from "@repo/common/types";
-import { z } from "zod";
+
 import { createEmailHandler } from "@/lib/create-email-handler";
 import { orderShippedTemplate } from "@/lib/templates";
 
@@ -26,8 +28,8 @@ export const handleOrderShippedEmail =
   createEmailHandler<OrderShippedEmailJobData>({
     queueName: QUEUES.EMAIL_ORDER_SHIPPED,
     schema,
-    getTemplate: (data) => orderShippedTemplate(data),
-    getExtraHeaders: (data) => ({
+    getTemplate: data => orderShippedTemplate(data),
+    getExtraHeaders: data => ({
       "X-Order-Number": data.orderNumber,
     }),
   });

@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+
 import { api } from "@/lib/api";
 import { clearAuthCookies } from "@/lib/auth";
 

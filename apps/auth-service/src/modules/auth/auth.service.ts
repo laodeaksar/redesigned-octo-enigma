@@ -3,6 +3,15 @@
 // =============================================================================
 
 import { randomBytes } from "node:crypto";
+import { env, type DB } from "@/config";
+import {
+  createUser,
+  findUserByEmail,
+  findUserById,
+  findUserByResetToken,
+  findUserByVerificationToken,
+  updateUser,
+} from "@/modules/users/users.repository";
 
 import {
   EmailAlreadyExistsError,
@@ -16,7 +25,7 @@ import type {
   RegisterInput,
   ResetPasswordInput,
 } from "@repo/common/schemas";
-import { type DB, env } from "@/config";
+
 import {
   publishPasswordResetRequested,
   publishUserRegistered,
@@ -28,14 +37,6 @@ import {
   verifyRefreshToken,
 } from "@/lib/jwt";
 import { hashPassword, verifyPassword } from "@/lib/password";
-import {
-  createUser,
-  findUserByEmail,
-  findUserById,
-  findUserByResetToken,
-  findUserByVerificationToken,
-  updateUser,
-} from "@/modules/users/users.repository";
 
 // ── Token helpers ─────────────────────────────────────────────────────────────
 

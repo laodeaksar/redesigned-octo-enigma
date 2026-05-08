@@ -21,7 +21,7 @@ export const pushSubscriptionsTable = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [
+  t => [
     index("push_order_idx").on(t.orderId),
     index("push_user_order_idx").on(t.userId, t.orderId),
   ]

@@ -170,13 +170,13 @@ export default function OrderStatusTracker({
       {/* ── Status badge row ─────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-3">
         <span
-          className={`inline-flex items-center rounded-full px-4 py-1.5 font-semibold text-sm transition-all duration-500 ${statusColor} ${justChanged ? "scale-105 shadow-md" : ""}`}
+          className={`inline-flex items-center rounded-full px-4 py-1.5 text-sm font-semibold transition-all duration-500 ${statusColor} ${justChanged ? "scale-105 shadow-md" : ""}`}
         >
           {STATUS_LABELS[status] ?? status}
         </span>
 
         {connState === "connected" && (
-          <span className="inline-flex items-center gap-1.5 font-medium text-green-600 text-xs">
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-600">
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
@@ -186,17 +186,17 @@ export default function OrderStatusTracker({
         )}
 
         {connState === "connecting" && (
-          <span className="text-gray-400 text-xs">Menghubungkan…</span>
+          <span className="text-xs text-gray-400">Menghubungkan…</span>
         )}
 
         {connState === "disconnected" && (
-          <span className="text-orange-500 text-xs">
+          <span className="text-xs text-orange-500">
             Mencoba menghubungkan ulang…
           </span>
         )}
 
         {lastUpdated && (
-          <span className="text-gray-400 text-xs">
+          <span className="text-xs text-gray-400">
             Diperbarui{" "}
             {lastUpdated.toLocaleTimeString("id-ID", {
               hour: "2-digit",
@@ -209,7 +209,7 @@ export default function OrderStatusTracker({
 
       {/* ── Status changed toast ─────────────────────────────────────────── */}
       {justChanged && (
-        <div className="flex items-center gap-2 rounded-xl border border-green-100 bg-green-50 px-4 py-3 text-green-800 text-sm shadow-sm">
+        <div className="flex items-center gap-2 rounded-xl border border-green-100 bg-green-50 px-4 py-3 text-sm text-green-800 shadow-sm">
           <svg
             className="h-4 w-4 shrink-0"
             fill="none"
@@ -235,7 +235,7 @@ export default function OrderStatusTracker({
             {TIMELINE_STEPS.map((step, i) => {
               const done = currentStepIdx >= i;
               const active = currentStepIdx === i;
-              const entry = history.find((e) => e.status === step.key);
+              const entry = history.find(e => e.status === step.key);
 
               return (
                 <div
@@ -314,7 +314,7 @@ export default function OrderStatusTracker({
               </p>
             )}
             {cancellationNote && (
-              <p className="text-red-600 text-sm">{cancellationNote}</p>
+              <p className="text-sm text-red-600">{cancellationNote}</p>
             )}
           </div>
         </div>

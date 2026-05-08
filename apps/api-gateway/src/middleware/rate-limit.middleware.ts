@@ -2,10 +2,11 @@
 // Rate-limit middleware — wraps checkRateLimit for Hono routes
 // =============================================================================
 
-import { failure } from "@repo/common/schemas";
+import { getRedis } from "@/config";
 import { createMiddleware } from "hono/factory";
 
-import { getRedis } from "@/config";
+import { failure } from "@repo/common/schemas";
+
 import {
   checkRateLimit,
   RATE_LIMITS,

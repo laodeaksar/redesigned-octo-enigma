@@ -1,12 +1,13 @@
-import { useStore } from "@nanostores/react";
 import { useCallback, useEffect, useState } from "react";
-import { LoadingIndicator } from "@/components/shared/LoadingIndicator";
 import {
   $cart,
   addToCart,
-  type CartItem,
   removeFromCart,
+  type CartItem,
 } from "@/stores/cart.store";
+import { useStore } from "@nanostores/react";
+
+import { LoadingIndicator } from "@/components/shared/LoadingIndicator";
 
 interface PendingDeletion {
   expiresAt: number;
@@ -38,7 +39,7 @@ export function UndoToast() {
       restoring: false,
     };
 
-    setPendingDeletions((prev) => [...prev, pendingItem]);
+    setPendingDeletions(prev => [...prev, pendingItem]);
     setToastVisible(true);
 
     console.debug("[UndoToast] Item scheduled for deletion with undo toast", {
@@ -49,8 +50,8 @@ export function UndoToast() {
 
     // Schedule permanent deletion
     setTimeout(() => {
-      setPendingDeletions((prev) => {
-        const item = prev.find((p) => p.id === deletionId);
+      setPendingDeletions(prev => {
+        const item = prev.find(p => p.id === deletionId);
         if (item && !item.restored) {
           // Hapus permanen dari state keranjang
           removeFromCart(item.item.variantId);
@@ -58,18 +59,18 @@ export function UndoToast() {
             deletionId,
           });
         }
-        return prev.filter((p) => p.id !== deletionId);
+        return prev.filter(p => p.id !== deletionId);
       });
     }, TOAST_DURATION);
   }, []);
 
   // Handler undo penghapusan
   const handleUndo = useCallback((deletionId: string) => {
-    setPendingDeletions((prev) => {
-      const item = prev.find((p) => p.id === deletionId);
+    setPendingDeletions(prev => {
+      const item = prev.find(p => p.id === deletionId);
       if (item && !item.restored && !item.restoring) {
         // Tandai sebagai loading sebelum operasi
-        return prev.map((p) =>
+        return prev.map(p =>
           p.id === deletionId ? { ...p, restoring: true } : p
         );
       }
@@ -78,11 +79,11 @@ export function UndoToast() {
 
     // Simulasi async delay untuk menunjukkan loading
     setTimeout(() => {
-      setPendingDeletions((prev) => {
-        const item = prev.find((p) => p.id === deletionId);
+      setPendingDeletions(prev => {
+        const item = prev.find(p => p.id === deletionId);
         if (item && item.restoring) {
           addToCart(item.item);
-          return prev.map((p) =>
+          return prev.map(p =>
             p.id === deletionId ? { ...p, restored: true, restoring: false } : p
           );
         }
@@ -90,7 +91,7 @@ export function UndoToast() {
       });
 
       setTimeout(() => {
-        setPendingDeletions((prev) => prev.filter((p) => p.id !== deletionId));
+        setPendingDeletions(prev => prev.filter(p => p.id !== deletionId));
       }, ANIMATION_DURATION);
     }, 300);
   }, []);
@@ -112,7 +113,7 @@ export function UndoToast() {
 
     // @ts-expect-error override fungsi global
     window.removeFromCartWithUndo = (variantId: string) => {
-      const item = cartItems.find((i) => i.variantId === variantId);
+      const item = cartItems.find(i => i.variantId === variantId);
       if (item) {
         handleItemDelete(item);
       }
@@ -128,7 +129,7 @@ export function UndoToast() {
     return null;
   }
 
-  const activeDeletion = pendingDeletions.find((p) => !p.restored);
+  const activeDeletion = pendingDeletions.find(p => !p.restored);
   if (!activeDeletion) {
     return null;
   }
@@ -142,18 +143,17 @@ export function UndoToast() {
       role="alert"
     >
       <div className="min-w-0 flex-1">
-        <p className="truncate font-medium text-sm">
+        <p className="truncate text-sm font-medium">
           {activeDeletion.item.productName} telah dihapus
         </p>
-        <p className="text-gray-400 text-xs">
+        <p className="text-xs text-gray-400">
           {activeDeletion.item.quantity} x Rp{" "}
           {activeDeletion.item.price.toLocaleString("id-ID")}
         </p>
       </div>
 
       <button
-        className={`shrink-0 rounded-lg bg-accent px-4 py-2 font-medium text-sm text-white transition-all hover:bg-accent/90 ${activeDeletion.restoring ? "pointer-events-none opacity-50" : "hover:scale-105 active:scale-95"}
-        `}
+        className={`bg-accent hover:bg-accent/90 shrink-0 rounded-lg px-4 py-2 text-sm font-medium text-white transition-all ${activeDeletion.restoring ? "pointer-events-none opacity-50" : "hover:scale-105 active:scale-95"} `}
         disabled={activeDeletion.restoring}
         onClick={() => handleUndo(activeDeletion.id)}
       >
@@ -170,7 +170,7 @@ export function UndoToast() {
       {/* Progress bar countdown */}
       <div className="absolute right-0 bottom-0 left-0 h-1 overflow-hidden rounded-b-xl bg-gray-700">
         <div
-          className="linear h-full bg-accent transition-all duration-100"
+          className="linear bg-accent h-full transition-all duration-100"
           style={{
             animation: `shrink ${TOAST_DURATION}ms linear forwards`,
           }}

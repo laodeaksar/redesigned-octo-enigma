@@ -14,43 +14,44 @@
 //  /users/me/**               — requireAuth + default limit
 // =============================================================================
 
-import { Hono } from "hono";
 import { SERVICES } from "@/config";
-import { buildTargetUrl, proxyRequest } from "@/lib/proxy";
 import { requireAuth } from "@/middleware/auth.middleware";
 import {
   authRateLimit,
   defaultRateLimit,
   strictRateLimit,
 } from "@/middleware/rate-limit.middleware";
+import { Hono } from "hono";
+
+import { buildTargetUrl, proxyRequest } from "@/lib/proxy";
 
 const app = new Hono();
 
 const authBase = SERVICES.auth;
 
 // ── OAuth providers ───────────────────────────────────────────────────────────
-app.get("/auth/oauth/providers", defaultRateLimit, async (c) =>
+app.get("/auth/oauth/providers", defaultRateLimit, async c =>
   proxyRequest(c, { target: buildTargetUrl(authBase, c), user: null })
 );
 
 // OAuth initiate + callback — proxy all to Better-auth handler in auth-service
-app.all("/auth/oauth/:provider", authRateLimit, async (c) =>
+app.all("/auth/oauth/:provider", authRateLimit, async c =>
   proxyRequest(c, { target: buildTargetUrl(authBase, c), user: null })
 );
 
-app.all("/auth/oauth/:provider/callback", authRateLimit, async (c) =>
+app.all("/auth/oauth/:provider/callback", authRateLimit, async c =>
   proxyRequest(c, { target: buildTargetUrl(authBase, c), user: null })
 );
 
 // ── Registration / Login ───────────────────────────────────────────────────────
-app.post("/auth/register", authRateLimit, async (c) =>
+app.post("/auth/register", authRateLimit, async c =>
   proxyRequest(c, {
     target: buildTargetUrl(authBase, c),
     user: null,
   })
 );
 
-app.post("/auth/login", authRateLimit, async (c) =>
+app.post("/auth/login", authRateLimit, async c =>
   proxyRequest(c, {
     target: buildTargetUrl(authBase, c),
     user: null,
@@ -58,14 +59,14 @@ app.post("/auth/login", authRateLimit, async (c) =>
 );
 
 // ── Password recovery ─────────────────────────────────────────────────────────
-app.post("/auth/forgot-password", strictRateLimit, async (c) =>
+app.post("/auth/forgot-password", strictRateLimit, async c =>
   proxyRequest(c, {
     target: buildTargetUrl(authBase, c),
     user: null,
   })
 );
 
-app.post("/auth/reset-password", strictRateLimit, async (c) =>
+app.post("/auth/reset-password", strictRateLimit, async c =>
   proxyRequest(c, {
     target: buildTargetUrl(authBase, c),
     user: null,
@@ -73,21 +74,21 @@ app.post("/auth/reset-password", strictRateLimit, async (c) =>
 );
 
 // ── Token management ──────────────────────────────────────────────────────────
-app.post("/auth/refresh", defaultRateLimit, async (c) =>
+app.post("/auth/refresh", defaultRateLimit, async c =>
   proxyRequest(c, {
     target: buildTargetUrl(authBase, c),
     user: null,
   })
 );
 
-app.post("/auth/verify-email", defaultRateLimit, async (c) =>
+app.post("/auth/verify-email", defaultRateLimit, async c =>
   proxyRequest(c, {
     target: buildTargetUrl(authBase, c),
     user: null,
   })
 );
 
-app.post("/auth/logout", defaultRateLimit, async (c) =>
+app.post("/auth/logout", defaultRateLimit, async c =>
   proxyRequest(c, {
     target: buildTargetUrl(authBase, c),
     user: null,
@@ -95,7 +96,7 @@ app.post("/auth/logout", defaultRateLimit, async (c) =>
 );
 
 // ── Authenticated endpoints ───────────────────────────────────────────────────
-app.get("/auth/me", requireAuth, defaultRateLimit, async (c) =>
+app.get("/auth/me", requireAuth, defaultRateLimit, async c =>
   proxyRequest(c, {
     target: buildTargetUrl(authBase, c),
     user: c.var.user,
@@ -103,7 +104,7 @@ app.get("/auth/me", requireAuth, defaultRateLimit, async (c) =>
 );
 
 // ── User profile + addresses — all require auth ───────────────────────────────
-app.all("/users/*", requireAuth, defaultRateLimit, async (c) =>
+app.all("/users/*", requireAuth, defaultRateLimit, async c =>
   proxyRequest(c, {
     target: buildTargetUrl(authBase, c),
     user: c.var.user,

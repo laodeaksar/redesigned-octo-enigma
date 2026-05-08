@@ -78,7 +78,7 @@ export const webhookEventsTable = pgTable(
      */
     rawPayload: jsonb("raw_payload"),
   },
-  (t) => [
+  t => [
     index("webhook_events_created_at_idx").on(t.createdAt),
     index("webhook_events_provider_idx").on(t.provider),
     index("webhook_events_transaction_id_idx").on(t.transactionId),

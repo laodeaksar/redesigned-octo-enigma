@@ -34,13 +34,16 @@ export const productReviewsTable = pgTable(
     title: varchar("title", { length: 150 }),
     body: text("body"),
     /** S3 image URLs for review photos */
-    imageUrls: text("image_urls").array().notNull().default(sql`'{}'::text[]`),
+    imageUrls: text("image_urls")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     isVerifiedPurchase: boolean("is_verified_purchase")
       .notNull()
       .default(false),
     ...timestamps(),
   },
-  (t) => ({
+  t => ({
     // Indeks komposit (beberapa kolom sekaligus)
     productReviewsUniqueIdx: index("product_reviews_unique_idx").on(
       t.productId,

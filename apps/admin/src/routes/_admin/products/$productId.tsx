@@ -2,14 +2,16 @@
 // Product detail page
 // =============================================================================
 
+import type React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { ImageOff, Layers, Package, Tag } from "lucide-react";
-import type React from "react";
+
+import { api, type ApiResponse } from "@/lib/api";
+import { cn, formatDate, formatIDR } from "@/lib/utils";
 import { AdminLayout } from "@/components/layout/admin-layout";
 import { PageHeader } from "@/components/shared/page-header";
-import { type ApiResponse, api } from "@/lib/api";
-import { cn, formatDate, formatIDR } from "@/lib/utils";
+
 import { productKeys } from "./index";
 
 export const Route = createFileRoute("/_admin/products/$productId")({
@@ -80,9 +82,9 @@ function ProductDetailPage() {
   if (isLoading) {
     return (
       <AdminLayout title="Produk">
-        <div className="flex h-64 items-center justify-center text-muted-foreground">
+        <div className="text-muted-foreground flex h-64 items-center justify-center">
           <div className="text-center">
-            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <div className="border-primary mx-auto h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" />
             <p className="mt-2 text-sm">Memuat produk…</p>
           </div>
         </div>
@@ -93,7 +95,7 @@ function ProductDetailPage() {
   if (error || !product) {
     return (
       <AdminLayout title="Produk">
-        <div className="flex h-64 items-center justify-center text-muted-foreground">
+        <div className="text-muted-foreground flex h-64 items-center justify-center">
           <p>Produk tidak ditemukan.</p>
         </div>
       </AdminLayout>
@@ -107,8 +109,8 @@ function ProductDetailPage() {
           <div className="flex items-center gap-2">
             {/* Status toggle */}
             <select
-              className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              onChange={(e) => statusMutation.mutate(e.target.value)}
+              className="border-input bg-background focus:ring-ring h-9 rounded-md border px-3 text-sm focus:outline-none focus:ring-2"
+              onChange={e => statusMutation.mutate(e.target.value)}
               value={product.status}
             >
               <option value="active">Aktif</option>
@@ -135,7 +137,7 @@ function ProductDetailPage() {
               <div className="grid grid-cols-4 gap-3">
                 {product.images
                   .sort((a, b) => a.sortOrder - b.sortOrder)
-                  .map((img) => (
+                  .map(img => (
                     <div className="relative" key={img.id}>
                       <img
                         alt={img.altText ?? product.name}
@@ -143,7 +145,7 @@ function ProductDetailPage() {
                         src={img.url}
                       />
                       {img.isPrimary && (
-                        <span className="absolute top-1 left-1 rounded bg-primary px-1.5 py-0.5 font-medium text-primary-foreground text-xs">
+                        <span className="bg-primary text-primary-foreground absolute left-1 top-1 rounded px-1.5 py-0.5 text-xs font-medium">
                           Utama
                         </span>
                       )}
@@ -161,7 +163,7 @@ function ProductDetailPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-border border-b text-left text-muted-foreground text-xs">
+                    <tr className="border-border text-muted-foreground border-b text-left text-xs">
                       <th className="pb-2 font-medium">SKU</th>
                       <th className="pb-2 font-medium">Nama</th>
                       <th className="pb-2 font-medium">Harga</th>
@@ -169,8 +171,8 @@ function ProductDetailPage() {
                       <th className="pb-2 font-medium">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border">
-                    {product.variants.map((v) => (
+                  <tbody className="divide-border divide-y">
+                    {product.variants.map(v => (
                       <tr key={v.id}>
                         <td className="py-2.5 font-mono text-xs">{v.sku}</td>
                         <td className="py-2.5">{v.name}</td>
@@ -180,7 +182,7 @@ function ProductDetailPage() {
                               {formatIDR(v.price)}
                             </span>
                             {v.compareAtPrice && (
-                              <span className="ml-1.5 text-muted-foreground text-xs line-through">
+                              <span className="text-muted-foreground ml-1.5 text-xs line-through">
                                 {formatIDR(v.compareAtPrice)}
                               </span>
                             )}
@@ -203,7 +205,7 @@ function ProductDetailPage() {
                         <td className="py-2.5">
                           <span
                             className={cn(
-                              "rounded-full px-2 py-0.5 font-medium text-xs",
+                              "rounded-full px-2 py-0.5 text-xs font-medium",
                               v.isActive
                                 ? "bg-green-100 text-green-700"
                                 : "bg-muted text-muted-foreground"
@@ -228,7 +230,7 @@ function ProductDetailPage() {
               <InfoRow label="Status">
                 <span
                   className={cn(
-                    "rounded-full px-2.5 py-0.5 font-medium text-xs",
+                    "rounded-full px-2.5 py-0.5 text-xs font-medium",
                     statusCfg?.class
                   )}
                 >
@@ -253,9 +255,9 @@ function ProductDetailPage() {
               <p className="text-muted-foreground text-sm">Tidak ada tag.</p>
             ) : (
               <div className="flex flex-wrap gap-2">
-                {product.tags.map((tag) => (
+                {product.tags.map(tag => (
                   <span
-                    className="rounded-full bg-muted px-2.5 py-1 font-medium text-foreground text-xs"
+                    className="bg-muted text-foreground rounded-full px-2.5 py-1 text-xs font-medium"
                     key={tag}
                   >
                     {tag}
@@ -288,9 +290,9 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
-      <h3 className="mb-4 flex items-center gap-2 font-semibold text-foreground text-sm">
-        {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
+    <div className="border-border bg-card rounded-lg border p-5 shadow-sm">
+      <h3 className="text-foreground mb-4 flex items-center gap-2 text-sm font-semibold">
+        {Icon && <Icon className="text-muted-foreground h-4 w-4" />}
         {title}
       </h3>
       {children}
@@ -308,7 +310,7 @@ function InfoRow({
   return (
     <div className="flex items-center justify-between gap-4">
       <dt className="text-muted-foreground">{label}</dt>
-      <dd className="text-right font-medium text-foreground">{children}</dd>
+      <dd className="text-foreground text-right font-medium">{children}</dd>
     </div>
   );
 }

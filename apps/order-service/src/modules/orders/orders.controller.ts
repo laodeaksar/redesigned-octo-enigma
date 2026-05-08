@@ -2,6 +2,8 @@
 // Orders controller
 // =============================================================================
 
+import type { DB } from "@/config";
+
 import { safeParse } from "@repo/common/errors";
 import {
   cancelOrderSchema,
@@ -12,7 +14,7 @@ import {
   success,
   updateOrderStatusSchema,
 } from "@repo/common/schemas";
-import type { DB } from "@/config";
+
 import * as service from "./orders.service";
 
 export async function handleCreate(

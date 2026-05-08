@@ -2,17 +2,19 @@
 // Base email handler factory — DRY wrapper untuk semua BullMQ email processor
 // =============================================================================
 
+import { redis } from "@/config";
+import { emailSendDuration, emailsFailed, emailsSent } from "@/metrics";
+import type { z } from "zod";
+
 import type { Job, Processor } from "@repo/common/events";
 import type {
   EmailPayload,
   EmailResult,
   EmailTemplate,
 } from "@repo/common/types";
-import type { z } from "zod";
-import { redis } from "@/config";
+
 import { logger } from "@/lib/logger";
 import { sendEmail } from "@/lib/mailer";
-import { emailSendDuration, emailsFailed, emailsSent } from "@/metrics";
 
 export interface EmailHandlerResult {
   messageId?: string;

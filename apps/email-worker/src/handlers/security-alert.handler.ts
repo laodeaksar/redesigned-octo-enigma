@@ -10,12 +10,13 @@
 // The rich HTML/text body is pre-built by api-gateway/src/lib/alerting.ts.
 // =============================================================================
 
+import { emailSendDuration, emailsFailed, emailsSent } from "@/metrics";
 import type { Job } from "bullmq";
 import { z } from "zod";
+
 import type { EmailHandlerResult } from "@/lib/create-email-handler";
 import { logger } from "@/lib/logger";
 import { sendEmail } from "@/lib/mailer";
-import { emailSendDuration, emailsFailed, emailsSent } from "@/metrics";
 
 const QUEUE_NAME = "email.security-alert";
 

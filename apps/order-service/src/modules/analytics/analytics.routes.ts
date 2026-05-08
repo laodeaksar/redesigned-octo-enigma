@@ -8,10 +8,11 @@
 //  GET /analytics/order-statuses    — breakdown by status
 // =============================================================================
 
+import { requireRole } from "@/middleware/jwt.middleware";
+import Elysia, { t } from "elysia";
+
 import { success } from "@repo/common/schemas";
 import { OrderModel } from "@repo/database/mongo/models";
-import Elysia, { t } from "elysia";
-import { requireRole } from "@/middleware/jwt.middleware";
 
 export const analyticsRoutes = new Elysia({ prefix: "/analytics" })
   .use(requireRole("admin", "super_admin"))

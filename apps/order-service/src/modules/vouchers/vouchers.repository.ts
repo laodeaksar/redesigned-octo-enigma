@@ -2,14 +2,14 @@
 // Vouchers repository — PostgreSQL via Drizzle
 // =============================================================================
 
-import {
-  type NewVoucherRow,
-  type VoucherRow,
-  vouchersTable,
-} from "@repo/database/drizzle/schema";
+import type { DB } from "@/config";
 import { and, eq, isNull, or, sql } from "drizzle-orm";
 
-import type { DB } from "@/config";
+import {
+  vouchersTable,
+  type NewVoucherRow,
+  type VoucherRow,
+} from "@repo/database/drizzle/schema";
 
 export async function findVoucherByCode(
   db: DB,

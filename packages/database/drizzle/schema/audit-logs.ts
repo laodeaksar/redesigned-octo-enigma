@@ -42,7 +42,7 @@ export const auditLogsTable = pgTable(
     userEmail: varchar("user_email", { length: 255 }),
     userRole: varchar("user_role", { length: 20 }),
   },
-  (t) => [
+  t => [
     index("audit_logs_created_at_idx").on(t.createdAt),
     index("audit_logs_ip_idx").on(t.ip),
     index("audit_logs_user_id_idx").on(t.userId),

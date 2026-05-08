@@ -2,15 +2,15 @@
 // JWT helpers — sign & verify using jose (Web Crypto, works in Bun)
 // =============================================================================
 
+import { env } from "@/config";
+import { jwtVerify, SignJWT } from "jose";
+
 import { TokenExpiredError, TokenInvalidError } from "@repo/common/errors";
 import type {
   JwtPayload,
   RefreshTokenPayload,
   UserRole,
 } from "@repo/common/types";
-import { jwtVerify, SignJWT } from "jose";
-
-import { env } from "@/config";
 
 const SECRET = new TextEncoder().encode(env.JWT_SECRET);
 

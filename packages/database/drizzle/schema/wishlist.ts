@@ -1,4 +1,5 @@
 import { pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
+
 import { primaryId, timestamps } from "./_helpers";
 import { productsTable } from "./products";
 import { usersTable } from "./users";
@@ -15,7 +16,7 @@ export const wishlistsTable = pgTable(
       .references(() => productsTable.id, { onDelete: "cascade" }),
     ...timestamps(),
   },
-  (t) => ({
+  t => ({
     userProductUniq: uniqueIndex("wishlists_user_product_uniq").on(
       t.userId,
       t.productId

@@ -10,9 +10,10 @@
 //  POST /auth/reset-password
 // =============================================================================
 
-import Elysia, { t } from "elysia";
 import { jwtMiddleware } from "@/middleware/jwt.middleware";
 import { databasePlugin } from "@/plugins/database.plugin";
+import Elysia, { t } from "elysia";
+
 import * as controller from "./auth.controller";
 
 export const authRoutes = new Elysia({ prefix: "/auth" })

@@ -2,15 +2,15 @@
 // Orders repository — MongoDB via Mongoose
 // =============================================================================
 
-import type { ListOrdersQuery } from "@repo/common/schemas";
+import type { FilterQuery } from "mongoose";
 
+import type { ListOrdersQuery } from "@repo/common/schemas";
 import {
+  OrderModel,
   type IOrder,
   type IOrderDocument,
   type IOrderStatusEvent,
-  OrderModel,
 } from "@repo/database/mongo/models";
-import type { FilterQuery } from "mongoose";
 
 // ── Queries ───────────────────────────────────────────────────────────────────
 

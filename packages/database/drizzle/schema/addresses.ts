@@ -36,7 +36,7 @@ export const addressesTable = pgTable(
     isDefault: boolean("is_default").notNull().default(false),
     ...timestamps(),
   },
-  (t) => ({
+  t => ({
     addressesUserIdIdx: index("addresses_user_id_idx").on(t.userId),
   })
 );

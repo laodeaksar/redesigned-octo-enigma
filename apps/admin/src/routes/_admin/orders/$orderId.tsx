@@ -2,6 +2,8 @@
 // Order detail page
 // =============================================================================
 
+import { useState } from "react";
+import type React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import {
@@ -12,18 +14,18 @@ import {
   Truck,
   XCircle,
 } from "lucide-react";
-import type React from "react";
-import { useState } from "react";
-import { AdminLayout } from "@/components/layout/admin-layout";
-import { PageHeader } from "@/components/shared/page-header";
-import { type ApiResponse, api } from "@/lib/api";
+
+import { api, type ApiResponse } from "@/lib/api";
 import {
   cn,
   formatDateTime,
   formatIDR,
   ORDER_STATUS_LABELS,
 } from "@/lib/utils";
-import { OrderStatusBadge, orderKeys } from "./index";
+import { AdminLayout } from "@/components/layout/admin-layout";
+import { PageHeader } from "@/components/shared/page-header";
+
+import { orderKeys, OrderStatusBadge } from "./index";
 
 export const Route = createFileRoute("/_admin/orders/$orderId")({
   component: OrderDetailPage,
@@ -140,7 +142,7 @@ function OrderDetailPage() {
     return (
       <AdminLayout title="Pesanan">
         <div className="flex h-64 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <div className="border-primary h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" />
         </div>
       </AdminLayout>
     );
@@ -170,7 +172,7 @@ function OrderDetailPage() {
         <div className="space-y-6 lg:col-span-2">
           {/* Order items */}
           <Card icon={Package} title="Item Pesanan">
-            <div className="divide-y divide-border">
+            <div className="divide-border divide-y">
               {order.items.map((item, i) => (
                 <div
                   className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
@@ -183,12 +185,12 @@ function OrderDetailPage() {
                       src={item.product.imageUrl}
                     />
                   ) : (
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-muted">
-                      <Package className="h-5 w-5 text-muted-foreground" />
+                    <div className="bg-muted flex h-12 w-12 shrink-0 items-center justify-center rounded-md">
+                      <Package className="text-muted-foreground h-5 w-5" />
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-foreground text-sm">
+                    <p className="text-foreground truncate text-sm font-medium">
                       {item.product.name}
                     </p>
                     <p className="text-muted-foreground text-xs">
@@ -196,7 +198,7 @@ function OrderDetailPage() {
                     </p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <p className="font-semibold text-sm">
+                    <p className="text-sm font-semibold">
                       {formatIDR(item.subtotal)}
                     </p>
                     <p className="text-muted-foreground text-xs">
@@ -208,7 +210,7 @@ function OrderDetailPage() {
             </div>
 
             {/* Pricing summary */}
-            <div className="mt-4 space-y-1.5 border-border border-t pt-4 text-sm">
+            <div className="border-border mt-4 space-y-1.5 border-t pt-4 text-sm">
               <Row label="Subtotal" value={formatIDR(order.pricing.subtotal)} />
               {order.pricing.discountTotal > 0 && (
                 <Row
@@ -225,7 +227,7 @@ function OrderDetailPage() {
                 <Row label="Pajak" value={formatIDR(order.pricing.taxTotal)} />
               )}
               <Row
-                className="border-border border-t pt-2 font-bold text-base"
+                className="border-border border-t pt-2 text-base font-bold"
                 label="Total"
                 value={formatIDR(order.pricing.grandTotal)}
               />
@@ -236,7 +238,7 @@ function OrderDetailPage() {
           <Card icon={Truck} title="Pengiriman">
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <p className="mb-1 font-medium text-muted-foreground text-xs uppercase">
+                <p className="text-muted-foreground mb-1 text-xs font-medium uppercase">
                   Alamat
                 </p>
                 <address className="text-foreground text-sm not-italic leading-relaxed">
@@ -252,20 +254,20 @@ function OrderDetailPage() {
                 </address>
               </div>
               <div>
-                <p className="mb-1 font-medium text-muted-foreground text-xs uppercase">
+                <p className="text-muted-foreground mb-1 text-xs font-medium uppercase">
                   Kurir
                 </p>
-                <p className="font-semibold text-foreground text-sm">
+                <p className="text-foreground text-sm font-semibold">
                   {order.shipping.courier.toUpperCase()}{" "}
                   {order.shipping.service}
                 </p>
                 {order.shipping.trackingNumber && (
-                  <p className="mt-1 font-mono text-primary text-sm">
+                  <p className="text-primary mt-1 font-mono text-sm">
                     {order.shipping.trackingNumber}
                   </p>
                 )}
                 {order.shipping.shippedAt && (
-                  <p className="mt-1 text-muted-foreground text-xs">
+                  <p className="text-muted-foreground mt-1 text-xs">
                     Dikirim: {formatDateTime(order.shipping.shippedAt)}
                   </p>
                 )}
@@ -282,12 +284,12 @@ function OrderDetailPage() {
               <div className="space-y-3">
                 {nextStatuses[0]?.value === "shipped" && (
                   <div>
-                    <label className="mb-1 block font-medium text-muted-foreground text-xs">
+                    <label className="text-muted-foreground mb-1 block text-xs font-medium">
                       No. Resi (wajib untuk pengiriman)
                     </label>
                     <input
-                      className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                      onChange={(e) => setTrackingNumber(e.target.value)}
+                      className="border-input bg-background focus:ring-ring w-full rounded-md border px-3 py-1.5 text-sm focus:outline-none focus:ring-2"
+                      onChange={e => setTrackingNumber(e.target.value)}
                       placeholder="cth. JNE123456789"
                       type="text"
                       value={trackingNumber}
@@ -295,12 +297,12 @@ function OrderDetailPage() {
                   </div>
                 )}
                 <div>
-                  <label className="mb-1 block font-medium text-muted-foreground text-xs">
+                  <label className="text-muted-foreground mb-1 block text-xs font-medium">
                     Catatan (opsional)
                   </label>
                   <input
-                    className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                    onChange={(e) => setStatusNote(e.target.value)}
+                    className="border-input bg-background focus:ring-ring w-full rounded-md border px-3 py-1.5 text-sm focus:outline-none focus:ring-2"
+                    onChange={e => setStatusNote(e.target.value)}
                     placeholder="Catatan perubahan status"
                     type="text"
                     value={statusNote}
@@ -308,16 +310,16 @@ function OrderDetailPage() {
                 </div>
 
                 <div className="space-y-2">
-                  {nextStatuses.map((ns) => {
+                  {nextStatuses.map(ns => {
                     const Icon = ns.icon;
                     const isShip = ns.value === "shipped";
                     return (
                       <button
                         className={cn(
-                          "flex w-full items-center justify-center gap-2 rounded-md px-4 py-2 font-medium text-sm transition-opacity",
+                          "flex w-full items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-opacity",
                           "disabled:cursor-not-allowed disabled:opacity-50",
                           ns.value === "cancelled"
-                            ? "border border-destructive text-destructive hover:bg-destructive/10"
+                            ? "border-destructive text-destructive hover:bg-destructive/10 border"
                             : "bg-primary text-primary-foreground hover:opacity-90"
                         )}
                         disabled={
@@ -348,7 +350,7 @@ function OrderDetailPage() {
             <ol className="space-y-3">
               {[...order.statusHistory].reverse().map((event, i) => (
                 <li className="flex gap-3" key={i}>
-                  <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                  <div className="bg-primary/10 mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full">
                     <div
                       className={cn(
                         "h-2 w-2 rounded-full",
@@ -357,7 +359,7 @@ function OrderDetailPage() {
                     />
                   </div>
                   <div className="min-w-0">
-                    <p className="font-medium text-foreground text-sm">
+                    <p className="text-foreground text-sm font-medium">
                       {ORDER_STATUS_LABELS[event.status] ?? event.status}
                     </p>
                     {event.note && (
@@ -377,7 +379,7 @@ function OrderDetailPage() {
           {/* Payment */}
           <Card icon={CreditCard} title="Pembayaran">
             {order.paymentId ? (
-              <p className="font-mono text-foreground text-sm">
+              <p className="text-foreground font-mono text-sm">
                 {order.paymentId}
               </p>
             ) : (
@@ -406,9 +408,9 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
-      <h3 className="mb-4 flex items-center gap-2 font-semibold text-foreground text-sm">
-        {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
+    <div className="border-border bg-card rounded-lg border p-5 shadow-sm">
+      <h3 className="text-foreground mb-4 flex items-center gap-2 text-sm font-semibold">
+        {Icon && <Icon className="text-muted-foreground h-4 w-4" />}
         {title}
       </h3>
       {children}

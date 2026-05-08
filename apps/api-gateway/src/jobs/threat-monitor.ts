@@ -10,18 +10,20 @@
 //   stopThreatMonitor()   — call on graceful shutdown
 // =============================================================================
 
-import { auditLogsTable } from "@repo/database/drizzle/schema";
-import { count, gte } from "drizzle-orm";
 import { db, env, getRedis } from "@/config";
+import { BLOCK_KEY_PREFIX } from "@/middleware/ip-blocklist.middleware";
+import { count, gte } from "drizzle-orm";
+
+import { auditLogsTable } from "@repo/database/drizzle/schema";
+
 import {
   getCooldownTtl,
   isEscalation,
   meetsThreshold,
   sendAlert,
-  type ThreatLevel,
   updateTrackedLevel,
+  type ThreatLevel,
 } from "@/lib/alerting";
-import { BLOCK_KEY_PREFIX } from "@/middleware/ip-blocklist.middleware";
 
 // ── Threat level derivation ───────────────────────────────────────────────────
 

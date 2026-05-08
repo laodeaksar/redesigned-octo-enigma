@@ -4,7 +4,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
   const raw = atob(base64);
-  return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+  return Uint8Array.from(raw, c => c.charCodeAt(0));
 }
 
 interface Props {
@@ -77,9 +77,9 @@ export default function PushNotificationManager({
     if (Notification.permission === "granted") {
       navigator.serviceWorker
         .register("/sw.js")
-        .then((reg) => navigator.serviceWorker.ready.then(() => reg))
-        .then((reg) =>
-          reg.pushManager.getSubscription().then((existing) => {
+        .then(reg => navigator.serviceWorker.ready.then(() => reg))
+        .then(reg =>
+          reg.pushManager.getSubscription().then(existing => {
             if (existing) {
               subscriptionRef.current = existing;
               setState("subscribed");
@@ -142,7 +142,7 @@ export default function PushNotificationManager({
   if (state === "subscribed") {
     return (
       <button
-        className="inline-flex items-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 font-medium text-green-700 text-xs transition-colors hover:bg-green-100"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 transition-colors hover:bg-green-100"
         onClick={handleUnsubscribe}
         title="Matikan notifikasi untuk pesanan ini"
       >
@@ -156,14 +156,14 @@ export default function PushNotificationManager({
 
   if (state === "requesting" || state === "subscribing") {
     return (
-      <span className="text-gray-400 text-xs">Menyiapkan notifikasi…</span>
+      <span className="text-xs text-gray-400">Menyiapkan notifikasi…</span>
     );
   }
 
   // idle — show enable button
   return (
     <button
-      className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 font-medium text-gray-600 text-xs transition-colors hover:bg-gray-50"
+      className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50"
       onClick={handleClick}
       title="Aktifkan notifikasi push untuk mendapat update saat status pesanan berubah"
     >

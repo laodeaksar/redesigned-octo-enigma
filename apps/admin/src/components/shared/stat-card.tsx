@@ -2,7 +2,8 @@
 // StatCard — KPI metric card with optional trend
 // =============================================================================
 
-import { type LucideIcon, Minus, TrendingDown, TrendingUp } from "lucide-react";
+import { Minus, TrendingDown, TrendingUp, type LucideIcon } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 
 interface StatCardProps {
@@ -31,38 +32,38 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "rounded-lg border border-border bg-card p-6 text-card-foreground shadow-sm",
+        "border-border bg-card text-card-foreground rounded-lg border p-6 shadow-sm",
         className
       )}
     >
       <div className="flex items-center justify-between">
-        <p className="font-medium text-muted-foreground text-sm">{title}</p>
+        <p className="text-muted-foreground text-sm font-medium">{title}</p>
         {Icon && (
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-            <Icon className="h-5 w-5 text-primary" />
+          <div className="bg-primary/10 flex h-9 w-9 items-center justify-center rounded-lg">
+            <Icon className="text-primary h-5 w-5" />
           </div>
         )}
       </div>
 
       <div className="mt-3">
-        <p className="font-bold text-2xl tracking-tight">{value}</p>
+        <p className="text-2xl font-bold tracking-tight">{value}</p>
         {description && (
-          <p className="mt-1 text-muted-foreground text-sm">{description}</p>
+          <p className="text-muted-foreground mt-1 text-sm">{description}</p>
         )}
       </div>
 
       {trend !== undefined && (
         <div className="mt-3 flex items-center gap-1.5">
           {isNeutral ? (
-            <Minus className="h-4 w-4 text-muted-foreground" />
+            <Minus className="text-muted-foreground h-4 w-4" />
           ) : isPositive ? (
             <TrendingUp className="h-4 w-4 text-green-500" />
           ) : (
-            <TrendingDown className="h-4 w-4 text-destructive" />
+            <TrendingDown className="text-destructive h-4 w-4" />
           )}
           <span
             className={cn(
-              "font-medium text-xs",
+              "text-xs font-medium",
               isNeutral
                 ? "text-muted-foreground"
                 : isPositive

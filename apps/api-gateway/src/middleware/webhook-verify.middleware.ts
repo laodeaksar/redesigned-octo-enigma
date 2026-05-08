@@ -31,9 +31,11 @@
 // =============================================================================
 
 import { createHash, timingSafeEqual } from "node:crypto";
-import { webhookEventsTable } from "@repo/database/drizzle/schema";
-import type { Context, MiddlewareHandler } from "hono";
 import { db, env, getRedis } from "@/config";
+import type { Context, MiddlewareHandler } from "hono";
+
+import { webhookEventsTable } from "@repo/database/drizzle/schema";
+
 import { logger } from "@/lib/logger";
 
 // ── Constants ─────────────────────────────────────────────────────────────────

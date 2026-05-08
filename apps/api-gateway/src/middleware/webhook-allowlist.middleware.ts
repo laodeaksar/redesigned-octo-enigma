@@ -30,9 +30,11 @@
 //   provider's perspective while still giving us a loggable event.
 // =============================================================================
 
-import { webhookEventsTable } from "@repo/database/drizzle/schema";
-import { createMiddleware } from "hono/factory";
 import { db } from "@/config";
+import { createMiddleware } from "hono/factory";
+
+import { webhookEventsTable } from "@repo/database/drizzle/schema";
+
 import { logger } from "@/lib/logger";
 
 // ── CIDR helpers (IPv4-only — Midtrans uses IPv4) ────────────────────────────
@@ -155,7 +157,7 @@ const ENABLED: boolean =
 // Log effective configuration once at startup
 if (ENABLED) {
   logger.info("[webhook-allowlist] Enforcement ON", {
-    ranges: ALLOWLIST.map((r) => r.raw),
+    ranges: ALLOWLIST.map(r => r.raw),
     note: "Set MIDTRANS_WEBHOOK_ALLOWLIST_ENABLED=false to disable (dev/test only)",
   });
 } else {
@@ -204,7 +206,7 @@ export const midtransAllowlistMiddleware = createMiddleware(async (c, next) => {
     return next();
   }
 
-  const allowed = ALLOWLIST.some((range) => isIpv4InRange(ip, range));
+  const allowed = ALLOWLIST.some(range => isIpv4InRange(ip, range));
 
   if (allowed) {
     logger.debug("[webhook-allowlist] IP allowed", { ip });

@@ -2,18 +2,19 @@
 // Auth store — React context + TanStack Query for server state
 // =============================================================================
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import React, {
   createContext,
-  type ReactNode,
   useCallback,
   useContext,
+  type ReactNode,
 } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+
 import {
-  type AdminUser,
   login as apiLogin,
   logout as apiLogout,
   getMe,
+  type AdminUser,
 } from "@/lib/auth";
 
 // ── Types ─────────────────────────────────────────────────────────────────────

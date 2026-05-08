@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+
 import { VAPID_PUBLIC_KEY } from "@/lib/push.server";
 
 export const GET: APIRoute = () =>

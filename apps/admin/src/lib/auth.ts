@@ -2,8 +2,8 @@
 // Auth helpers — login, logout, session state
 // =============================================================================
 
-import type { ApiResponse } from "./api";
 import { api, clearTokens, getAccessToken, setTokens } from "./api";
+import type { ApiResponse } from "./api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

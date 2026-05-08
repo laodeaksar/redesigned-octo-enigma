@@ -2,6 +2,8 @@
 // order-service Prometheus metrics
 // =============================================================================
 
+import Elysia from "elysia";
+
 import {
   CONTENT_TYPE,
   Counter,
@@ -12,7 +14,6 @@ import {
   getMetricsOutput,
   Histogram,
 } from "@repo/common/metrics";
-import Elysia from "elysia";
 
 export const registry = createRegistry({ serviceName: "order-service" });
 export const httpMetrics = createHttpMetrics(registry);

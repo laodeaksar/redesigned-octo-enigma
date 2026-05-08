@@ -3,12 +3,13 @@
 // Used by order-service to validate stock + fetch product snapshots
 // =============================================================================
 
+import { env } from "@/config";
+
 import {
   InsufficientStockError,
   ServiceUnavailableError,
 } from "@repo/common/errors";
 import type { ProductSnapshot } from "@repo/common/types";
-import { env } from "@/config";
 
 const BASE = env.PRODUCT_SERVICE_URL.replace(/\/$/, "");
 
@@ -101,7 +102,7 @@ export async function getVariantsByIds(
   variantIds: string[]
 ): Promise<VariantStockInfo[]> {
   const params = new URLSearchParams();
-  variantIds.forEach((id) => params.append("ids", id));
+  variantIds.forEach(id => params.append("ids", id));
 
   return internalFetch<VariantStockInfo[]>(
     `/products/variants?${params.toString()}`
@@ -148,7 +149,7 @@ export async function restoreStock(
   items: Array<{ variantId: string; quantity: number }>
 ): Promise<void> {
   await Promise.all(
-    items.map((item) =>
+    items.map(item =>
       internalFetch("/products/stock/adjust", {
         method: "POST",
         body: JSON.stringify({

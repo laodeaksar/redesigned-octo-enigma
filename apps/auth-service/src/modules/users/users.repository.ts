@@ -2,17 +2,17 @@
 // Users repository — all database operations for users + addresses
 // =============================================================================
 
+import type { DB } from "@/config";
+import { and, desc, eq } from "drizzle-orm";
+
 import {
-  type AddressRow,
   addressesTable,
+  usersTable,
+  type AddressRow,
   type NewAddressRow,
   type NewUserRow,
   type UserRow,
-  usersTable,
 } from "@repo/database/drizzle/schema";
-import { and, desc, eq } from "drizzle-orm";
-
-import type { DB } from "@/config";
 
 // ── Users ─────────────────────────────────────────────────────────────────────
 

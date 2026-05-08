@@ -76,19 +76,18 @@ export async function getAllCities(): Promise<City[]> {
     return _citiesCache;
   }
 
-  const results =
-    await rajaFetch<
-      Array<{
-        city_id: string;
-        province_id: string;
-        province: string;
-        type: string;
-        city_name: string;
-        postal_code: string;
-      }>
-    >("/city");
+  const results = await rajaFetch<
+    Array<{
+      city_id: string;
+      province_id: string;
+      province: string;
+      type: string;
+      city_name: string;
+      postal_code: string;
+    }>
+  >("/city");
 
-  _citiesCache = results.map((c) => ({
+  _citiesCache = results.map(c => ({
     id: c.city_id,
     provinceId: c.province_id,
     province: c.province,
@@ -104,7 +103,7 @@ export async function searchCities(query: string): Promise<City[]> {
   const cities = await getAllCities();
   const q = query.toLowerCase();
   return cities.filter(
-    (c) =>
+    c =>
       c.name.toLowerCase().includes(q) ||
       c.province.toLowerCase().includes(q) ||
       c.postalCode.includes(q)
@@ -136,7 +135,7 @@ export async function getShippingRates(
 
   // RajaOngkir starter plan: one courier per request
   const results = await Promise.allSettled(
-    couriers.map((courier) =>
+    couriers.map(courier =>
       rajaFetch<
         Array<{
           code: string;
@@ -167,20 +166,20 @@ export async function getShippingRates(
         typeof r extends PromiseFulfilledResult<infer V> ? V : never
       > => r.status === "fulfilled"
     )
-    .flatMap((r) => r.value)
-    .map((result) => ({
+    .flatMap(r => r.value)
+    .map(result => ({
       courier: result.code,
       name: result.name,
       rates: result.costs
-        .map((s) => ({
+        .map(s => ({
           service: s.service,
           description: s.description,
           cost: s.cost[0]?.value ?? 0,
           etd: (s.cost[0]?.etd ?? "").replace(/\s+HARI/i, "").trim(),
         }))
-        .filter((s) => s.cost > 0),
+        .filter(s => s.cost > 0),
     }))
-    .filter((r) => r.rates.length > 0);
+    .filter(r => r.rates.length > 0);
 }
 
 /**
@@ -199,11 +198,11 @@ export async function getSingleRate(
   });
 
   const courierRates = rates.find(
-    (r) => r.courier.toLowerCase() === courier.toLowerCase()
+    r => r.courier.toLowerCase() === courier.toLowerCase()
   );
 
   const serviceRate = courierRates?.rates.find(
-    (r) => r.service.toUpperCase() === service.toUpperCase()
+    r => r.service.toUpperCase() === service.toUpperCase()
   );
 
   return serviceRate?.cost ?? 0;

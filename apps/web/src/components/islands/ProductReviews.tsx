@@ -3,8 +3,9 @@
 // Shows rating summary + paginated review list + write-review form.
 // =============================================================================
 
-import type React from "react";
 import { useEffect, useState } from "react";
+import type React from "react";
+
 import { formatRelativeTime } from "@/lib/utils";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -52,7 +53,7 @@ function StarDisplay({
     size === "lg" ? "text-xl" : size === "md" ? "text-base" : "text-sm";
   return (
     <span aria-label={`${rating} bintang dari 5`} className={cls}>
-      {[1, 2, 3, 4, 5].map((n) => (
+      {[1, 2, 3, 4, 5].map(n => (
         <span
           className={
             n <= Math.round(rating) ? "text-amber-400" : "text-gray-200"
@@ -78,7 +79,7 @@ function StarPicker({
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-1">
-        {[1, 2, 3, 4, 5].map((n) => (
+        {[1, 2, 3, 4, 5].map(n => (
           <button
             aria-label={`${n} bintang`}
             className="text-3xl leading-none transition-transform hover:scale-110 focus:outline-none"
@@ -98,7 +99,7 @@ function StarPicker({
           </button>
         ))}
         {(hover || value) > 0 && (
-          <span className="ml-2 font-medium text-gray-600 text-sm">
+          <span className="ml-2 text-sm font-medium text-gray-600">
             {labels[hover || value]}
           </span>
         )}
@@ -119,17 +120,17 @@ function RatingBar({
   const pct = total > 0 ? Math.round((count / total) * 100) : 0;
   return (
     <div className="flex items-center gap-2 text-sm">
-      <span className="w-4 shrink-0 text-right text-gray-500 text-xs">
+      <span className="w-4 shrink-0 text-right text-xs text-gray-500">
         {star}
       </span>
-      <span className="text-amber-400 text-xs">★</span>
+      <span className="text-xs text-amber-400">★</span>
       <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
         <div
           className="h-full rounded-full bg-amber-400 transition-all duration-500"
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="w-8 shrink-0 text-right text-gray-400 text-xs">
+      <span className="w-8 shrink-0 text-right text-xs text-gray-400">
         {pct}%
       </span>
     </div>
@@ -141,7 +142,7 @@ function ReviewCard({ review }: { review: Review }) {
   return (
     <div className="flex gap-3 py-5 first:pt-0">
       {/* Avatar */}
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-100 font-bold text-brand-600 text-xs">
+      <div className="bg-brand-100 text-brand-600 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold">
         {initials}
       </div>
 
@@ -150,7 +151,7 @@ function ReviewCard({ review }: { review: Review }) {
         <div className="flex flex-wrap items-center gap-2">
           <StarDisplay rating={review.rating} size="sm" />
           {review.isVerifiedPurchase && (
-            <span className="inline-flex items-center gap-0.5 rounded-full bg-green-50 px-2 py-0.5 font-semibold text-[10px] text-green-600">
+            <span className="inline-flex items-center gap-0.5 rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-600">
               <svg
                 className="h-2.5 w-2.5"
                 fill="currentColor"
@@ -165,21 +166,21 @@ function ReviewCard({ review }: { review: Review }) {
               Pembelian Terverifikasi
             </span>
           )}
-          <span className="text-gray-400 text-xs">
+          <span className="text-xs text-gray-400">
             {formatRelativeTime(review.createdAt)}
           </span>
         </div>
 
         {/* Title */}
         {review.title && (
-          <p className="mt-1.5 font-semibold text-gray-900 text-sm">
+          <p className="mt-1.5 text-sm font-semibold text-gray-900">
             {review.title}
           </p>
         )}
 
         {/* Body */}
         {review.body && (
-          <p className="mt-1 text-gray-600 text-sm leading-relaxed">
+          <p className="mt-1 text-sm leading-relaxed text-gray-600">
             {review.body}
           </p>
         )}
@@ -233,8 +234,8 @@ export default function ProductReviews({
 
   useEffect(() => {
     Promise.all([
-      fetch(`/api/products/${productId}/summary`).then((r) => r.json()),
-      fetch(`/api/products/${productId}/reviews?page=1&limit=10`).then((r) =>
+      fetch(`/api/products/${productId}/summary`).then(r => r.json()),
+      fetch(`/api/products/${productId}/reviews?page=1&limit=10`).then(r =>
         r.json()
       ),
     ])
@@ -257,8 +258,8 @@ export default function ProductReviews({
     }
     setOrdersLoading(true);
     fetch("/api/orders?limit=30")
-      .then((r) => r.json())
-      .then((d) => {
+      .then(r => r.json())
+      .then(d => {
         const list = (d?.data as UserOrder[]) ?? [];
         setOrders(list);
         if (list.length > 0) {
@@ -279,7 +280,7 @@ export default function ProductReviews({
         `/api/products/${productId}/reviews?page=${next}&limit=10`
       );
       const d = await r.json();
-      setReviews((prev) => [...prev, ...((d?.data as Review[]) ?? [])]);
+      setReviews(prev => [...prev, ...((d?.data as Review[]) ?? [])]);
       setHasMore(d?.meta?.hasNextPage ?? false);
       setPage(next);
     } catch {
@@ -332,9 +333,9 @@ export default function ProductReviews({
 
         // Refresh list + summary
         const [s, r] = await Promise.all([
-          fetch(`/api/products/${productId}/summary`).then((x) => x.json()),
-          fetch(`/api/products/${productId}/reviews?page=1&limit=10`).then(
-            (x) => x.json()
+          fetch(`/api/products/${productId}/summary`).then(x => x.json()),
+          fetch(`/api/products/${productId}/reviews?page=1&limit=10`).then(x =>
+            x.json()
           ),
         ]);
         if (s?.data) {
@@ -361,12 +362,12 @@ export default function ProductReviews({
   return (
     <section className="py-14">
       <div className="container mx-auto px-4">
-        <h2 className="mb-8 font-bold text-gray-900 text-xl">Ulasan Pembeli</h2>
+        <h2 className="mb-8 text-xl font-bold text-gray-900">Ulasan Pembeli</h2>
 
         {/* ── Loading ──────────────────────────────────────────────────────── */}
         {loading && (
           <div className="flex h-32 items-center justify-center">
-            <div className="h-7 w-7 animate-spin rounded-full border-4 border-brand-500 border-t-transparent" />
+            <div className="border-brand-500 h-7 w-7 animate-spin rounded-full border-4 border-t-transparent" />
           </div>
         )}
 
@@ -378,12 +379,12 @@ export default function ProductReviews({
                 <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
                   {/* Average */}
                   <div className="mb-4 flex items-end gap-3">
-                    <span className="font-extrabold text-5xl text-gray-900 leading-none">
+                    <span className="text-5xl leading-none font-extrabold text-gray-900">
                       {summary.average.toFixed(1)}
                     </span>
                     <div>
                       <StarDisplay rating={summary.average} size="lg" />
-                      <p className="mt-0.5 text-gray-500 text-xs">
+                      <p className="mt-0.5 text-xs text-gray-500">
                         {summary.count} ulasan
                       </p>
                     </div>
@@ -391,7 +392,7 @@ export default function ProductReviews({
 
                   {/* Breakdown bars */}
                   <div className="space-y-1.5">
-                    {[5, 4, 3, 2, 1].map((star) => (
+                    {[5, 4, 3, 2, 1].map(star => (
                       <RatingBar
                         count={summary.breakdown[star] ?? 0}
                         key={star}
@@ -402,12 +403,12 @@ export default function ProductReviews({
                   </div>
                 </div>
               ) : !loading && summary?.count === 0 ? (
-                <div className="rounded-2xl border border-gray-200 border-dashed p-6 text-center">
+                <div className="rounded-2xl border border-dashed border-gray-200 p-6 text-center">
                   <p className="text-3xl">⭐</p>
-                  <p className="mt-2 font-medium text-gray-700 text-sm">
+                  <p className="mt-2 text-sm font-medium text-gray-700">
                     Belum ada ulasan
                   </p>
-                  <p className="mt-1 text-gray-400 text-xs">
+                  <p className="mt-1 text-xs text-gray-400">
                     Jadilah yang pertama memberi ulasan!
                   </p>
                 </div>
@@ -417,24 +418,24 @@ export default function ProductReviews({
               <div className="mt-4">
                 {isLoggedIn ? (
                   submitSuccess ? (
-                    <div className="rounded-xl bg-green-50 px-4 py-3 font-medium text-green-700 text-sm">
+                    <div className="rounded-xl bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
                       ✓ Ulasanmu berhasil dikirim. Terima kasih!
                     </div>
                   ) : (
                     <button
-                      className={`w-full rounded-xl px-4 py-2.5 font-semibold text-sm transition-colors ${
+                      className={`w-full rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors ${
                         showForm
                           ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                          : "bg-brand-500 text-white hover:bg-brand-600"
+                          : "bg-brand-500 hover:bg-brand-600 text-white"
                       }`}
-                      onClick={() => setShowForm((v) => !v)}
+                      onClick={() => setShowForm(v => !v)}
                     >
                       {showForm ? "Batal" : "Tulis Ulasan"}
                     </button>
                   )
                 ) : (
                   <a
-                    className="block w-full rounded-xl border border-gray-200 px-4 py-2.5 text-center font-medium text-gray-600 text-sm hover:bg-gray-50"
+                    className="block w-full rounded-xl border border-gray-200 px-4 py-2.5 text-center text-sm font-medium text-gray-600 hover:bg-gray-50"
                     href={`/auth/login?redirect=${encodeURIComponent(window.location.pathname)}`}
                   >
                     Login untuk menulis ulasan
@@ -446,15 +447,15 @@ export default function ProductReviews({
               {showForm && isLoggedIn && (
                 <form
                   className="mt-4 space-y-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm"
-                  onSubmit={(e) => void handleSubmit(e)}
+                  onSubmit={e => void handleSubmit(e)}
                 >
-                  <h3 className="font-semibold text-gray-900 text-sm">
+                  <h3 className="text-sm font-semibold text-gray-900">
                     Beri Ulasanmu
                   </h3>
 
                   {/* Star picker */}
                   <div>
-                    <label className="mb-1.5 block font-medium text-gray-700 text-xs">
+                    <label className="mb-1.5 block text-xs font-medium text-gray-700">
                       Rating <span className="text-red-500">*</span>
                     </label>
                     <StarPicker onChange={setRating} value={rating} />
@@ -462,21 +463,21 @@ export default function ProductReviews({
 
                   {/* Order selector */}
                   <div>
-                    <label className="mb-1.5 block font-medium text-gray-700 text-xs">
+                    <label className="mb-1.5 block text-xs font-medium text-gray-700">
                       Pesanan <span className="text-red-500">*</span>
                     </label>
                     {ordersLoading ? (
-                      <div className="flex h-9 items-center gap-2 rounded-lg border border-gray-200 px-3 text-gray-400 text-xs">
-                        <div className="h-3 w-3 animate-spin rounded-full border-2 border-gray-300 border-t-brand-500" />
+                      <div className="flex h-9 items-center gap-2 rounded-lg border border-gray-200 px-3 text-xs text-gray-400">
+                        <div className="border-t-brand-500 h-3 w-3 animate-spin rounded-full border-2 border-gray-300" />
                         Memuat pesanan…
                       </div>
                     ) : orders.length > 0 ? (
                       <select
-                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-gray-700 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-                        onChange={(e) => setOrderId(e.target.value)}
+                        className="focus:border-brand-500 focus:ring-brand-500 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:ring-1 focus:outline-none"
+                        onChange={e => setOrderId(e.target.value)}
                         value={orderId}
                       >
-                        {orders.map((o) => (
+                        {orders.map(o => (
                           <option key={o.id} value={o.id}>
                             #{o.orderNumber} —{" "}
                             {new Date(o.createdAt).toLocaleDateString("id-ID")}
@@ -485,8 +486,8 @@ export default function ProductReviews({
                       </select>
                     ) : (
                       <input
-                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm placeholder-gray-300 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-                        onChange={(e) => setOrderId(e.target.value)}
+                        className="focus:border-brand-500 focus:ring-brand-500 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm placeholder-gray-300 focus:ring-1 focus:outline-none"
+                        onChange={e => setOrderId(e.target.value)}
                         placeholder="Masukkan ID pesanan"
                         type="text"
                         value={orderId}
@@ -499,13 +500,13 @@ export default function ProductReviews({
 
                   {/* Title */}
                   <div>
-                    <label className="mb-1.5 block font-medium text-gray-700 text-xs">
+                    <label className="mb-1.5 block text-xs font-medium text-gray-700">
                       Judul <span className="text-gray-400">(opsional)</span>
                     </label>
                     <input
-                      className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm placeholder-gray-300 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                      className="focus:border-brand-500 focus:ring-brand-500 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm placeholder-gray-300 focus:ring-1 focus:outline-none"
                       maxLength={150}
-                      onChange={(e) => setTitle(e.target.value)}
+                      onChange={e => setTitle(e.target.value)}
                       placeholder="Ringkas pendapatmu…"
                       type="text"
                       value={title}
@@ -514,13 +515,13 @@ export default function ProductReviews({
 
                   {/* Body */}
                   <div>
-                    <label className="mb-1.5 block font-medium text-gray-700 text-xs">
+                    <label className="mb-1.5 block text-xs font-medium text-gray-700">
                       Ulasan <span className="text-gray-400">(opsional)</span>
                     </label>
                     <textarea
-                      className="w-full resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm placeholder-gray-300 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                      className="focus:border-brand-500 focus:ring-brand-500 w-full resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm placeholder-gray-300 focus:ring-1 focus:outline-none"
                       maxLength={2000}
-                      onChange={(e) => setBody(e.target.value)}
+                      onChange={e => setBody(e.target.value)}
                       placeholder={`Bagikan pengalamanmu dengan ${productName}…`}
                       rows={4}
                       value={body}
@@ -532,14 +533,14 @@ export default function ProductReviews({
 
                   {/* Error */}
                   {submitError && (
-                    <div className="rounded-lg bg-red-50 px-3 py-2 text-red-600 text-xs">
+                    <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
                       {submitError}
                     </div>
                   )}
 
                   {/* Submit */}
                   <button
-                    className={`w-full rounded-lg py-2.5 font-semibold text-sm transition-all ${
+                    className={`w-full rounded-lg py-2.5 text-sm font-semibold transition-all ${
                       rating === 0 || submitting
                         ? "cursor-not-allowed bg-gray-100 text-gray-400"
                         : "bg-accent text-white hover:opacity-90 active:scale-[0.98]"
@@ -562,7 +563,7 @@ export default function ProductReviews({
                 </div>
               ) : (
                 <div className="divide-y divide-gray-100">
-                  {reviews.map((review) => (
+                  {reviews.map(review => (
                     <ReviewCard key={review.id} review={review} />
                   ))}
                 </div>
@@ -571,13 +572,13 @@ export default function ProductReviews({
               {/* Load more */}
               {hasMore && (
                 <button
-                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 py-2.5 font-medium text-gray-600 text-sm transition-colors hover:bg-gray-50 disabled:opacity-50"
+                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50"
                   disabled={loadingMore}
                   onClick={() => void loadMore()}
                 >
                   {loadingMore ? (
                     <>
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-brand-500" />
+                      <div className="border-t-brand-500 h-4 w-4 animate-spin rounded-full border-2 border-gray-300" />
                       Memuat…
                     </>
                   ) : (

@@ -5,9 +5,10 @@
 // =============================================================================
 
 import { useCallback, useEffect, useState } from "react";
+import { addToCart } from "@/stores/cart.store";
+
 import type { ProductDetail } from "@/lib/api";
 import { formatIDR } from "@/lib/utils";
-import { addToCart } from "@/stores/cart.store";
 
 const BASE = import.meta.env.PUBLIC_API_URL ?? "http://localhost:3000";
 
@@ -48,17 +49,17 @@ export default function ProductQuickView() {
     }
     setLoading(true);
     fetch(`${BASE}/products/slug/${slug}`)
-      .then((r) => r.json())
+      .then(r => r.json())
       .then((body: { data: ProductDetail }) => {
         const p = body.data;
         setProduct(p);
         // Pre-select first active variant's attributes
-        const first = p.variants.find((v) => v.isActive);
+        const first = p.variants.find(v => v.isActive);
         if (first) {
           setSelected({ ...first.attributes });
         }
         // Find primary image index
-        const primaryIdx = p.images.findIndex((i) => i.isPrimary);
+        const primaryIdx = p.images.findIndex(i => i.isPrimary);
         setImageIdx(primaryIdx >= 0 ? primaryIdx : 0);
       })
       .catch(() => setError("Gagal memuat produk."))
@@ -94,16 +95,16 @@ export default function ProductQuickView() {
   }, [open, close]);
 
   // ── Variant logic ────────────────────────────────────────────────────────────
-  const activeVariants = product?.variants.filter((v) => v.isActive) ?? [];
+  const activeVariants = product?.variants.filter(v => v.isActive) ?? [];
   const attrKeys = Object.keys(activeVariants[0]?.attributes ?? {});
   const attrValues = (key: string) => [
     ...new Set(
-      activeVariants.map((v) => v.attributes[key]).filter(Boolean) as string[]
+      activeVariants.map(v => v.attributes[key]).filter(Boolean) as string[]
     ),
   ];
   const matchedVariant =
-    activeVariants.find((v) =>
-      attrKeys.every((k) => v.attributes[k] === selected[k])
+    activeVariants.find(v =>
+      attrKeys.every(k => v.attributes[k] === selected[k])
     ) ??
     activeVariants[0] ??
     null;
@@ -115,7 +116,7 @@ export default function ProductQuickView() {
       return;
     }
     const coverImage =
-      product.images.find((i) => i.isPrimary)?.url ??
+      product.images.find(i => i.isPrimary)?.url ??
       product.images[0]?.url ??
       null;
     addToCart({
@@ -163,7 +164,7 @@ export default function ProductQuickView() {
             ? "pointer-events-auto opacity-100"
             : "pointer-events-none opacity-0"
         }`}
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
         role="dialog"
       >
         <div
@@ -207,14 +208,14 @@ export default function ProductQuickView() {
             {/* Loading */}
             {loading && (
               <div className="flex h-64 items-center justify-center">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-500 border-t-transparent" />
+                <div className="border-brand-500 h-8 w-8 animate-spin rounded-full border-4 border-t-transparent" />
               </div>
             )}
 
             {/* Error */}
             {error && !loading && (
               <div className="flex h-40 flex-col items-center justify-center gap-3 p-6">
-                <p className="text-gray-500 text-sm">{error}</p>
+                <p className="text-sm text-gray-500">{error}</p>
                 <button
                   className="text-accent text-sm hover:underline"
                   onClick={close}
@@ -272,11 +273,11 @@ export default function ProductQuickView() {
                 <div className="flex flex-1 flex-col gap-4 p-5">
                   {/* Name + short desc */}
                   <div>
-                    <h2 className="font-bold text-gray-900 text-lg leading-snug">
+                    <h2 className="text-lg leading-snug font-bold text-gray-900">
                       {product.name}
                     </h2>
                     {product.shortDescription && (
-                      <p className="mt-1 line-clamp-2 text-gray-500 text-sm">
+                      <p className="mt-1 line-clamp-2 text-sm text-gray-500">
                         {product.shortDescription}
                       </p>
                     )}
@@ -284,7 +285,7 @@ export default function ProductQuickView() {
 
                   {/* Price */}
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-bold text-2xl text-gray-900">
+                    <span className="text-2xl font-bold text-gray-900">
                       {matchedVariant ? formatIDR(matchedVariant.price) : "—"}
                     </span>
                     {matchedVariant?.compareAtPrice && (
@@ -293,26 +294,26 @@ export default function ProductQuickView() {
                       </span>
                     )}
                     {discountPct > 0 && (
-                      <span className="rounded-md bg-red-100 px-2 py-0.5 font-bold text-red-600 text-xs">
+                      <span className="rounded-md bg-red-100 px-2 py-0.5 text-xs font-bold text-red-600">
                         -{discountPct}%
                       </span>
                     )}
                   </div>
 
                   {/* Variant selectors */}
-                  {attrKeys.map((key) => (
+                  {attrKeys.map(key => (
                     <div key={key}>
-                      <p className="mb-2 font-medium text-gray-700 text-sm capitalize">
+                      <p className="mb-2 text-sm font-medium text-gray-700 capitalize">
                         {key}
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        {attrValues(key).map((val) => {
+                        {attrValues(key).map(val => {
                           const available = activeVariants.some(
-                            (v) => v.attributes[key] === val && v.stock > 0
+                            v => v.attributes[key] === val && v.stock > 0
                           );
                           return (
                             <button
-                              className={`rounded-md border px-3 py-1.5 font-medium text-sm transition-colors ${
+                              className={`rounded-md border px-3 py-1.5 text-sm font-medium transition-colors ${
                                 selected[key] === val
                                   ? "border-brand-500 bg-brand-500 text-white"
                                   : available
@@ -322,7 +323,7 @@ export default function ProductQuickView() {
                               disabled={!available}
                               key={val}
                               onClick={() =>
-                                setSelected((s) => ({ ...s, [key]: val }))
+                                setSelected(s => ({ ...s, [key]: val }))
                               }
                             >
                               {val}
@@ -337,7 +338,7 @@ export default function ProductQuickView() {
                   {matchedVariant &&
                     matchedVariant.stock > 0 &&
                     matchedVariant.stock <= 5 && (
-                      <p className="font-medium text-sm text-yellow-600">
+                      <p className="text-sm font-medium text-yellow-600">
                         ⚡ Sisa {matchedVariant.stock} item
                       </p>
                     )}
@@ -345,20 +346,20 @@ export default function ProductQuickView() {
                   {/* Quantity */}
                   {!isOutOfStock && (
                     <div className="flex items-center gap-3">
-                      <span className="text-gray-600 text-sm">Jumlah:</span>
+                      <span className="text-sm text-gray-600">Jumlah:</span>
                       <div className="flex items-center rounded-md border border-gray-200">
                         <button
                           className="flex h-9 w-9 items-center justify-center text-gray-500 hover:bg-gray-50"
-                          onClick={() => setQty((q) => Math.max(1, q - 1))}
+                          onClick={() => setQty(q => Math.max(1, q - 1))}
                         >
                           −
                         </button>
-                        <span className="w-10 text-center font-medium text-sm">
+                        <span className="w-10 text-center text-sm font-medium">
                           {qty}
                         </span>
                         <button
                           className="flex h-9 w-9 items-center justify-center text-gray-500 hover:bg-gray-50"
-                          onClick={() => setQty((q) => Math.min(maxQty, q + 1))}
+                          onClick={() => setQty(q => Math.min(maxQty, q + 1))}
                         >
                           +
                         </button>
@@ -369,7 +370,7 @@ export default function ProductQuickView() {
                   {/* Actions */}
                   <div className="mt-auto flex flex-col gap-2 pt-2">
                     <button
-                      className={`w-full rounded-lg py-3 font-semibold text-sm transition-all ${
+                      className={`w-full rounded-lg py-3 text-sm font-semibold transition-all ${
                         isOutOfStock
                           ? "cursor-not-allowed bg-gray-100 text-gray-400"
                           : added
@@ -386,7 +387,7 @@ export default function ProductQuickView() {
                           : "Tambah ke Keranjang"}
                     </button>
                     <a
-                      className="block w-full rounded-lg border border-gray-200 py-2.5 text-center font-medium text-gray-700 text-sm hover:bg-gray-50"
+                      className="block w-full rounded-lg border border-gray-200 py-2.5 text-center text-sm font-medium text-gray-700 hover:bg-gray-50"
                       href={`/products/${product.slug}`}
                       onClick={close}
                     >

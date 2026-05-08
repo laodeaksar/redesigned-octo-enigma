@@ -13,15 +13,17 @@
 //  DELETE /admin/users/:id         — delete a user permanently
 // =============================================================================
 
+import { jwtMiddleware } from "@/middleware/jwt.middleware";
+import { databasePlugin } from "@/plugins/database.plugin";
+import { eq } from "drizzle-orm";
+import Elysia, { t } from "elysia";
+
 import { ForbiddenError, InsufficientRoleError } from "@repo/common/errors";
 import { success } from "@repo/common/schemas";
 import type { UserRole } from "@repo/common/types";
 import { usersTable } from "@repo/database/drizzle/schema";
-import { eq } from "drizzle-orm";
-import Elysia, { t } from "elysia";
+
 import { auth } from "@/lib/better-auth";
-import { jwtMiddleware } from "@/middleware/jwt.middleware";
-import { databasePlugin } from "@/plugins/database.plugin";
 
 const ADMIN_ROLES: UserRole[] = ["admin", "super_admin"];
 

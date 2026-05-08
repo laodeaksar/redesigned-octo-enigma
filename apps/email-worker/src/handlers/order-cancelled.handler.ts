@@ -3,9 +3,11 @@
 // Queue: email.order-cancelled
 // =============================================================================
 
+import { z } from "zod";
+
 import { QUEUES } from "@repo/common/events";
 import type { OrderCancelledEmailJobData } from "@repo/common/types";
-import { z } from "zod";
+
 import { createEmailHandler } from "@/lib/create-email-handler";
 import { orderCancelledTemplate } from "@/lib/templates";
 
@@ -21,8 +23,8 @@ export const handleOrderCancelledEmail =
   createEmailHandler<OrderCancelledEmailJobData>({
     queueName: QUEUES.EMAIL_ORDER_CANCELLED,
     schema,
-    getTemplate: (data) => orderCancelledTemplate(data),
-    getExtraHeaders: (data) => ({
+    getTemplate: data => orderCancelledTemplate(data),
+    getExtraHeaders: data => ({
       "X-Order-Number": data.orderNumber,
     }),
   });

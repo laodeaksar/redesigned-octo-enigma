@@ -6,8 +6,6 @@
 //  POST /admin/security/alerts/reset   — clear cooldown so next escalation re-alerts
 // =============================================================================
 
-import { failure, success } from "@repo/common/schemas";
-import { Hono } from "hono";
 import { env, getRedis } from "@/config";
 import {
   getCurrentLevel,
@@ -15,13 +13,17 @@ import {
   getLastPollAt,
   getPollCount,
 } from "@/jobs/threat-monitor";
+import { requireAuth, requireRole } from "@/middleware/auth.middleware";
+import { Hono } from "hono";
+
+import { failure, success } from "@repo/common/schemas";
+
 import {
   getCooldownTtl,
   getLastSentAlert,
   sendAlert,
   type ThreatLevel,
 } from "@/lib/alerting";
-import { requireAuth, requireRole } from "@/middleware/auth.middleware";
 
 const LEVELS: ThreatLevel[] = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 const COOLDOWN_KEY_PREFIX = "security:alert:cooldown:";
@@ -33,10 +35,10 @@ app.get(
   "/admin/security/alerts/status",
   requireAuth,
   requireRole("admin", "super_admin"),
-  async (c) => {
+  async c => {
     const [lastSent, ...cooldownTtls] = await Promise.all([
       getLastSentAlert(),
-      ...LEVELS.map((l) => getCooldownTtl(l)),
+      ...LEVELS.map(l => getCooldownTtl(l)),
     ]);
 
     const cooldowns = Object.fromEntries(
@@ -57,7 +59,7 @@ app.get(
           webhookConfigured: Boolean(env.ALERT_WEBHOOK_URL),
           emailConfigured: Boolean(env.ALERT_EMAIL_TO),
           emailRecipients: env.ALERT_EMAIL_TO
-            ? env.ALERT_EMAIL_TO.split(",").map((s) => s.trim())
+            ? env.ALERT_EMAIL_TO.split(",").map(s => s.trim())
             : [],
           thresholdLevel: env.ALERT_THRESHOLD_LEVEL,
           cooldownMinutes: env.ALERT_COOLDOWN_MINUTES,
@@ -75,7 +77,7 @@ app.post(
   "/admin/security/alerts/test",
   requireAuth,
   requireRole("admin", "super_admin"),
-  async (c) => {
+  async c => {
     if (!(env.ALERT_WEBHOOK_URL || env.ALERT_EMAIL_TO)) {
       return c.json(
         failure(
@@ -126,7 +128,7 @@ app.post(
   "/admin/security/alerts/reset-cooldown",
   requireAuth,
   requireRole("admin", "super_admin"),
-  async (c) => {
+  async c => {
     const redis = getRedis();
     if (!redis) {
       return c.json(failure("SERVICE_UNAVAILABLE", "Redis not available"), 503);
@@ -143,7 +145,7 @@ app.post(
     }
 
     const deleted = await Promise.all(
-      levels.map((l) => redis.del(`${COOLDOWN_KEY_PREFIX}${l}`).catch(() => 0))
+      levels.map(l => redis.del(`${COOLDOWN_KEY_PREFIX}${l}`).catch(() => 0))
     );
 
     return c.json(

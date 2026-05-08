@@ -2,6 +2,8 @@
 // api-gateway Prometheus metrics
 // =============================================================================
 
+import { Hono } from "hono";
+
 import {
   CONTENT_TYPE,
   Counter,
@@ -11,7 +13,6 @@ import {
   Histogram,
   honoMetricsMiddleware,
 } from "@repo/common/metrics";
-import { Hono } from "hono";
 
 // ── Registry ──────────────────────────────────────────────────────────────────
 
@@ -57,7 +58,7 @@ export const upstreamLatency = new Histogram({
 
 export const metricsRoutes = new Hono();
 
-metricsRoutes.get("/metrics", async (c) => {
+metricsRoutes.get("/metrics", async c => {
   const output = await getMetricsOutput(registry);
   return c.text(output, 200, { "Content-Type": CONTENT_TYPE });
 });

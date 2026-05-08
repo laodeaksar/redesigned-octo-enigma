@@ -1,4 +1,5 @@
 import type { Job, Processor } from "@repo/common/events";
+
 import { logger } from "@/lib/logger";
 
 /**

@@ -2,9 +2,10 @@
 // Config — validated env + singleton clients + service registry
 // =============================================================================
 
+import Redis from "ioredis";
+
 import { createDrizzleClient } from "@repo/database/drizzle";
 import { env as rawEnv } from "@repo/env/api-gateway";
-import Redis from "ioredis";
 
 export const env = rawEnv;
 
@@ -65,9 +66,9 @@ export async function initRedis(): Promise<boolean> {
       lazyConnect: true,
       maxRetriesPerRequest: 3,
       enableReadyCheck: true,
-      retryStrategy: (times) => Math.min(times * 200, 3000),
+      retryStrategy: times => Math.min(times * 200, 3000),
     });
-    _redis.on("error", (err) => console.warn("[Redis] Error:", err.message));
+    _redis.on("error", err => console.warn("[Redis] Error:", err.message));
     _redis.on("connect", () => console.info("[Redis] Connected"));
     await _redis.connect();
     _redisAvailable = true;

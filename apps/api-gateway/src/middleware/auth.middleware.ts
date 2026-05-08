@@ -7,13 +7,14 @@
 // After auth middleware runs, downstream proxy calls inject x-user-* headers.
 // =============================================================================
 
-import { TokenExpiredError } from "@repo/common/errors";
+import { createMiddleware } from "hono/factory";
 
+import { TokenExpiredError } from "@repo/common/errors";
 import { failure } from "@repo/common/schemas";
 import type { UserRole } from "@repo/common/types";
-import { createMiddleware } from "hono/factory";
-import type { VerifiedUser } from "@/lib/jwt";
+
 import { extractBearerToken, verifyAccessToken } from "@/lib/jwt";
+import type { VerifiedUser } from "@/lib/jwt";
 
 // Extend Hono context variables type
 declare module "hono" {

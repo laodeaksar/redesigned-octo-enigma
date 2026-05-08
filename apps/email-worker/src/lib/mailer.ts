@@ -8,9 +8,9 @@
 // Both paths expose the same `sendEmail()` interface.
 // =============================================================================
 
+import { env } from "@/config";
 import type { SendMailOptions, Transporter } from "nodemailer";
 import nodemailer from "nodemailer";
-import { env } from "@/config";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

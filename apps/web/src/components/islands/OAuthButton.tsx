@@ -3,8 +3,9 @@
 // Fetches available providers and renders login buttons
 // =============================================================================
 
-import type React from "react";
 import { useEffect, useState } from "react";
+import type React from "react";
+
 import { api } from "@/lib/api";
 
 interface Provider {
@@ -56,7 +57,7 @@ export default function OAuthButtons({
   useEffect(() => {
     api
       .get<{ success: true; data: Provider[] }>("/auth/oauth/providers")
-      .then((res) => setProviders(res.data))
+      .then(res => setProviders(res.data))
       .catch(() => setProviders([]))
       .finally(() => setLoading(false));
   }, []);
@@ -80,7 +81,7 @@ export default function OAuthButtons({
     <div className="space-y-3">
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-gray-200 border-t" />
+          <span className="w-full border-t border-gray-200" />
         </div>
         <div className="relative flex justify-center text-xs">
           <span className="bg-white px-3 text-gray-400">
@@ -90,9 +91,9 @@ export default function OAuthButtons({
       </div>
 
       <div className="grid grid-cols-1 gap-2">
-        {providers.map((p) => (
+        {providers.map(p => (
           <button
-            className="flex w-full items-center justify-center gap-2.5 rounded-lg border border-gray-200 bg-white px-4 py-2.5 font-medium text-gray-700 text-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
+            className="flex w-full items-center justify-center gap-2.5 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50"
             key={p.provider}
             onClick={() => handleOAuth(p.provider)}
             type="button"

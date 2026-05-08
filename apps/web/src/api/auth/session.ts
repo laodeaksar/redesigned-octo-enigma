@@ -4,6 +4,7 @@
 // =============================================================================
 
 import type { APIRoute } from "astro";
+
 import { setAuthCookies } from "@/lib/auth";
 
 export const POST: APIRoute = async ({ request, cookies }) => {

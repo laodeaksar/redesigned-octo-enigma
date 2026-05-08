@@ -25,8 +25,6 @@ export default [
     },
     rules: {
       // React specific rules
-      "react/prop-types": "off", // Not needed with TypeScript
-      "react/react-in-jsx-scope": "off", // Not needed with React 17+
       "react/display-name": "warn",
       "react/forbid-component-props": "off",
       "react/forbid-elements": "off",

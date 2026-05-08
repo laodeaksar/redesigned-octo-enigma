@@ -3,8 +3,9 @@
 // =============================================================================
 
 import { useState } from "react";
-import { formatIDR } from "@/lib/utils";
 import { addToCart } from "@/stores/cart.store";
+
+import { formatIDR } from "@/lib/utils";
 
 interface Variant {
   attributes: Record<string, string>;
@@ -27,14 +28,14 @@ export default function AddToCartButton({
   variants,
   primaryImage,
 }: Props) {
-  const activeVariants = variants.filter((v) => v.isActive);
+  const activeVariants = variants.filter(v => v.isActive);
 
   // Group attribute keys for selector UI
   const attrKeys = Object.keys(activeVariants[0]?.attributes ?? {});
 
   const [selected, setSelected] = useState<Record<string, string>>(
     Object.fromEntries(
-      attrKeys.map((k) => [
+      attrKeys.map(k => [
         k,
         Object.values(activeVariants[0]?.attributes ?? {})[
           attrKeys.indexOf(k)
@@ -47,8 +48,8 @@ export default function AddToCartButton({
   const [added, setAdded] = useState(false);
 
   // Find matching variant based on selected attributes
-  const matchedVariant = activeVariants.find((v) =>
-    attrKeys.every((k) => v.attributes[k] === selected[k])
+  const matchedVariant = activeVariants.find(v =>
+    attrKeys.every(k => v.attributes[k] === selected[k])
   );
 
   const isOutOfStock = !matchedVariant || matchedVariant.stock === 0;
@@ -57,7 +58,7 @@ export default function AddToCartButton({
   // Get unique values per attribute key for the selector
   const attrValues = (key: string): string[] => [
     ...new Set(
-      activeVariants.map((v) => v.attributes[key]).filter(Boolean) as string[]
+      activeVariants.map(v => v.attributes[key]).filter(Boolean) as string[]
     ),
   ];
 
@@ -85,19 +86,19 @@ export default function AddToCartButton({
   return (
     <div className="space-y-4">
       {/* Attribute selectors */}
-      {attrKeys.map((key) => (
+      {attrKeys.map(key => (
         <div key={key}>
-          <p className="mb-2 font-medium text-gray-700 text-sm capitalize">
+          <p className="mb-2 text-sm font-medium text-gray-700 capitalize">
             {key}
           </p>
           <div className="flex flex-wrap gap-2">
-            {attrValues(key).map((val) => {
+            {attrValues(key).map(val => {
               const isAvailable = activeVariants.some(
-                (v) => v.attributes[key] === val && v.stock > 0
+                v => v.attributes[key] === val && v.stock > 0
               );
               return (
                 <button
-                  className={`rounded-md border px-3 py-1.5 font-medium text-sm transition-colors ${
+                  className={`rounded-md border px-3 py-1.5 text-sm font-medium transition-colors ${
                     selected[key] === val
                       ? "border-brand-500 bg-brand-500 text-white"
                       : isAvailable
@@ -106,7 +107,7 @@ export default function AddToCartButton({
                   }`}
                   disabled={!isAvailable}
                   key={val}
-                  onClick={() => setSelected((s) => ({ ...s, [key]: val }))}
+                  onClick={() => setSelected(s => ({ ...s, [key]: val }))}
                 >
                   {val}
                 </button>
@@ -119,7 +120,7 @@ export default function AddToCartButton({
       {/* Price */}
       {matchedVariant && (
         <div className="flex items-center gap-3">
-          <span className="font-bold text-2xl text-gray-900">
+          <span className="text-2xl font-bold text-gray-900">
             {formatIDR(matchedVariant.price)}
           </span>
           {matchedVariant.compareAtPrice && (
@@ -134,7 +135,7 @@ export default function AddToCartButton({
       {matchedVariant &&
         matchedVariant.stock > 0 &&
         matchedVariant.stock <= 5 && (
-          <p className="font-medium text-sm text-yellow-600">
+          <p className="text-sm font-medium text-yellow-600">
             ⚡ Sisa {matchedVariant.stock} item
           </p>
         )}
@@ -142,18 +143,18 @@ export default function AddToCartButton({
       {/* Quantity */}
       {!isOutOfStock && (
         <div className="flex items-center gap-3">
-          <span className="text-gray-600 text-sm">Jumlah:</span>
+          <span className="text-sm text-gray-600">Jumlah:</span>
           <div className="flex items-center rounded-md border border-gray-200">
             <button
               className="flex h-9 w-9 items-center justify-center text-gray-500 hover:bg-gray-50"
-              onClick={() => setQty((q) => Math.max(1, q - 1))}
+              onClick={() => setQty(q => Math.max(1, q - 1))}
             >
               −
             </button>
-            <span className="w-10 text-center font-medium text-sm">{qty}</span>
+            <span className="w-10 text-center text-sm font-medium">{qty}</span>
             <button
               className="flex h-9 w-9 items-center justify-center text-gray-500 hover:bg-gray-50"
-              onClick={() => setQty((q) => Math.min(maxQty, q + 1))}
+              onClick={() => setQty(q => Math.min(maxQty, q + 1))}
             >
               +
             </button>
@@ -163,7 +164,7 @@ export default function AddToCartButton({
 
       {/* CTA */}
       <button
-        className={`w-full rounded-lg py-3 font-semibold text-sm transition-all ${
+        className={`w-full rounded-lg py-3 text-sm font-semibold transition-all ${
           isOutOfStock
             ? "cursor-not-allowed bg-gray-100 text-gray-400"
             : added

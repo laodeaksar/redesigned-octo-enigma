@@ -3,6 +3,7 @@
 // =============================================================================
 
 import type { ReactNode } from "react";
+
 import { Header } from "./header";
 import { Sidebar } from "./sidebar";
 
@@ -14,7 +15,7 @@ interface AdminLayoutProps {
 
 export function AdminLayout({ title, subtitle, children }: AdminLayoutProps) {
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="bg-background flex h-screen overflow-hidden">
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header subtitle={subtitle} title={title} />

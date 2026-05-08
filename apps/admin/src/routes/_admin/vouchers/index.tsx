@@ -2,15 +2,16 @@
 // Vouchers list page — admin voucher management
 // =============================================================================
 
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Pencil, Plus, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
-import { useState } from "react";
-import { AdminLayout } from "@/components/layout/admin-layout";
-import { type Column, DataTable } from "@/components/shared/data-table";
-import { PageHeader } from "@/components/shared/page-header";
+
 import { api } from "@/lib/api";
 import { cn, formatDate, formatIDR } from "@/lib/utils";
+import { AdminLayout } from "@/components/layout/admin-layout";
+import { DataTable, type Column } from "@/components/shared/data-table";
+import { PageHeader } from "@/components/shared/page-header";
 
 export const Route = createFileRoute("/_admin/vouchers/")({
   component: VouchersPage,
@@ -190,8 +191,8 @@ function VouchersPage() {
     {
       key: "code",
       header: "Kode",
-      cell: (row) => (
-        <span className="font-mono font-semibold text-foreground text-sm">
+      cell: row => (
+        <span className="text-foreground font-mono text-sm font-semibold">
           {row.code}
         </span>
       ),
@@ -199,10 +200,10 @@ function VouchersPage() {
     {
       key: "type",
       header: "Tipe",
-      cell: (row) => (
+      cell: row => (
         <div>
           <span className="text-sm">{TYPE_LABELS[row.type]}</span>
-          <p className="font-semibold text-muted-foreground text-xs">
+          <p className="text-muted-foreground text-xs font-semibold">
             {formatValue(row)}
           </p>
         </div>
@@ -211,7 +212,7 @@ function VouchersPage() {
     {
       key: "usage",
       header: "Pemakaian",
-      cell: (row) => (
+      cell: row => (
         <span className="text-muted-foreground text-sm">
           {row.usageCount}
           {row.usageLimit ? ` / ${row.usageLimit}` : ""}
@@ -221,7 +222,7 @@ function VouchersPage() {
     {
       key: "validity",
       header: "Berlaku",
-      cell: (row) => (
+      cell: row => (
         <div className="text-muted-foreground text-xs">
           {row.startsAt && <p>Dari {formatDate(row.startsAt)}</p>}
           {row.expiresAt ? (
@@ -235,7 +236,7 @@ function VouchersPage() {
     {
       key: "isActive",
       header: "Aktif",
-      cell: (row) => (
+      cell: row => (
         <button
           className={cn(
             "flex items-center gap-1 text-sm transition-colors",
@@ -261,17 +262,17 @@ function VouchersPage() {
       key: "actions",
       header: "",
       className: "w-20",
-      cell: (row) => (
+      cell: row => (
         <div className="flex items-center gap-1">
           <button
-            className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            className="text-muted-foreground hover:bg-accent hover:text-foreground flex h-7 w-7 items-center justify-center rounded-md transition-colors"
             onClick={() => openEdit(row)}
             title="Edit"
           >
             <Pencil className="h-3.5 w-3.5" />
           </button>
           <button
-            className="flex h-7 w-7 items-center justify-center rounded-md text-destructive transition-colors hover:bg-destructive/10"
+            className="text-destructive hover:bg-destructive/10 flex h-7 w-7 items-center justify-center rounded-md transition-colors"
             disabled={deleteMutation.isPending}
             onClick={() => {
               if (confirm(`Hapus voucher "${row.code}"?`)) {
@@ -292,7 +293,7 @@ function VouchersPage() {
       <PageHeader
         actions={
           <button
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground text-sm hover:opacity-90"
+            className="bg-primary text-primary-foreground inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold hover:opacity-90"
             onClick={openCreate}
           >
             <Plus className="h-4 w-4" />
@@ -307,15 +308,15 @@ function VouchersPage() {
         columns={columns}
         data={vouchers}
         emptyMessage="Belum ada voucher"
-        getRowKey={(row) => row.id}
+        getRowKey={row => row.id}
         isLoading={isLoading}
       />
 
       {/* ── Form Dialog ───────────────────────────────────────────────────────── */}
       {formDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-border bg-card p-6 shadow-xl">
-            <h3 className="mb-4 font-semibold text-base text-foreground">
+          <div className="border-border bg-card max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border p-6 shadow-xl">
+            <h3 className="text-foreground mb-4 text-base font-semibold">
               {formDialog.mode === "create"
                 ? "Buat Voucher Baru"
                 : "Edit Voucher"}
@@ -324,14 +325,14 @@ function VouchersPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 block font-medium text-foreground text-sm">
+                  <label className="text-foreground mb-1 block text-sm font-medium">
                     Kode *
                   </label>
                   <input
-                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
+                    className="border-input bg-background focus:ring-ring h-9 w-full rounded-md border px-3 text-sm uppercase focus:outline-none focus:ring-2 disabled:opacity-60"
                     disabled={formDialog.mode === "edit"}
-                    onChange={(e) =>
-                      setForm((f) => ({
+                    onChange={e =>
+                      setForm(f => ({
                         ...f,
                         code: e.target.value.toUpperCase(),
                       }))
@@ -341,13 +342,13 @@ function VouchersPage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block font-medium text-foreground text-sm">
+                  <label className="text-foreground mb-1 block text-sm font-medium">
                     Tipe *
                   </label>
                   <select
-                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                    onChange={(e) =>
-                      setForm((f) => ({
+                    className="border-input bg-background focus:ring-ring h-9 w-full rounded-md border px-3 text-sm focus:outline-none focus:ring-2"
+                    onChange={e =>
+                      setForm(f => ({
                         ...f,
                         type: e.target.value as Voucher["type"],
                       }))
@@ -364,14 +365,14 @@ function VouchersPage() {
               {form.type !== "free_shipping" && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="mb-1 block font-medium text-foreground text-sm">
+                    <label className="text-foreground mb-1 block text-sm font-medium">
                       Nilai {form.type === "percentage" ? "(%)" : "(Rp)"} *
                     </label>
                     <input
-                      className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      className="border-input bg-background focus:ring-ring h-9 w-full rounded-md border px-3 text-sm focus:outline-none focus:ring-2"
                       min={0}
-                      onChange={(e) =>
-                        setForm((f) => ({
+                      onChange={e =>
+                        setForm(f => ({
                           ...f,
                           value: Number(e.target.value),
                         }))
@@ -382,14 +383,14 @@ function VouchersPage() {
                   </div>
                   {form.type === "percentage" && (
                     <div>
-                      <label className="mb-1 block font-medium text-foreground text-sm">
+                      <label className="text-foreground mb-1 block text-sm font-medium">
                         Maks. Diskon (Rp)
                       </label>
                       <input
-                        className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                        className="border-input bg-background focus:ring-ring h-9 w-full rounded-md border px-3 text-sm focus:outline-none focus:ring-2"
                         min={0}
-                        onChange={(e) =>
-                          setForm((f) => ({
+                        onChange={e =>
+                          setForm(f => ({
                             ...f,
                             maximumDiscountAmount: e.target.value,
                           }))
@@ -404,13 +405,13 @@ function VouchersPage() {
               )}
 
               <div>
-                <label className="mb-1 block font-medium text-foreground text-sm">
+                <label className="text-foreground mb-1 block text-sm font-medium">
                   Deskripsi
                 </label>
                 <input
-                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, description: e.target.value }))
+                  className="border-input bg-background focus:ring-ring h-9 w-full rounded-md border px-3 text-sm focus:outline-none focus:ring-2"
+                  onChange={e =>
+                    setForm(f => ({ ...f, description: e.target.value }))
                   }
                   placeholder="Opsional"
                   value={form.description}
@@ -419,14 +420,14 @@ function VouchersPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 block font-medium text-foreground text-sm">
+                  <label className="text-foreground mb-1 block text-sm font-medium">
                     Min. Pembelian (Rp)
                   </label>
                   <input
-                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="border-input bg-background focus:ring-ring h-9 w-full rounded-md border px-3 text-sm focus:outline-none focus:ring-2"
                     min={0}
-                    onChange={(e) =>
-                      setForm((f) => ({
+                    onChange={e =>
+                      setForm(f => ({
                         ...f,
                         minimumOrderAmount: Number(e.target.value),
                       }))
@@ -436,14 +437,14 @@ function VouchersPage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block font-medium text-foreground text-sm">
+                  <label className="text-foreground mb-1 block text-sm font-medium">
                     Maks. Pemakaian Total
                   </label>
                   <input
-                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="border-input bg-background focus:ring-ring h-9 w-full rounded-md border px-3 text-sm focus:outline-none focus:ring-2"
                     min={1}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, usageLimit: e.target.value }))
+                    onChange={e =>
+                      setForm(f => ({ ...f, usageLimit: e.target.value }))
                     }
                     placeholder="Kosongkan = tak terbatas"
                     type="number"
@@ -454,26 +455,26 @@ function VouchersPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 block font-medium text-foreground text-sm">
+                  <label className="text-foreground mb-1 block text-sm font-medium">
                     Berlaku Mulai
                   </label>
                   <input
-                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, startsAt: e.target.value }))
+                    className="border-input bg-background focus:ring-ring h-9 w-full rounded-md border px-3 text-sm focus:outline-none focus:ring-2"
+                    onChange={e =>
+                      setForm(f => ({ ...f, startsAt: e.target.value }))
                     }
                     type="datetime-local"
                     value={form.startsAt}
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block font-medium text-foreground text-sm">
+                  <label className="text-foreground mb-1 block text-sm font-medium">
                     Berakhir
                   </label>
                   <input
-                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, expiresAt: e.target.value }))
+                    className="border-input bg-background focus:ring-ring h-9 w-full rounded-md border px-3 text-sm focus:outline-none focus:ring-2"
+                    onChange={e =>
+                      setForm(f => ({ ...f, expiresAt: e.target.value }))
                     }
                     type="datetime-local"
                     value={form.expiresAt}
@@ -484,15 +485,15 @@ function VouchersPage() {
               <div className="flex items-center gap-2">
                 <input
                   checked={form.isActive}
-                  className="h-4 w-4 rounded border-input"
+                  className="border-input h-4 w-4 rounded"
                   id="isActive"
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, isActive: e.target.checked }))
+                  onChange={e =>
+                    setForm(f => ({ ...f, isActive: e.target.checked }))
                   }
                   type="checkbox"
                 />
                 <label
-                  className="font-medium text-foreground text-sm"
+                  className="text-foreground text-sm font-medium"
                   htmlFor="isActive"
                 >
                   Voucher aktif
@@ -502,13 +503,13 @@ function VouchersPage() {
 
             <div className="mt-6 flex justify-end gap-2">
               <button
-                className="rounded-md border border-input px-4 py-2 font-medium text-foreground text-sm transition-colors hover:bg-muted"
+                className="border-input text-foreground hover:bg-muted rounded-md border px-4 py-2 text-sm font-medium transition-colors"
                 onClick={() => setFormDialog(null)}
               >
                 Batal
               </button>
               <button
-                className="rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground text-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={isSaving || !form.code}
                 onClick={handleSubmit}
               >

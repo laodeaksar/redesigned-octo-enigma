@@ -2,12 +2,13 @@
 // Login page
 // =============================================================================
 
+import { useState } from "react";
+import type React from "react";
+import { useAuth } from "@/stores/auth.store";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
-import type React from "react";
-import { useState } from "react";
+
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/stores/auth.store";
 
 export const Route = createFileRoute("/_auth/login")({
   component: LoginPage,
@@ -39,34 +40,34 @@ function LoginPage() {
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
+    <div className="border-border bg-card rounded-xl border p-8 shadow-sm">
       <div className="mb-6">
-        <h2 className="font-semibold text-foreground text-lg">Masuk</h2>
-        <p className="mt-1 text-muted-foreground text-sm">
+        <h2 className="text-foreground text-lg font-semibold">Masuk</h2>
+        <p className="text-muted-foreground mt-1 text-sm">
           Gunakan akun admin untuk melanjutkan
         </p>
       </div>
 
       {error && (
-        <div className="mb-4 rounded-lg bg-destructive/10 px-4 py-3 text-destructive text-sm">
+        <div className="bg-destructive/10 text-destructive mb-4 rounded-lg px-4 py-3 text-sm">
           {error}
         </div>
       )}
 
-      <form className="space-y-4" onSubmit={(e) => void handleSubmit(e)}>
+      <form className="space-y-4" onSubmit={e => void handleSubmit(e)}>
         {/* Email */}
         <div>
           <label
-            className="mb-1.5 block font-medium text-foreground text-sm"
+            className="text-foreground mb-1.5 block text-sm font-medium"
             htmlFor="email"
           >
             Email
           </label>
           <input
             autoComplete="email"
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            className="border-input bg-background placeholder:text-muted-foreground focus:ring-ring w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2"
             id="email"
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={e => setEmail(e.target.value)}
             placeholder="admin@my-ecommerce.com"
             required
             type="email"
@@ -77,7 +78,7 @@ function LoginPage() {
         {/* Password */}
         <div>
           <label
-            className="mb-1.5 block font-medium text-foreground text-sm"
+            className="text-foreground mb-1.5 block text-sm font-medium"
             htmlFor="password"
           >
             Password
@@ -85,17 +86,17 @@ function LoginPage() {
           <div className="relative">
             <input
               autoComplete="current-password"
-              className="w-full rounded-md border border-input bg-background px-3 py-2 pr-10 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="border-input bg-background placeholder:text-muted-foreground focus:ring-ring w-full rounded-md border px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2"
               id="password"
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={e => setPassword(e.target.value)}
               placeholder="••••••••"
               required
               type={showPassword ? "text" : "password"}
               value={password}
             />
             <button
-              className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              onClick={() => setShowPassword((v) => !v)}
+              className="text-muted-foreground hover:text-foreground absolute right-3 top-1/2 -translate-y-1/2"
+              onClick={() => setShowPassword(v => !v)}
               type="button"
             >
               {showPassword ? (
@@ -109,8 +110,8 @@ function LoginPage() {
 
         <button
           className={cn(
-            "flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5",
-            "font-semibold text-primary-foreground text-sm transition-opacity",
+            "bg-primary flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5",
+            "text-primary-foreground text-sm font-semibold transition-opacity",
             "hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
           )}
           disabled={isLoading}

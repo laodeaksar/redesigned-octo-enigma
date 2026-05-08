@@ -1,8 +1,9 @@
-import { success } from "@repo/common/schemas";
-import { isMongoConnected } from "@repo/database/mongo";
+import { db } from "@/config";
 import { sql } from "drizzle-orm";
 import Elysia from "elysia";
-import { db } from "@/config";
+
+import { success } from "@repo/common/schemas";
+import { isMongoConnected } from "@repo/database/mongo";
 
 export const healthRoutes = new Elysia({ prefix: "/health" }).get(
   "/",
@@ -20,7 +21,7 @@ export const healthRoutes = new Elysia({ prefix: "/health" }).get(
       checks["postgres"] = "error";
     }
 
-    const allOk = Object.values(checks).every((v) => v === "ok");
+    const allOk = Object.values(checks).every(v => v === "ok");
 
     return success({
       status: allOk ? "ok" : "degraded",

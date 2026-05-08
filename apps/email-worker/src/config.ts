@@ -2,8 +2,9 @@
 // Config — validated env + Redis + BullMQ worker connection
 // =============================================================================
 
-import { env as rawEnv } from "@repo/env/email-worker";
 import Redis from "ioredis";
+
+import { env as rawEnv } from "@repo/env/email-worker";
 
 export const env = rawEnv;
 
@@ -14,5 +15,5 @@ export const redis = new Redis(env.REDIS_URL, {
   enableReadyCheck: false,
 });
 
-redis.on("error", (err) => console.warn("[Redis] Error:", err.message));
+redis.on("error", err => console.warn("[Redis] Error:", err.message));
 redis.on("connect", () => console.info("[Redis] Connected"));

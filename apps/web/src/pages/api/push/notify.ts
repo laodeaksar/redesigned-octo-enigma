@@ -4,6 +4,7 @@
 // =============================================================================
 
 import type { APIRoute } from "astro";
+
 import { sendOrderStatusPush } from "@/lib/push.server";
 
 const INTERNAL_KEY = process.env.INTERNAL_NOTIFY_KEY ?? "push-notify-internal";
@@ -33,8 +34,8 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   // Fire-and-forget: send push notifications async
-  sendOrderStatusPush(body.orderId, body.status, body.orderNumber).catch(
-    (err) => console.warn("[push/notify] Failed to send push:", err?.message)
+  sendOrderStatusPush(body.orderId, body.status, body.orderNumber).catch(err =>
+    console.warn("[push/notify] Failed to send push:", err?.message)
   );
 
   return new Response(JSON.stringify({ success: true }), {

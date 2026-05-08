@@ -4,22 +4,22 @@
 // =============================================================================
 
 // Base configuration for JavaScript/TypeScript
-export { default as base } from "./base.js";
+import { base } from "./base.js";
 
 // TypeScript-specific rules
-export { default as typescript } from "./typescript.js";
+import { default as typescript } from "./typescript.js";
 
 // React-specific rules
-export { default as react } from "./react.js";
+import { default as react } from "./react.js";
 
 // React Hooks rules
-export { default as reactHooks } from "./react-hooks.js";
+import { default as reactHooks } from "./react-hooks.js";
 
 // Testing rules (Jest, React Testing Library)
-export { default as testing } from "./testing.js";
+import { default as testing } from "./testing.js";
 
 // Tailwind CSS rules
-export { default as tailwind } from "./tailwind.js";
+import { default as tailwind } from "./tailwind.js";
 
 // Combined configurations for convenience
 export const reactApp = [base, typescript, react, reactHooks];

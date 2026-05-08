@@ -1,11 +1,12 @@
-import { useStore } from "@nanostores/react";
 import { useEffect } from "react";
-import { formatIDR } from "@/lib/utils";
 import {
   $recentlyViewed,
   hydrateRecentlyViewed,
   type RecentProduct,
 } from "@/stores/recentlyViewed.store";
+import { useStore } from "@nanostores/react";
+
+import { formatIDR } from "@/lib/utils";
 
 /*function formatIDR(n: number) {
   return new Intl.NumberFormat("id-ID", {
@@ -41,7 +42,7 @@ function ProductCard({
     <a
       aria-current={isCurrent ? "page" : undefined}
       className={`group flex w-36 shrink-0 flex-col overflow-hidden rounded-xl border bg-white transition-all hover:-translate-y-0.5 hover:shadow-md sm:w-44 ${
-        isCurrent ? "border-brand-300 ring-1 ring-brand-300" : "border-gray-100"
+        isCurrent ? "border-brand-300 ring-brand-300 ring-1" : "border-gray-100"
       }`}
       href={`/products/${product.slug}`}
     >
@@ -59,13 +60,13 @@ function ProductCard({
           </div>
         )}
         {isCurrent && (
-          <div className="absolute top-1.5 left-1.5 rounded-full bg-brand-500 px-2 py-0.5 font-bold text-[10px] text-white">
+          <div className="bg-brand-500 absolute top-1.5 left-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold text-white">
             Sedang dilihat
           </div>
         )}
       </div>
       <div className="flex flex-1 flex-col gap-1 p-2.5">
-        <p className="line-clamp-2 font-medium text-gray-800 text-xs leading-snug">
+        <p className="line-clamp-2 text-xs leading-snug font-medium text-gray-800">
           {product.name}
         </p>
         <p className="mt-auto text-xs">
@@ -92,7 +93,7 @@ export default function RecentlyViewed({
   const items = useStore($recentlyViewed);
 
   const visible = currentSlug
-    ? items.filter((p) => p.slug !== currentSlug).slice(0, 8)
+    ? items.filter(p => p.slug !== currentSlug).slice(0, 8)
     : items.slice(0, 8);
 
   if (visible.length === 0) {
@@ -103,9 +104,9 @@ export default function RecentlyViewed({
     <section className="py-10">
       <div className="container mx-auto px-4">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-bold text-gray-900 text-xl">{title}</h2>
+          <h2 className="text-xl font-bold text-gray-900">{title}</h2>
           <button
-            className="text-gray-400 text-xs transition-colors hover:text-gray-600"
+            className="text-xs text-gray-400 transition-colors hover:text-gray-600"
             onClick={() => {
               if (typeof localStorage !== "undefined") {
                 localStorage.removeItem("recently_viewed");
@@ -118,7 +119,7 @@ export default function RecentlyViewed({
           </button>
         </div>
         <div className="scrollbar-thin flex gap-3 overflow-x-auto pb-2">
-          {visible.map((p) => (
+          {visible.map(p => (
             <ProductCard currentSlug={currentSlug} key={p.id} product={p} />
           ))}
         </div>

@@ -6,13 +6,14 @@
 // Captures 401 and 403 responses — fire-and-forget (never blocks the response).
 // =============================================================================
 
-import { auditLogsTable } from "@repo/database/drizzle/schema";
-import { createMiddleware } from "hono/factory";
 import { db } from "@/config";
 import {
   extractIp,
   recordIpFailure,
 } from "@/middleware/ip-blocklist.middleware";
+import { createMiddleware } from "hono/factory";
+
+import { auditLogsTable } from "@repo/database/drizzle/schema";
 
 export const auditMiddleware = createMiddleware(async (c, next) => {
   await next();

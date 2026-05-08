@@ -32,7 +32,7 @@ export const sessionsTable = pgTable(
     impersonatedBy: text("impersonated_by"), // admin user ID if impersonating
     ...timestamps(),
   },
-  (t) => ({
+  t => ({
     userIdIdx: index("sessions_user_id_idx").on(t.userId),
     tokenIdx: uniqueIndex("sessions_token_idx").on(t.token),
     expiresAtIdx: index("sessions_expires_at_idx").on(t.expiresAt),

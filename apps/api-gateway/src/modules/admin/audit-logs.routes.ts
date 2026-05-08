@@ -9,12 +9,13 @@
 // Auth middleware is applied inline per-route for reliable Hono sub-router scoping.
 // =============================================================================
 
-import { failure, success } from "@repo/common/schemas";
-import { auditLogsTable } from "@repo/database/drizzle/schema";
-import { and, count, desc, eq, gte, ilike, sql } from "drizzle-orm";
-import { Hono } from "hono";
 import { db } from "@/config";
 import { requireAuth, requireRole } from "@/middleware/auth.middleware";
+import { and, count, desc, eq, gte, ilike, sql } from "drizzle-orm";
+import { Hono } from "hono";
+
+import { failure, success } from "@repo/common/schemas";
+import { auditLogsTable } from "@repo/database/drizzle/schema";
 
 const app = new Hono();
 
@@ -23,7 +24,7 @@ app.get(
   "/admin/audit-logs",
   requireAuth,
   requireRole("admin", "super_admin"),
-  async (c) => {
+  async c => {
     if (!db) {
       return c.json(
         failure("SERVICE_UNAVAILABLE", "Database not available"),
@@ -88,7 +89,7 @@ app.get(
   "/admin/audit-logs/stats",
   requireAuth,
   requireRole("admin", "super_admin"),
-  async (c) => {
+  async c => {
     if (!db) {
       return c.json(
         failure("SERVICE_UNAVAILABLE", "Database not available"),
@@ -155,7 +156,7 @@ app.delete(
   "/admin/audit-logs",
   requireAuth,
   requireRole("admin", "super_admin"),
-  async (c) => {
+  async c => {
     if (!db) {
       return c.json(
         failure("SERVICE_UNAVAILABLE", "Database not available"),

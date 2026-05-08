@@ -48,7 +48,7 @@ export const productVariantsTable = pgTable(
     isActive: boolean("is_active").notNull().default(true),
     ...timestamps(),
   },
-  (t) => ({
+  t => ({
     productIdIdx: index("product_variants_product_id_idx").on(t.productId),
     skuIdx: uniqueIndex("product_variants_sku_idx").on(t.sku), // sku biasanya unique
     priceIdx: index("product_variants_price_idx").on(t.price),

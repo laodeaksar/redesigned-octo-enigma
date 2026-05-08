@@ -3,9 +3,11 @@
 // Queue: email.order-confirmation
 // =============================================================================
 
+import { z } from "zod";
+
 import { QUEUES } from "@repo/common/events";
 import type { OrderConfirmationEmailJobData } from "@repo/common/types";
-import { z } from "zod";
+
 import { createEmailHandler } from "@/lib/create-email-handler";
 import { orderConfirmationTemplate } from "@/lib/templates";
 
@@ -48,8 +50,8 @@ export const handleOrderConfirmationEmail =
   createEmailHandler<OrderConfirmationEmailJobData>({
     queueName: QUEUES.EMAIL_ORDER_CONFIRMATION,
     schema,
-    getTemplate: (data) => orderConfirmationTemplate(data),
-    getExtraHeaders: (data) => ({
+    getTemplate: data => orderConfirmationTemplate(data),
+    getExtraHeaders: data => ({
       "X-Order-Number": data.orderNumber,
     }),
   });

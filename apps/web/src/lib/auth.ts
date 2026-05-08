@@ -72,6 +72,7 @@ export async function requireAuth(
 // =============================================================================
 
 import type { APIContext, AstroCookies } from "astro";
+
 import { api, type User } from "./api";
 
 const ACCESS_COOKIE = "web_access_token";

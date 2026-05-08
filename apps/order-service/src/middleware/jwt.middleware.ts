@@ -3,14 +3,15 @@
 // Internal middleware — verifies x-internal-key for service-to-service calls
 // =============================================================================
 
+import { env } from "@/config";
+import Elysia from "elysia";
+
 import {
   ForbiddenError,
   InsufficientRoleError,
   UnauthorizedError,
 } from "@repo/common/errors";
 import type { UserRole } from "@repo/common/types";
-import Elysia from "elysia";
-import { env } from "@/config";
 
 /**
  * Reads x-user-id / x-user-email / x-user-role headers set by api-gateway

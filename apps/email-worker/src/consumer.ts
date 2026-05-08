@@ -2,13 +2,6 @@
 // BullMQ worker wiring — registers all queue → handler bindings
 // =============================================================================
 
-import {
-  closeWorkers,
-  createWorkers,
-  QUEUES,
-  type Worker,
-  type WorkerBinding,
-} from "@repo/common/events";
 import { redis } from "@/config";
 import { handleOrderCancelledEmail } from "@/handlers/order-cancelled.handler";
 import { handleOrderConfirmationEmail } from "@/handlers/order-confirmation.handler";
@@ -16,6 +9,15 @@ import { handleOrderShippedEmail } from "@/handlers/order-shipped.handler";
 import { handlePasswordResetEmail } from "@/handlers/password-reset.handler";
 import { handleSecurityAlertEmail } from "@/handlers/security-alert.handler";
 import { handleWelcomeEmail } from "@/handlers/welcome.handler";
+
+import {
+  closeWorkers,
+  createWorkers,
+  QUEUES,
+  type Worker,
+  type WorkerBinding,
+} from "@repo/common/events";
+
 import { logger } from "@/lib/logger";
 
 const DEFAULT_WORKER_OPTS = {
@@ -69,19 +71,19 @@ export function startWorkers(): Worker[] {
   workers.forEach((worker, idx) => {
     const queueName = BINDINGS[idx]?.queue ?? "unknown";
 
-    worker.on("completed", (job) =>
+    worker.on("completed", job =>
       logger.info({ jobId: job.id, queueName }, "Job completed")
     );
     worker.on("failed", (job, err) =>
       logger.error({ jobId: job?.id, queueName, err }, "Job failed")
     );
-    worker.on("stalled", (jobId) =>
+    worker.on("stalled", jobId =>
       logger.warn({ jobId, queueName }, "Job stalled — will be retried")
     );
   });
 
   logger.info(
-    { queues: BINDINGS.map((b) => b.queue) },
+    { queues: BINDINGS.map(b => b.queue) },
     `📬 Consuming ${workers.length} queue(s)`
   );
 

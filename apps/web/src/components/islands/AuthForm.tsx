@@ -2,8 +2,9 @@
 // AuthForm — React island for login and register, client:load
 // =============================================================================
 
-import type React from "react";
 import { useState } from "react";
+import type React from "react";
+
 import { api } from "@/lib/api";
 
 interface Props {
@@ -96,22 +97,22 @@ export default function AuthForm({ mode, redirectTo = "/" }: Props) {
   };
 
   return (
-    <form className="space-y-4" onSubmit={(e) => void handleSubmit(e)}>
+    <form className="space-y-4" onSubmit={e => void handleSubmit(e)}>
       {error && (
-        <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-red-700 text-sm">
+        <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </div>
       )}
 
       {!isLogin && (
         <div>
-          <label className="mb-1.5 block font-medium text-gray-700 text-sm">
+          <label className="mb-1.5 block text-sm font-medium text-gray-700">
             Nama Lengkap
           </label>
           <input
-            className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10"
+            className="focus:border-brand-500 focus:ring-brand-500/10 w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none focus:ring-2"
             minLength={2}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
             placeholder="Nama kamu"
             required
             type="text"
@@ -121,13 +122,13 @@ export default function AuthForm({ mode, redirectTo = "/" }: Props) {
       )}
 
       <div>
-        <label className="mb-1.5 block font-medium text-gray-700 text-sm">
+        <label className="mb-1.5 block text-sm font-medium text-gray-700">
           Email
         </label>
         <input
           autoComplete="email"
-          className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10"
-          onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+          className="focus:border-brand-500 focus:ring-brand-500/10 w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none focus:ring-2"
+          onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
           placeholder="email@kamu.com"
           required
           type="email"
@@ -136,17 +137,15 @@ export default function AuthForm({ mode, redirectTo = "/" }: Props) {
       </div>
 
       <div>
-        <label className="mb-1.5 block font-medium text-gray-700 text-sm">
+        <label className="mb-1.5 block text-sm font-medium text-gray-700">
           Password
         </label>
         <div className="relative">
           <input
             autoComplete={isLogin ? "current-password" : "new-password"}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2.5 pr-10 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10"
+            className="focus:border-brand-500 focus:ring-brand-500/10 w-full rounded-lg border border-gray-200 px-3 py-2.5 pr-10 text-sm outline-none focus:ring-2"
             minLength={8}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, password: e.target.value }))
-            }
+            onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
             placeholder="Min. 8 karakter"
             required
             type={showPassword ? "text" : "password"}
@@ -154,7 +153,7 @@ export default function AuthForm({ mode, redirectTo = "/" }: Props) {
           />
           <button
             className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            onClick={() => setShowPassword((s) => !s)}
+            onClick={() => setShowPassword(s => !s)}
             type="button"
           >
             {showPassword ? "🙈" : "👁️"}
@@ -164,14 +163,14 @@ export default function AuthForm({ mode, redirectTo = "/" }: Props) {
 
       {!isLogin && (
         <div>
-          <label className="mb-1.5 block font-medium text-gray-700 text-sm">
+          <label className="mb-1.5 block text-sm font-medium text-gray-700">
             Konfirmasi Password
           </label>
           <input
             autoComplete="new-password"
-            className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10"
-            onChange={(e) =>
-              setForm((f) => ({ ...f, confirmPassword: e.target.value }))
+            className="focus:border-brand-500 focus:ring-brand-500/10 w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none focus:ring-2"
+            onChange={e =>
+              setForm(f => ({ ...f, confirmPassword: e.target.value }))
             }
             placeholder="Ulangi password"
             required
@@ -193,7 +192,7 @@ export default function AuthForm({ mode, redirectTo = "/" }: Props) {
       )}
 
       <button
-        className="w-full rounded-lg bg-accent py-3 font-semibold text-sm text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+        className="bg-accent w-full rounded-lg py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
         disabled={isLoading}
         type="submit"
       >
@@ -206,12 +205,12 @@ export default function AuthForm({ mode, redirectTo = "/" }: Props) {
             : "Daftar Sekarang"}
       </button>
 
-      <p className="text-center text-gray-500 text-sm">
+      <p className="text-center text-sm text-gray-500">
         {isLogin ? (
           <>
             Belum punya akun?{" "}
             <a
-              className="font-medium text-accent hover:underline"
+              className="text-accent font-medium hover:underline"
               href="/auth/register"
             >
               Daftar
@@ -221,7 +220,7 @@ export default function AuthForm({ mode, redirectTo = "/" }: Props) {
           <>
             Sudah punya akun?{" "}
             <a
-              className="font-medium text-accent hover:underline"
+              className="text-accent font-medium hover:underline"
               href="/auth/login"
             >
               Masuk

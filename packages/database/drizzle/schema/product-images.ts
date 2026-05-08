@@ -30,7 +30,7 @@ export const productImagesTable = pgTable(
     isPrimary: boolean("is_primary").notNull().default(false),
     ...timestamps(),
   },
-  (t) => ({
+  t => ({
     productImagesProductIdIdx: index("product_images_product_id_idx").on(
       t.productId
     ),

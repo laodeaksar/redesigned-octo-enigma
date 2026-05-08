@@ -21,11 +21,11 @@ export const $isCartOpen = atom(false);
 
 // ── Computed ──────────────────────────────────────────────────────────────────
 
-export const $cartCount = computed($cart, (items) =>
+export const $cartCount = computed($cart, items =>
   items.reduce((sum, i) => sum + i.quantity, 0)
 );
 
-export const $cartTotal = computed($cart, (items) =>
+export const $cartTotal = computed($cart, items =>
   items.reduce((sum, i) => sum + i.price * i.quantity, 0)
 );
 
@@ -33,11 +33,11 @@ export const $cartTotal = computed($cart, (items) =>
 
 export function addToCart(item: CartItem) {
   const current = $cart.get();
-  const existing = current.find((i) => i.variantId === item.variantId);
+  const existing = current.find(i => i.variantId === item.variantId);
 
   if (existing) {
     $cart.set(
-      current.map((i) =>
+      current.map(i =>
         i.variantId === item.variantId
           ? { ...i, quantity: i.quantity + item.quantity }
           : i
@@ -57,7 +57,7 @@ export function updateQuantity(variantId: string, quantity: number) {
     return;
   }
   $cart.set(
-    $cart.get().map((i) => (i.variantId === variantId ? { ...i, quantity } : i))
+    $cart.get().map(i => (i.variantId === variantId ? { ...i, quantity } : i))
   );
   persistCart();
 }
@@ -72,7 +72,7 @@ export function removeFromCart(variantId: string, withUndo = true) {
     }
   }
 
-  $cart.set($cart.get().filter((i) => i.variantId !== variantId));
+  $cart.set($cart.get().filter(i => i.variantId !== variantId));
   persistCart();
 }
 

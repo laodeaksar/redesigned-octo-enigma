@@ -3,11 +3,8 @@
 // Fetches full product details, renders side-by-side comparison table.
 // =============================================================================
 
-import { useStore } from "@nanostores/react";
-import type React from "react";
 import { useEffect, useState } from "react";
-import type { ProductDetail } from "@/lib/api";
-import { formatIDR } from "@/lib/utils";
+import type React from "react";
 import {
   $compareList,
   clearCompare,
@@ -15,6 +12,10 @@ import {
   MAX_COMPARE,
   removeFromCompare,
 } from "@/stores/compare.store";
+import { useStore } from "@nanostores/react";
+
+import type { ProductDetail } from "@/lib/api";
+import { formatIDR } from "@/lib/utils";
 
 const BASE = import.meta.env.PUBLIC_API_URL ?? "http://localhost:3000";
 
@@ -48,7 +49,7 @@ function Row({
   return (
     <tr className={shaded ? "bg-gray-50/70" : "bg-white"}>
       <td
-        className="sticky left-0 z-10 w-36 shrink-0 border-gray-100 border-r py-4 pr-3 pl-4 align-top font-semibold text-gray-400 text-xs uppercase tracking-wide sm:w-44 sm:pl-6"
+        className="sticky left-0 z-10 w-36 shrink-0 border-r border-gray-100 py-4 pr-3 pl-4 align-top text-xs font-semibold tracking-wide text-gray-400 uppercase sm:w-44 sm:pl-6"
         style={{ backgroundColor: "inherit" }}
       >
         {label}
@@ -62,10 +63,10 @@ function EmptySlot() {
   return (
     <td className="px-4 py-4 align-top">
       <a
-        className="flex aspect-square max-h-32 max-w-[8rem] items-center justify-center rounded-xl border-2 border-gray-200 border-dashed text-gray-400 transition-colors hover:border-brand-300 hover:text-brand-400"
+        className="hover:border-brand-300 hover:text-brand-400 flex aspect-square max-h-32 max-w-[8rem] items-center justify-center rounded-xl border-2 border-dashed border-gray-200 text-gray-400 transition-colors"
         href="/products"
       >
-        <span className="text-center font-medium text-xs leading-tight">
+        <span className="text-center text-xs leading-tight font-medium">
           + Tambah
           <br />
           produk
@@ -88,7 +89,7 @@ export default function ComparePage() {
   }, []);
 
   // Re-fetch whenever product list changes
-  const slugKey = products.map((p) => p.slug).join(",");
+  const slugKey = products.map(p => p.slug).join(",");
   useEffect(() => {
     if (products.length === 0) {
       setDetails([]);
@@ -96,7 +97,7 @@ export default function ComparePage() {
       return;
     }
     setLoading(true);
-    Promise.all(products.map((p) => fetchDetail(p.slug))).then((results) => {
+    Promise.all(products.map(p => fetchDetail(p.slug))).then(results => {
       setDetails(results);
       setLoading(false);
     });
@@ -107,23 +108,23 @@ export default function ComparePage() {
   if (loading) {
     return (
       <div className="flex h-72 items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-brand-500 border-t-transparent" />
+        <div className="border-brand-500 h-10 w-10 animate-spin rounded-full border-4 border-t-transparent" />
       </div>
     );
   }
 
   if (products.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-5 rounded-2xl border border-gray-200 border-dashed py-28 text-center">
+      <div className="flex flex-col items-center justify-center gap-5 rounded-2xl border border-dashed border-gray-200 py-28 text-center">
         <span className="text-6xl">⚖️</span>
         <div>
-          <h2 className="font-bold text-gray-900 text-xl">Belum ada produk</h2>
-          <p className="mt-1 text-gray-500 text-sm">
+          <h2 className="text-xl font-bold text-gray-900">Belum ada produk</h2>
+          <p className="mt-1 text-sm text-gray-500">
             Pilih produk dari halaman produk dan klik tombol "Bandingkan".
           </p>
         </div>
         <a
-          className="rounded-xl bg-brand-500 px-6 py-3 font-semibold text-sm text-white hover:bg-brand-600"
+          className="bg-brand-500 hover:bg-brand-600 rounded-xl px-6 py-3 text-sm font-semibold text-white"
           href="/products"
         >
           Jelajahi Produk
@@ -134,18 +135,18 @@ export default function ComparePage() {
 
   if (products.length === 1) {
     return (
-      <div className="flex flex-col items-center justify-center gap-5 rounded-2xl border border-gray-200 border-dashed py-28 text-center">
+      <div className="flex flex-col items-center justify-center gap-5 rounded-2xl border border-dashed border-gray-200 py-28 text-center">
         <span className="text-5xl">➕</span>
         <div>
-          <h2 className="font-bold text-gray-900 text-xl">
+          <h2 className="text-xl font-bold text-gray-900">
             Tambahkan 1 produk lagi
           </h2>
-          <p className="mt-1 text-gray-500 text-sm">
+          <p className="mt-1 text-sm text-gray-500">
             Kamu butuh minimal 2 produk untuk mulai membandingkan.
           </p>
         </div>
         <a
-          className="rounded-xl bg-brand-500 px-6 py-3 font-semibold text-sm text-white hover:bg-brand-600"
+          className="bg-brand-500 hover:bg-brand-600 rounded-xl px-6 py-3 text-sm font-semibold text-white"
           href="/products"
         >
           Tambah Produk
@@ -157,9 +158,9 @@ export default function ComparePage() {
   // ── Compute highlights ─────────────────────────────────────────────────────
 
   const emptySlots = MAX_COMPARE - products.length;
-  const prices = products.map((p) => p.lowestPrice);
+  const prices = products.map(p => p.lowestPrice);
   const lowestPriceIdx = prices.indexOf(Math.min(...prices));
-  const allTags = Array.from(new Set(products.flatMap((p) => p.tags)));
+  const allTags = Array.from(new Set(products.flatMap(p => p.tags)));
 
   // ── Comparison table ───────────────────────────────────────────────────────
 
@@ -167,11 +168,11 @@ export default function ComparePage() {
     <div>
       {/* Toolbar */}
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-gray-500 text-sm">
+        <p className="text-sm text-gray-500">
           {products.length} produk dipilih
         </p>
         <button
-          className="text-gray-400 text-sm transition-colors hover:text-red-500"
+          className="text-sm text-gray-400 transition-colors hover:text-red-500"
           onClick={clearCompare}
         >
           Hapus semua
@@ -183,14 +184,14 @@ export default function ComparePage() {
         <table className="w-full min-w-[560px] border-collapse">
           {/* ── Product header row ─────────────────────────────────────────── */}
           <thead>
-            <tr className="border-gray-100 border-b">
+            <tr className="border-b border-gray-100">
               {/* Sticky label cell */}
-              <td className="sticky left-0 z-20 w-36 border-gray-100 border-r bg-white py-4 pr-3 pl-4 sm:w-44 sm:pl-6" />
+              <td className="sticky left-0 z-20 w-36 border-r border-gray-100 bg-white py-4 pr-3 pl-4 sm:w-44 sm:pl-6" />
 
               {products.map((p, i) => {
                 const detail = details[i];
                 const primaryImg =
-                  detail?.images.find((img) => img.isPrimary)?.url ??
+                  detail?.images.find(img => img.isPrimary)?.url ??
                   detail?.images[0]?.url ??
                   p.primaryImage;
 
@@ -235,11 +236,11 @@ export default function ComparePage() {
                           </div>
                         )}
                       </div>
-                      <p className="line-clamp-2 font-semibold text-gray-900 text-sm transition-colors group-hover:text-brand-500">
+                      <p className="group-hover:text-brand-500 line-clamp-2 text-sm font-semibold text-gray-900 transition-colors">
                         {p.name}
                       </p>
                       {p.categoryName && (
-                        <p className="mt-0.5 text-gray-400 text-xs">
+                        <p className="mt-0.5 text-xs text-gray-400">
                           {p.categoryName}
                         </p>
                       )}
@@ -255,10 +256,10 @@ export default function ComparePage() {
                   key={`empty-head-${i}`}
                 >
                   <a
-                    className="flex aspect-square items-center justify-center rounded-xl border-2 border-gray-200 border-dashed text-gray-400 transition-colors hover:border-brand-300 hover:text-brand-400"
+                    className="hover:border-brand-300 hover:text-brand-400 flex aspect-square items-center justify-center rounded-xl border-2 border-dashed border-gray-200 text-gray-400 transition-colors"
                     href="/products"
                   >
-                    <span className="text-center font-medium text-xs leading-snug">
+                    <span className="text-center text-xs leading-snug font-medium">
                       + Tambah
                       <br />
                       produk
@@ -282,7 +283,7 @@ export default function ComparePage() {
                       : `${formatIDR(p.lowestPrice)} – ${formatIDR(p.highestPrice)}`}
                   </div>
                   {i === lowestPriceIdx && products.length >= 2 && (
-                    <span className="mt-1 inline-block rounded-full bg-green-50 px-2 py-0.5 font-semibold text-[10px] text-green-600">
+                    <span className="mt-1 inline-block rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-600">
                       Termurah
                     </span>
                   )}
@@ -295,18 +296,18 @@ export default function ComparePage() {
 
             {/* ── Stock ─────────────────────────────────────────────────── */}
             <Row label="Stok" shaded>
-              {products.map((p) => (
+              {products.map(p => (
                 <td className="px-4 py-4 align-top" key={p.id}>
                   {p.totalStock === 0 ? (
-                    <span className="inline-flex items-center rounded-full bg-red-50 px-2.5 py-1 font-semibold text-red-600 text-xs">
+                    <span className="inline-flex items-center rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600">
                       Habis
                     </span>
                   ) : p.totalStock <= 5 ? (
-                    <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 font-semibold text-amber-700 text-xs">
+                    <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
                       ⚡ Sisa {p.totalStock}
                     </span>
                   ) : (
-                    <span className="inline-flex items-center rounded-full bg-green-50 px-2.5 py-1 font-semibold text-green-700 text-xs">
+                    <span className="inline-flex items-center rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700">
                       ✓ Tersedia ({p.totalStock})
                     </span>
                   )}
@@ -318,11 +319,11 @@ export default function ComparePage() {
             </Row>
 
             {/* ── Category ──────────────────────────────────────────────── */}
-            {products.some((p) => p.categoryName) && (
+            {products.some(p => p.categoryName) && (
               <Row label="Kategori">
-                {products.map((p) => (
+                {products.map(p => (
                   <td
-                    className="px-4 py-4 align-top text-gray-700 text-sm"
+                    className="px-4 py-4 align-top text-sm text-gray-700"
                     key={p.id}
                   >
                     {p.categoryName ?? <span className="text-gray-300">—</span>}
@@ -335,13 +336,13 @@ export default function ComparePage() {
             )}
 
             {/* ── Short description ─────────────────────────────────────── */}
-            {details.some((d) => d?.shortDescription) && (
+            {details.some(d => d?.shortDescription) && (
               <Row label="Deskripsi" shaded>
                 {products.map((_, i) => {
                   const d = details[i];
                   return (
                     <td
-                      className="px-4 py-4 align-top text-gray-600 text-sm leading-relaxed"
+                      className="px-4 py-4 align-top text-sm leading-relaxed text-gray-600"
                       key={products[i].id}
                     >
                       {d?.shortDescription ?? (
@@ -357,31 +358,31 @@ export default function ComparePage() {
             )}
 
             {/* ── Variants ──────────────────────────────────────────────── */}
-            {details.some((d) => d && d.variants.length > 0) && (
+            {details.some(d => d && d.variants.length > 0) && (
               <Row label="Varian">
                 {products.map((_, i) => {
                   const d = details[i];
-                  const active = d?.variants.filter((v) => v.isActive) ?? [];
+                  const active = d?.variants.filter(v => v.isActive) ?? [];
                   const attrKeys = Object.keys(active[0]?.attributes ?? {});
                   return (
                     <td
-                      className="px-4 py-4 align-top text-gray-700 text-sm"
+                      className="px-4 py-4 align-top text-sm text-gray-700"
                       key={products[i].id}
                     >
                       {active.length > 0 ? (
                         <div className="space-y-1">
                           <p className="font-medium">{active.length} varian</p>
-                          {attrKeys.map((key) => {
+                          {attrKeys.map(key => {
                             const vals = [
                               ...new Set(
                                 active
-                                  .map((v) => v.attributes[key])
+                                  .map(v => v.attributes[key])
                                   .filter(Boolean)
                               ),
                             ];
                             return (
                               <p
-                                className="text-gray-500 text-xs capitalize"
+                                className="text-xs text-gray-500 capitalize"
                                 key={key}
                               >
                                 {key}: {vals.join(", ")}
@@ -402,13 +403,13 @@ export default function ComparePage() {
             )}
 
             {/* ── Weight ────────────────────────────────────────────────── */}
-            {details.some((d) => d?.weight) && (
+            {details.some(d => d?.weight) && (
               <Row label="Berat" shaded>
                 {products.map((_, i) => {
                   const d = details[i];
                   return (
                     <td
-                      className="px-4 py-4 align-top text-gray-700 text-sm"
+                      className="px-4 py-4 align-top text-sm text-gray-700"
                       key={products[i].id}
                     >
                       {d?.weight ? (
@@ -428,13 +429,13 @@ export default function ComparePage() {
             {/* ── Tags ──────────────────────────────────────────────────── */}
             {allTags.length > 0 && (
               <Row label="Tag">
-                {products.map((p) => (
+                {products.map(p => (
                   <td className="px-4 py-4 align-top" key={p.id}>
                     {p.tags.length > 0 ? (
                       <div className="flex flex-wrap gap-1">
-                        {p.tags.map((t) => (
+                        {p.tags.map(t => (
                           <span
-                            className="rounded-full bg-gray-100 px-2 py-0.5 text-gray-600 text-xs"
+                            className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
                             key={t}
                           >
                             {t}
@@ -442,7 +443,7 @@ export default function ComparePage() {
                         ))}
                       </div>
                     ) : (
-                      <span className="text-gray-300 text-sm">—</span>
+                      <span className="text-sm text-gray-300">—</span>
                     )}
                   </td>
                 ))}
@@ -453,21 +454,21 @@ export default function ComparePage() {
             )}
 
             {/* ── CTA row ───────────────────────────────────────────────── */}
-            <tr className="border-gray-100 border-t">
-              <td className="sticky left-0 z-10 border-gray-100 border-r bg-white py-4 pr-3 pl-4 sm:pl-6" />
-              {products.map((p) => (
+            <tr className="border-t border-gray-100">
+              <td className="sticky left-0 z-10 border-r border-gray-100 bg-white py-4 pr-3 pl-4 sm:pl-6" />
+              {products.map(p => (
                 <td className="px-4 py-4 align-top" key={p.id}>
                   <div className="flex flex-col gap-2">
                     {p.totalStock > 0 && (
                       <button
-                        className="block w-full rounded-lg bg-accent px-4 py-2 text-center font-semibold text-sm text-white transition-opacity hover:opacity-90"
+                        className="bg-accent block w-full rounded-lg px-4 py-2 text-center text-sm font-semibold text-white transition-opacity hover:opacity-90"
                         onClick={() => openQuickView(p.slug)}
                       >
                         Tambah ke Keranjang
                       </button>
                     )}
                     <a
-                      className="block w-full rounded-lg border border-gray-200 px-4 py-2 text-center font-medium text-gray-700 text-sm transition-colors hover:bg-gray-50"
+                      className="block w-full rounded-lg border border-gray-200 px-4 py-2 text-center text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
                       href={`/products/${p.slug}`}
                     >
                       Lihat Detail →
@@ -484,7 +485,7 @@ export default function ComparePage() {
       </div>
 
       {/* Mobile hint */}
-      <p className="mt-3 text-center text-gray-400 text-xs sm:hidden">
+      <p className="mt-3 text-center text-xs text-gray-400 sm:hidden">
         Geser ke kanan untuk melihat semua produk →
       </p>
     </div>

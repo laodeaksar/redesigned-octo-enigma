@@ -4,9 +4,12 @@
 // injects x-user-* headers, and streams the response back.
 // =============================================================================
 
-import { ServiceUnavailableError } from "@repo/common/errors";
 import type { Context } from "hono";
+
+import { ServiceUnavailableError } from "@repo/common/errors";
+
 import type { VerifiedUser } from "@/lib/jwt";
+
 import {
   CircuitBreakerManager,
   CircuitBreakerOpenError,
@@ -101,7 +104,7 @@ export async function proxyRequest(
 
   try {
     upstreamResponse = await circuitBreaker.execute(
-      (signal) =>
+      signal =>
         fetch(target, {
           method: requestMethod,
           headers,

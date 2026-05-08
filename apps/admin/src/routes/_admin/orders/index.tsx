@@ -2,13 +2,11 @@
 // Orders list page
 // =============================================================================
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Eye, Search } from "lucide-react";
-import { useState } from "react";
-import { AdminLayout } from "@/components/layout/admin-layout";
-import { type Column, DataTable } from "@/components/shared/data-table";
-import { PageHeader } from "@/components/shared/page-header";
+
 import { api, type PaginatedResponse } from "@/lib/api";
 import {
   cn,
@@ -17,6 +15,9 @@ import {
   ORDER_STATUS_COLORS,
   ORDER_STATUS_LABELS,
 } from "@/lib/utils";
+import { AdminLayout } from "@/components/layout/admin-layout";
+import { DataTable, type Column } from "@/components/shared/data-table";
+import { PageHeader } from "@/components/shared/page-header";
 
 export const Route = createFileRoute("/_admin/orders/")({
   component: OrdersPage,
@@ -60,7 +61,7 @@ export function OrderStatusBadge({ status }: { status: string }) {
   return (
     <span
       className={cn(
-        "inline-flex rounded-full px-2.5 py-0.5 font-medium text-xs",
+        "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium",
         COLOR_MAP[color]
       )}
     >
@@ -97,15 +98,15 @@ function OrdersPage() {
       api.get<PaginatedResponse<Order>>("/orders", {
         params: queryParams,
       }),
-    placeholderData: (prev) => prev,
+    placeholderData: prev => prev,
   });
 
   const columns: Column<Order>[] = [
     {
       key: "orderNumber",
       header: "No. Pesanan",
-      cell: (row) => (
-        <span className="font-mono font-semibold text-xs">
+      cell: row => (
+        <span className="font-mono text-xs font-semibold">
           {row.orderNumber}
         </span>
       ),
@@ -113,9 +114,9 @@ function OrdersPage() {
     {
       key: "item",
       header: "Produk",
-      cell: (row) => (
+      cell: row => (
         <div>
-          <p className="max-w-[180px] truncate font-medium text-foreground text-sm">
+          <p className="text-foreground max-w-[180px] truncate text-sm font-medium">
             {row.primaryItemName}
           </p>
           <p className="text-muted-foreground text-xs">{row.itemCount} item</p>
@@ -125,13 +126,13 @@ function OrdersPage() {
     {
       key: "status",
       header: "Status",
-      cell: (row) => <OrderStatusBadge status={row.status} />,
+      cell: row => <OrderStatusBadge status={row.status} />,
     },
     {
       key: "grandTotal",
       header: "Total",
       sortable: true,
-      cell: (row) => (
+      cell: row => (
         <span className="font-semibold">{formatIDR(row.grandTotal)}</span>
       ),
     },
@@ -139,7 +140,7 @@ function OrdersPage() {
       key: "createdAt",
       header: "Tanggal",
       sortable: true,
-      cell: (row) => (
+      cell: row => (
         <span className="text-muted-foreground text-xs">
           {formatDateTime(row.createdAt)}
         </span>
@@ -149,13 +150,13 @@ function OrdersPage() {
       key: "actions",
       header: "",
       className: "w-12",
-      cell: (row) => (
+      cell: row => (
         <Link
-          className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-accent"
+          className="hover:bg-accent flex h-7 w-7 items-center justify-center rounded-md"
           params={{ orderId: row.id }}
           to="/_admin/orders/$orderId"
         >
-          <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+          <Eye className="text-muted-foreground h-3.5 w-3.5" />
         </Link>
       ),
     },
@@ -171,10 +172,10 @@ function OrdersPage() {
       {/* Filters */}
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="relative min-w-[200px] flex-1">
-          <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
           <input
-            className="h-9 w-full rounded-md border border-input bg-background pr-3 pl-9 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            onChange={(e) => {
+            className="border-input bg-background focus:ring-ring h-9 w-full rounded-md border pl-9 pr-3 text-sm focus:outline-none focus:ring-2"
+            onChange={e => {
               setSearch(e.target.value);
               setPage(1);
             }}
@@ -184,15 +185,15 @@ function OrdersPage() {
           />
         </div>
         <select
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          onChange={(e) => {
+          className="border-input bg-background focus:ring-ring h-9 rounded-md border px-3 text-sm focus:outline-none focus:ring-2"
+          onChange={e => {
             setStatus(e.target.value);
             setPage(1);
           }}
           value={status}
         >
           <option value="">Semua Status</option>
-          {ALL_STATUSES.map((s) => (
+          {ALL_STATUSES.map(s => (
             <option key={s} value={s}>
               {ORDER_STATUS_LABELS[s] ?? s}
             </option>
@@ -204,7 +205,7 @@ function OrdersPage() {
         columns={columns}
         data={data?.data ?? []}
         emptyMessage="Belum ada pesanan"
-        getRowKey={(row) => row.id}
+        getRowKey={row => row.id}
         isLoading={isLoading}
         meta={data?.meta}
         onPageChange={setPage}

@@ -42,7 +42,7 @@ export function hydrateRecentlyViewed() {
 
 export function trackView(product: RecentProduct) {
   const current = $recentlyViewed.get();
-  const filtered = current.filter((p) => p.id !== product.id);
+  const filtered = current.filter(p => p.id !== product.id);
   const updated = [product, ...filtered].slice(0, MAX_ITEMS);
   $recentlyViewed.set(updated);
   save(updated);

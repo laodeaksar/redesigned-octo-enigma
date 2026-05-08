@@ -2,8 +2,6 @@
 // CartDrawer — React island, client:load
 // =============================================================================
 
-import { useStore } from "@nanostores/react";
-import { formatIDR } from "@/lib/utils";
 import {
   $cart,
   $cartTotal,
@@ -11,6 +9,9 @@ import {
   removeFromCart,
   updateQuantity,
 } from "@/stores/cart.store";
+import { useStore } from "@nanostores/react";
+
+import { formatIDR } from "@/lib/utils";
 
 export default function CartDrawer() {
   const cart = useStore($cart);
@@ -34,8 +35,8 @@ export default function CartDrawer() {
         }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-gray-100 border-b px-5 py-4">
-          <h2 className="font-semibold text-base text-gray-900">
+        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+          <h2 className="text-base font-semibold text-gray-900">
             Keranjang ({cart.length} item)
           </h2>
           <button
@@ -53,7 +54,7 @@ export default function CartDrawer() {
               <span className="text-5xl">🛒</span>
               <p className="text-sm">Keranjangmu masih kosong</p>
               <a
-                className="mt-2 font-medium text-accent text-sm hover:underline"
+                className="text-accent mt-2 text-sm font-medium hover:underline"
                 href="/products"
                 onClick={() => $isCartOpen.set(false)}
               >
@@ -62,7 +63,7 @@ export default function CartDrawer() {
             </div>
           ) : (
             <ul className="space-y-4">
-              {cart.map((item) => (
+              {cart.map(item => (
                 <li className="flex gap-3" key={item.variantId}>
                   {/* Image */}
                   <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-gray-50">
@@ -81,11 +82,11 @@ export default function CartDrawer() {
 
                   {/* Details */}
                   <div className="flex min-w-0 flex-1 flex-col gap-1">
-                    <p className="truncate font-medium text-gray-900 text-sm">
+                    <p className="truncate text-sm font-medium text-gray-900">
                       {item.productName}
                     </p>
-                    <p className="text-gray-500 text-xs">{item.variantName}</p>
-                    <p className="font-semibold text-gray-900 text-sm">
+                    <p className="text-xs text-gray-500">{item.variantName}</p>
+                    <p className="text-sm font-semibold text-gray-900">
                       {formatIDR(item.price)}
                     </p>
 
@@ -100,7 +101,7 @@ export default function CartDrawer() {
                         >
                           −
                         </button>
-                        <span className="w-8 text-center font-medium text-sm">
+                        <span className="w-8 text-center text-sm font-medium">
                           {item.quantity}
                         </span>
                         <button
@@ -114,7 +115,7 @@ export default function CartDrawer() {
                       </div>
 
                       <button
-                        className="text-red-500 text-xs hover:underline"
+                        className="text-xs text-red-500 hover:underline"
                         onClick={() => removeFromCart(item.variantId)}
                       >
                         Hapus
@@ -129,22 +130,22 @@ export default function CartDrawer() {
 
         {/* Footer */}
         {cart.length > 0 && (
-          <div className="border-gray-100 border-t px-5 py-4">
+          <div className="border-t border-gray-100 px-5 py-4">
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-gray-600 text-sm">Subtotal</span>
-              <span className="font-bold text-base text-gray-900">
+              <span className="text-sm text-gray-600">Subtotal</span>
+              <span className="text-base font-bold text-gray-900">
                 {formatIDR(total)}
               </span>
             </div>
             <a
-              className="block w-full rounded-lg bg-accent py-3 text-center font-semibold text-sm text-white transition-opacity hover:opacity-90"
+              className="bg-accent block w-full rounded-lg py-3 text-center text-sm font-semibold text-white transition-opacity hover:opacity-90"
               href="/checkout"
               onClick={() => $isCartOpen.set(false)}
             >
               Lanjut ke Checkout
             </a>
             <a
-              className="mt-2 block w-full rounded-lg border border-gray-200 py-2.5 text-center font-medium text-gray-700 text-sm hover:bg-gray-50"
+              className="mt-2 block w-full rounded-lg border border-gray-200 py-2.5 text-center text-sm font-medium text-gray-700 hover:bg-gray-50"
               href="/cart"
               onClick={() => $isCartOpen.set(false)}
             >

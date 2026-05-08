@@ -2,6 +2,10 @@
 // Orders service — full lifecycle business logic
 // =============================================================================
 
+import { env, type DB } from "@/config";
+import { incrementUsage } from "@/modules/vouchers/vouchers.repository";
+import { validateVoucher } from "@/modules/vouchers/vouchers.service";
+
 import {
   BadRequestError,
   ForbiddenError,
@@ -15,12 +19,13 @@ import type {
   MyOrdersQuery,
   UpdateOrderStatusInput,
 } from "@repo/common/schemas";
-import { type DB, env } from "@/config";
+// ── Local type alias needed for updateOrderStatus ─────────────────────────────
+import type { IOrder } from "@repo/database/mongo/models";
+
 import * as events from "@/lib/events";
 import { generateOrderNumber } from "@/lib/order-number";
 import * as productClient from "@/lib/product-client";
-import { incrementUsage } from "@/modules/vouchers/vouchers.repository";
-import { validateVoucher } from "@/modules/vouchers/vouchers.service";
+
 import * as repo from "./orders.repository";
 
 // ── Create Order ──────────────────────────────────────────────────────────────
@@ -32,17 +37,17 @@ export async function createOrder(
   input: CreateOrderInput
 ) {
   // 1. Fetch variant details from product-service
-  const variantIds = input.items.map((i) => i.variantId);
+  const variantIds = input.items.map(i => i.variantId);
   const variants = await productClient.getVariantsByIds(variantIds);
 
   if (variants.length !== variantIds.length) {
     throw new BadRequestError("One or more product variants were not found");
   }
 
-  const variantMap = new Map(variants.map((v) => [v.variantId, v]));
+  const variantMap = new Map(variants.map(v => [v.variantId, v]));
 
   // 2. Build order items + calculate subtotal
-  const items = input.items.map((item) => {
+  const items = input.items.map(item => {
     const variant = variantMap.get(item.variantId)!;
     const unitPrice = variant.price;
     const subtotal = unitPrice * item.quantity;
@@ -272,7 +277,7 @@ export async function cancelOrder(
   }
 
   // Restore stock
-  const stockItems = order.items.map((i) => ({
+  const stockItems = order.items.map(i => ({
     variantId: i.product.variantId,
     quantity: i.quantity,
   }));
@@ -388,7 +393,7 @@ export async function expireStaleOrders() {
       { cancellationReason: "payment_expired" }
     );
 
-    const stockItems = order.items.map((i) => ({
+    const stockItems = order.items.map(i => ({
       variantId: i.product.variantId,
       quantity: i.quantity,
     }));
@@ -405,6 +410,3 @@ export async function expireStaleOrders() {
 
   return { expired: count };
 }
-
-// ── Local type alias needed for updateOrderStatus ─────────────────────────────
-import type { IOrder } from "@repo/database/mongo/models";

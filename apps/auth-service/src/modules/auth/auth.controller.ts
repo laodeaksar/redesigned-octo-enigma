@@ -2,6 +2,8 @@
 // Auth controller — request handlers (thin layer over service)
 // =============================================================================
 
+import type { DB } from "@/config";
+
 import { safeParse } from "@repo/common/errors";
 import {
   forgotPasswordSchema,
@@ -12,7 +14,7 @@ import {
   success,
   verifyEmailSchema,
 } from "@repo/common/schemas";
-import type { DB } from "@/config";
+
 import * as authService from "./auth.service";
 
 export async function handleRegister(db: DB, body: unknown) {

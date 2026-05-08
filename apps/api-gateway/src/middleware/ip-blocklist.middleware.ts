@@ -15,9 +15,10 @@
 //   IP_BLOCK_DURATION_SECONDS— how long the block lasts       (default 3600 = 1 hour)
 // =============================================================================
 
-import { failure } from "@repo/common/schemas";
-import { createMiddleware } from "hono/factory";
 import { getRedis } from "@/config";
+import { createMiddleware } from "hono/factory";
+
+import { failure } from "@repo/common/schemas";
 
 export const BLOCK_KEY_PREFIX = "ipbl:block:";
 export const FAIL_KEY_PREFIX = "ipbl:fail:";

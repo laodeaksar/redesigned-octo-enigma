@@ -2,13 +2,14 @@
 // DataTable — generic table with sort, pagination, empty state, loading state
 // =============================================================================
 
+import type { ReactNode } from "react";
 import {
   ChevronLeft,
   ChevronRight,
   ChevronsUpDown,
   Loader2,
 } from "lucide-react";
-import type { ReactNode } from "react";
+
 import { cn } from "@/lib/utils";
 
 // ── Column definition ─────────────────────────────────────────────────────────
@@ -63,18 +64,18 @@ export function DataTable<T extends object>({
   getRowKey,
 }: DataTableProps<T>) {
   return (
-    <div className="rounded-lg border border-border bg-card shadow-sm">
+    <div className="border-border bg-card rounded-lg border shadow-sm">
       {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-border border-b bg-muted/50">
-              {columns.map((col) => (
+            <tr className="border-border bg-muted/50 border-b">
+              {columns.map(col => (
                 <th
                   className={cn(
-                    "px-4 py-3 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider",
+                    "text-muted-foreground px-4 py-3 text-left text-xs font-medium uppercase tracking-wider",
                     col.sortable &&
-                      "cursor-pointer select-none hover:text-foreground",
+                      "hover:text-foreground cursor-pointer select-none",
                     col.headerClassName
                   )}
                   key={col.key}
@@ -106,11 +107,11 @@ export function DataTable<T extends object>({
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-border">
+          <tbody className="divide-border divide-y">
             {isLoading ? (
               <tr>
                 <td
-                  className="py-16 text-center text-muted-foreground"
+                  className="text-muted-foreground py-16 text-center"
                   colSpan={columns.length}
                 >
                   <Loader2 className="mx-auto h-6 w-6 animate-spin" />
@@ -120,7 +121,7 @@ export function DataTable<T extends object>({
             ) : data.length === 0 ? (
               <tr>
                 <td
-                  className="py-16 text-center text-muted-foreground"
+                  className="text-muted-foreground py-16 text-center"
                   colSpan={columns.length}
                 >
                   <p className="text-sm">{emptyMessage}</p>
@@ -129,12 +130,12 @@ export function DataTable<T extends object>({
             ) : (
               data.map((row, rowIndex) => (
                 <tr
-                  className="transition-colors hover:bg-muted/30"
+                  className="hover:bg-muted/30 transition-colors"
                   key={getRowKey ? getRowKey(row) : rowIndex}
                 >
-                  {columns.map((col) => (
+                  {columns.map(col => (
                     <td
-                      className={cn("px-4 py-3 text-foreground", col.className)}
+                      className={cn("text-foreground px-4 py-3", col.className)}
                       key={col.key}
                     >
                       {col.cell(row)}
@@ -149,7 +150,7 @@ export function DataTable<T extends object>({
 
       {/* Pagination */}
       {meta && meta.totalPages > 1 && (
-        <div className="flex items-center justify-between border-border border-t px-4 py-3">
+        <div className="border-border flex items-center justify-between border-t px-4 py-3">
           <p className="text-muted-foreground text-sm">
             Menampilkan{" "}
             <span className="font-medium">
@@ -161,7 +162,7 @@ export function DataTable<T extends object>({
 
           <div className="flex items-center gap-1">
             <button
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-input text-sm hover:bg-accent disabled:opacity-40"
+              className="border-input hover:bg-accent flex h-8 w-8 items-center justify-center rounded-md border text-sm disabled:opacity-40"
               disabled={!meta.hasPrevPage}
               onClick={() => onPageChange?.(meta.page - 1)}
             >
@@ -190,7 +191,7 @@ export function DataTable<T extends object>({
             })}
 
             <button
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-input text-sm hover:bg-accent disabled:opacity-40"
+              className="border-input hover:bg-accent flex h-8 w-8 items-center justify-center rounded-md border text-sm disabled:opacity-40"
               disabled={!meta.hasNextPage}
               onClick={() => onPageChange?.(meta.page + 1)}
             >

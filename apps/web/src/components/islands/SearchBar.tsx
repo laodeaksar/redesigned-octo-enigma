@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+
 import { formatIDR } from "@/lib/utils";
 
 const BASE =
@@ -25,13 +26,13 @@ type Suggestion = {
 function PriceLabel({ low, high }: { low: number; high: number }) {
   if (low === high) {
     return (
-      <span className="font-semibold text-brand-600 text-xs">
+      <span className="text-brand-600 text-xs font-semibold">
         {formatIDR(low)}
       </span>
     );
   }
   return (
-    <span className="font-semibold text-brand-600 text-xs">
+    <span className="text-brand-600 text-xs font-semibold">
       {formatIDR(low)} – {formatIDR(high)}
     </span>
   );
@@ -117,10 +118,10 @@ export default function SearchBar() {
 
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setActive((prev) => Math.min(prev + 1, suggestions.length - 1));
+      setActive(prev => Math.min(prev + 1, suggestions.length - 1));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setActive((prev) => Math.max(prev - 1, -1));
+      setActive(prev => Math.max(prev - 1, -1));
     } else if (e.key === "Escape") {
       setOpen(false);
       setActive(-1);
@@ -193,8 +194,8 @@ export default function SearchBar() {
             aria-haspopup="listbox"
             aria-label="Cari produk"
             autoComplete="off"
-            className="w-full rounded-full border border-gray-200 bg-gray-50 py-2 pr-4 pl-9 text-gray-900 text-sm outline-none transition focus:border-brand-400 focus:bg-white focus:ring-2 focus:ring-brand-200"
-            onChange={(e) => setQuery(e.target.value)}
+            className="focus:border-brand-400 focus:ring-brand-200 w-full rounded-full border border-gray-200 bg-gray-50 py-2 pr-4 pl-9 text-sm text-gray-900 transition outline-none focus:bg-white focus:ring-2"
+            onChange={e => setQuery(e.target.value)}
             onFocus={() => {
               if (suggestions.length > 0) {
                 setOpen(true);
@@ -269,7 +270,7 @@ export default function SearchBar() {
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-gray-900 text-sm">
+                  <p className="truncate text-sm font-medium text-gray-900">
                     {s.name}
                   </p>
                   <PriceLabel high={s.highestPrice} low={s.lowestPrice} />
@@ -290,9 +291,9 @@ export default function SearchBar() {
               </li>
             ))}
           </ul>
-          <div className="border-gray-50 border-t bg-gray-50 px-3 py-2">
+          <div className="border-t border-gray-50 bg-gray-50 px-3 py-2">
             <button
-              className="flex w-full items-center gap-1.5 font-medium text-brand-600 text-xs hover:text-brand-700"
+              className="text-brand-600 hover:text-brand-700 flex w-full items-center gap-1.5 text-xs font-medium"
               onClick={() => {
                 if (query.trim()) {
                   window.location.href = `/products?q=${encodeURIComponent(query.trim())}`;
@@ -324,7 +325,7 @@ export default function SearchBar() {
         !loading &&
         suggestions.length === 0 && (
           <div className="absolute top-full right-0 left-0 z-50 mt-1.5 rounded-xl border border-gray-100 bg-white px-4 py-5 text-center shadow-xl">
-            <p className="text-gray-500 text-sm">
+            <p className="text-sm text-gray-500">
               Produk tidak ditemukan untuk "<strong>{query}</strong>"
             </p>
           </div>

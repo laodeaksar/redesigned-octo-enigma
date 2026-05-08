@@ -3,11 +3,11 @@
 // All downstream services trust x-user-* headers injected here.
 // =============================================================================
 
-import { TokenExpiredError, TokenInvalidError } from "@repo/common/errors";
-import type { JwtPayload, UserRole } from "@repo/common/types";
+import { env } from "@/config";
 import { jwtVerify } from "jose";
 
-import { env } from "@/config";
+import { TokenExpiredError, TokenInvalidError } from "@repo/common/errors";
+import type { JwtPayload, UserRole } from "@repo/common/types";
 
 const SECRET = new TextEncoder().encode(env.JWT_SECRET);
 

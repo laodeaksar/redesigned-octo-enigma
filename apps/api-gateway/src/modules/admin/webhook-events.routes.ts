@@ -12,12 +12,13 @@
 // All routes require "admin" or "super_admin" role.
 // =============================================================================
 
-import { failure, success } from "@repo/common/schemas";
-import { webhookEventsTable } from "@repo/database/drizzle/schema";
-import { and, count, desc, eq, gte, ilike, lte, sql } from "drizzle-orm";
-import { Hono } from "hono";
 import { db } from "@/config";
 import { requireAuth, requireRole } from "@/middleware/auth.middleware";
+import { and, count, desc, eq, gte, ilike, lte, sql } from "drizzle-orm";
+import { Hono } from "hono";
+
+import { failure, success } from "@repo/common/schemas";
+import { webhookEventsTable } from "@repo/database/drizzle/schema";
 
 const app = new Hono();
 
@@ -26,7 +27,7 @@ app.get(
   "/admin/webhook-events",
   requireAuth,
   requireRole("admin", "super_admin"),
-  async (c) => {
+  async c => {
     if (!db) {
       return c.json(
         failure("SERVICE_UNAVAILABLE", "Database not available"),
@@ -111,7 +112,7 @@ app.get(
   "/admin/webhook-events/stats",
   requireAuth,
   requireRole("admin", "super_admin"),
-  async (c) => {
+  async c => {
     if (!db) {
       return c.json(
         failure("SERVICE_UNAVAILABLE", "Database not available"),
@@ -193,16 +194,16 @@ app.get(
 
     const totalLast24h = last24hRows.reduce((s, r) => s + Number(r.count), 0);
     const attacksLast24h = last24hRows
-      .filter((r) => (ATTACK_OUTCOMES as readonly string[]).includes(r.outcome))
+      .filter(r => (ATTACK_OUTCOMES as readonly string[]).includes(r.outcome))
       .reduce((s, r) => s + Number(r.count), 0);
     const duplicatesLast24h = last24hRows
-      .filter((r) => r.outcome === "duplicate")
+      .filter(r => r.outcome === "duplicate")
       .reduce((s, r) => s + Number(r.count), 0);
     const forwardedLast24h = last24hRows
-      .filter((r) => r.outcome === "forwarded" || r.outcome === "sig_skipped")
+      .filter(r => r.outcome === "forwarded" || r.outcome === "sig_skipped")
       .reduce((s, r) => s + Number(r.count), 0);
     const blockedLast24h = last24hRows
-      .filter((r) => r.outcome === "not_allowed")
+      .filter(r => r.outcome === "not_allowed")
       .reduce((s, r) => s + Number(r.count), 0);
 
     const pct = (n: number, d: number) =>
@@ -215,7 +216,7 @@ app.get(
         byOutcome,
         byProvider,
         recentTrend,
-        topIps: topIps.map((r) => ({
+        topIps: topIps.map(r => ({
           ip: r.ip,
           total: Number(r.total),
           attacks: Number(r.attacks),
@@ -242,7 +243,7 @@ app.get(
   "/admin/webhook-events/:id",
   requireAuth,
   requireRole("admin", "super_admin"),
-  async (c) => {
+  async c => {
     if (!db) {
       return c.json(
         failure("SERVICE_UNAVAILABLE", "Database not available"),
@@ -271,7 +272,7 @@ app.delete(
   "/admin/webhook-events",
   requireAuth,
   requireRole("admin", "super_admin"),
-  async (c) => {
+  async c => {
     if (!db) {
       return c.json(
         failure("SERVICE_UNAVAILABLE", "Database not available"),

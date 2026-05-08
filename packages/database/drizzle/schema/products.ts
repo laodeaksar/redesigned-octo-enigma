@@ -37,13 +37,16 @@ export const productsTable = pgTable(
       .notNull()
       .references(() => categoriesTable.id),
     /** PostgreSQL text[] for tags */
-    tags: text("tags").array().notNull().default(sql`'{}'::text[]`),
+    tags: text("tags")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     /** Weight in grams — fallback when variant has no weight */
     weight: integer("weight"),
     ...timestamps(),
     ...softDelete(),
   },
-  (t) => ({
+  t => ({
     slugIdx: index("products_slug_idx").on(t.slug),
     categoryIdIdx: index("products_category_id_idx").on(t.categoryId),
     statusIdx: index("products_status_idx").on(t.status),

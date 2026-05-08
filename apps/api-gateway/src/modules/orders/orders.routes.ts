@@ -21,16 +21,17 @@
 //   DELETE /vouchers/:id
 // =============================================================================
 
-import { Hono } from "hono";
 import { SERVICES } from "@/config";
-import { cartUndoManager } from "@/lib/cart-undo-manager";
-import { logger } from "@/lib/logger";
-import { buildTargetUrl, proxyRequest } from "@/lib/proxy";
 import { requireAuth, requireRole } from "@/middleware/auth.middleware";
 import {
   checkoutRateLimit,
   defaultRateLimit,
 } from "@/middleware/rate-limit.middleware";
+import { Hono } from "hono";
+
+import { cartUndoManager } from "@/lib/cart-undo-manager";
+import { logger } from "@/lib/logger";
+import { buildTargetUrl, proxyRequest } from "@/lib/proxy";
 
 const app = new Hono();
 const orderBase = SERVICES.order;
@@ -47,7 +48,7 @@ app.post("/orders/expire", internalBlocked);
 app.get("/orders/:id/verify-purchase", internalBlocked);
 
 // ── Customer: create order ────────────────────────────────────────────────────
-app.post("/orders", requireAuth, checkoutRateLimit, async (c) =>
+app.post("/orders", requireAuth, checkoutRateLimit, async c =>
   proxyRequest(c, {
     target: buildTargetUrl(orderBase, c),
     user: c.var.user,
@@ -55,7 +56,7 @@ app.post("/orders", requireAuth, checkoutRateLimit, async (c) =>
 );
 
 // ── Customer: my orders ───────────────────────────────────────────────────────
-app.get("/orders/me", requireAuth, defaultRateLimit, async (c) =>
+app.get("/orders/me", requireAuth, defaultRateLimit, async c =>
   proxyRequest(c, {
     target: buildTargetUrl(orderBase, c),
     user: c.var.user,
@@ -63,7 +64,7 @@ app.get("/orders/me", requireAuth, defaultRateLimit, async (c) =>
 );
 
 // ── Customer: SSE order status stream (bypasses circuit-breaker timeout) ─────
-app.get("/orders/:id/stream", requireAuth, async (c) => {
+app.get("/orders/:id/stream", requireAuth, async c => {
   const user = c.var.user!;
   const id = c.req.param("id");
 
@@ -108,7 +109,7 @@ app.get("/orders/:id/stream", requireAuth, async (c) => {
 });
 
 // ── Customer: get order detail ────────────────────────────────────────────────
-app.get("/orders/:id", requireAuth, defaultRateLimit, async (c) =>
+app.get("/orders/:id", requireAuth, defaultRateLimit, async c =>
   proxyRequest(c, {
     target: buildTargetUrl(orderBase, c),
     user: c.var.user,
@@ -116,7 +117,7 @@ app.get("/orders/:id", requireAuth, defaultRateLimit, async (c) =>
 );
 
 // ── Customer: cancel order ────────────────────────────────────────────────────
-app.post("/orders/:id/cancel", requireAuth, defaultRateLimit, async (c) =>
+app.post("/orders/:id/cancel", requireAuth, defaultRateLimit, async c =>
   proxyRequest(c, {
     target: buildTargetUrl(orderBase, c),
     user: c.var.user,
@@ -129,7 +130,7 @@ app.get(
   requireAuth,
   requireRole("admin", "super_admin"),
   defaultRateLimit,
-  async (c) =>
+  async c =>
     proxyRequest(c, { target: buildTargetUrl(orderBase, c), user: c.var.user })
 );
 
@@ -139,7 +140,7 @@ app.patch(
   requireAuth,
   requireRole("admin", "super_admin"),
   defaultRateLimit,
-  async (c) => {
+  async c => {
     const id = c.req.param("id");
     const response = await proxyRequest(c, {
       target: buildTargetUrl(orderBase, c),
@@ -178,7 +179,7 @@ app.patch(
 );
 
 // ── Vouchers: validate (authenticated customer) ───────────────────────────────
-app.post("/vouchers/validate", requireAuth, defaultRateLimit, async (c) =>
+app.post("/vouchers/validate", requireAuth, defaultRateLimit, async c =>
   proxyRequest(c, {
     target: buildTargetUrl(orderBase, c),
     user: c.var.user,
@@ -192,23 +193,23 @@ const adminMw = [
   defaultRateLimit,
 ] as const;
 
-app.get("/vouchers", ...adminMw, async (c) =>
+app.get("/vouchers", ...adminMw, async c =>
   proxyRequest(c, { target: buildTargetUrl(orderBase, c), user: c.var.user })
 );
 
-app.get("/vouchers/:id", ...adminMw, async (c) =>
+app.get("/vouchers/:id", ...adminMw, async c =>
   proxyRequest(c, { target: buildTargetUrl(orderBase, c), user: c.var.user })
 );
 
-app.post("/vouchers", ...adminMw, async (c) =>
+app.post("/vouchers", ...adminMw, async c =>
   proxyRequest(c, { target: buildTargetUrl(orderBase, c), user: c.var.user })
 );
 
-app.patch("/vouchers/:id", ...adminMw, async (c) =>
+app.patch("/vouchers/:id", ...adminMw, async c =>
   proxyRequest(c, { target: buildTargetUrl(orderBase, c), user: c.var.user })
 );
 
-app.delete("/vouchers/:id", ...adminMw, async (c) =>
+app.delete("/vouchers/:id", ...adminMw, async c =>
   proxyRequest(c, { target: buildTargetUrl(orderBase, c), user: c.var.user })
 );
 
@@ -217,7 +218,7 @@ app.delete("/vouchers/:id", ...adminMw, async (c) =>
 /**
  * Hapus item keranjang dengan jendela undo 8 detik
  */
-app.delete("/cart/items/:itemId", requireAuth, defaultRateLimit, async (c) => {
+app.delete("/cart/items/:itemId", requireAuth, defaultRateLimit, async c => {
   const userId = c.var.user.id;
   const cartItemId = c.req.param("itemId");
 
@@ -258,7 +259,7 @@ app.post(
   "/cart/undo-delete/:deletionId",
   requireAuth,
   defaultRateLimit,
-  async (c) => {
+  async c => {
     const userId = c.var.user.id;
     const deletionId = c.req.param("deletionId");
 

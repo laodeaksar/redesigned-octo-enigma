@@ -57,12 +57,12 @@ export default function ReorderButton({ items }: Props) {
 
   return (
     <button
-      className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 font-semibold text-sm transition-all ${
+      className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all ${
         state === "done"
           ? "bg-green-500 text-white"
           : state === "adding"
-            ? "cursor-wait bg-brand-500/80 text-white"
-            : "bg-brand-500 text-white hover:bg-brand-600 active:scale-95"
+            ? "bg-brand-500/80 cursor-wait text-white"
+            : "bg-brand-500 hover:bg-brand-600 text-white active:scale-95"
       }`}
       disabled={state !== "idle"}
       onClick={handleReorder}

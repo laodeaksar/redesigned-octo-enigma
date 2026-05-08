@@ -6,9 +6,11 @@
 //  GET  /auth/oauth/providers          — list enabled providers
 // =============================================================================
 
-import { success } from "@repo/common/schemas";
-import Elysia, { t } from "elysia";
 import { env } from "@/config";
+import Elysia, { t } from "elysia";
+
+import { success } from "@repo/common/schemas";
+
 import { auth } from "@/lib/better-auth";
 
 const PROVIDER_LABELS: Record<string, { name: string; icon: string }> = {

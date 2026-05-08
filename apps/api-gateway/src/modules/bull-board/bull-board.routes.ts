@@ -2,9 +2,8 @@
 // Bull Board — job queue monitoring dashboard (disabled when Redis unavailable)
 // =============================================================================
 
-import { Hono } from "hono";
-
 import { requireAuth, requireRole } from "@/middleware/auth.middleware";
+import { Hono } from "hono";
 
 // ── Hono app ──────────────────────────────────────────────────────────────────
 
@@ -15,7 +14,7 @@ app.use("/admin/queues/*", requireAuth, requireRole("admin", "super_admin"));
 
 // Bull Board is disabled in this environment (no Redis / serveStatic incompatibility).
 // Return a simple status page instead.
-app.get("/admin/queues", async (c) =>
+app.get("/admin/queues", async c =>
   c.json({
     status: "disabled",
     message:

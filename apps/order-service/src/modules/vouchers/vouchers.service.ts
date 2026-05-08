@@ -2,13 +2,15 @@
 // Vouchers service
 // =============================================================================
 
+import type { DB } from "@/config";
+
 import {
   ConflictError,
   InvalidVoucherError,
   NotFoundError,
 } from "@repo/common/errors";
 import type { VoucherRow } from "@repo/database/drizzle/schema";
-import type { DB } from "@/config";
+
 import * as repo from "./vouchers.repository";
 
 // ── Validation ────────────────────────────────────────────────────────────────

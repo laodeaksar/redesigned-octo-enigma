@@ -1,6 +1,4 @@
-import { useStore } from "@nanostores/react";
 import { useEffect, useState } from "react";
-import { formatIDR } from "@/lib/utils";
 import {
   $compareCount,
   $compareList,
@@ -10,6 +8,9 @@ import {
   MAX_COMPARE,
   removeFromCompare,
 } from "@/stores/compare.store";
+import { useStore } from "@nanostores/react";
+
+import { formatIDR } from "@/lib/utils";
 
 /*function formatIDR(n: number) {
   return new Intl.NumberFormat("id-ID", {
@@ -25,12 +26,12 @@ import {
 function CompareModal({ onClose }: { onClose: () => void }) {
   const products = useStore($compareList);
 
-  const allTags = Array.from(new Set(products.flatMap((p) => p.tags)));
+  const allTags = Array.from(new Set(products.flatMap(p => p.tags)));
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
-      onClick={(e) => {
+      onClick={e => {
         if (e.target === e.currentTarget) {
           onClose();
         }
@@ -38,13 +39,13 @@ function CompareModal({ onClose }: { onClose: () => void }) {
     >
       <div className="relative max-h-[90vh] w-full max-w-5xl overflow-auto rounded-2xl bg-white shadow-2xl">
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between border-gray-100 border-b bg-white px-6 py-4">
-          <h2 className="font-bold text-gray-900 text-lg">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4">
+          <h2 className="text-lg font-bold text-gray-900">
             Perbandingan Produk
           </h2>
           <div className="flex items-center gap-3">
             <button
-              className="text-gray-400 text-sm hover:text-gray-600"
+              className="text-sm text-gray-400 hover:text-gray-600"
               onClick={() => {
                 clearCompare();
                 onClose();
@@ -78,9 +79,9 @@ function CompareModal({ onClose }: { onClose: () => void }) {
         <div className="overflow-x-auto">
           <table className="w-full min-w-[560px] border-collapse">
             <thead>
-              <tr className="border-gray-100 border-b">
-                <td className="w-36 py-4 pl-6 align-top font-semibold text-gray-400 text-xs uppercase tracking-wide" />
-                {products.map((p) => (
+              <tr className="border-b border-gray-100">
+                <td className="w-36 py-4 pl-6 align-top text-xs font-semibold tracking-wide text-gray-400 uppercase" />
+                {products.map(p => (
                   <td
                     className="relative min-w-[180px] px-4 py-4 align-top"
                     key={p.id}
@@ -118,7 +119,7 @@ function CompareModal({ onClose }: { onClose: () => void }) {
                           </div>
                         )}
                       </div>
-                      <p className="line-clamp-2 font-semibold text-gray-900 text-sm group-hover:text-brand-500">
+                      <p className="group-hover:text-brand-500 line-clamp-2 text-sm font-semibold text-gray-900">
                         {p.name}
                       </p>
                     </a>
@@ -132,10 +133,10 @@ function CompareModal({ onClose }: { onClose: () => void }) {
                       key={`empty-${i}`}
                     >
                       <a
-                        className="flex aspect-square items-center justify-center rounded-xl border-2 border-gray-200 border-dashed text-gray-400 transition-colors hover:border-brand-300 hover:text-brand-400"
+                        className="hover:border-brand-300 hover:text-brand-400 flex aspect-square items-center justify-center rounded-xl border-2 border-dashed border-gray-200 text-gray-400 transition-colors"
                         href="/products"
                       >
-                        <span className="text-center font-medium text-xs leading-tight">
+                        <span className="text-center text-xs leading-tight font-medium">
                           + Tambah
                           <br />
                           produk
@@ -149,7 +150,7 @@ function CompareModal({ onClose }: { onClose: () => void }) {
             <tbody>
               {/* Price row */}
               <Row label="Harga">
-                {products.map((p) => (
+                {products.map(p => (
                   <td className="px-4 py-3.5 align-top text-sm" key={p.id}>
                     {p.lowestPrice === p.highestPrice ? (
                       <span className="font-bold text-gray-900">
@@ -159,7 +160,7 @@ function CompareModal({ onClose }: { onClose: () => void }) {
                       <span className="font-bold text-gray-900">
                         {formatIDR(p.lowestPrice)}
                         <br />
-                        <span className="font-normal text-gray-500 text-xs">
+                        <span className="text-xs font-normal text-gray-500">
                           s/d {formatIDR(p.highestPrice)}
                         </span>
                       </span>
@@ -171,18 +172,18 @@ function CompareModal({ onClose }: { onClose: () => void }) {
 
               {/* Stock row */}
               <Row label="Stok" shaded>
-                {products.map((p) => (
+                {products.map(p => (
                   <td className="px-4 py-3.5 align-top text-sm" key={p.id}>
                     {p.totalStock === 0 ? (
-                      <span className="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 font-medium text-red-600 text-xs">
+                      <span className="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">
                         Habis
                       </span>
                     ) : p.totalStock <= 5 ? (
-                      <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 font-medium text-amber-700 text-xs">
+                      <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
                         Sisa {p.totalStock}
                       </span>
                     ) : (
-                      <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 font-medium text-green-700 text-xs">
+                      <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
                         Tersedia ({p.totalStock})
                       </span>
                     )}
@@ -192,11 +193,11 @@ function CompareModal({ onClose }: { onClose: () => void }) {
               </Row>
 
               {/* Category row */}
-              {products.some((p) => p.categoryName) && (
+              {products.some(p => p.categoryName) && (
                 <Row label="Kategori">
-                  {products.map((p) => (
+                  {products.map(p => (
                     <td
-                      className="px-4 py-3.5 align-top text-gray-700 text-sm"
+                      className="px-4 py-3.5 align-top text-sm text-gray-700"
                       key={p.id}
                     >
                       {p.categoryName ?? (
@@ -211,20 +212,20 @@ function CompareModal({ onClose }: { onClose: () => void }) {
               {/* Tags row */}
               {allTags.length > 0 && (
                 <Row label="Tag" shaded>
-                  {products.map((p) => (
+                  {products.map(p => (
                     <td className="px-4 py-3.5 align-top" key={p.id}>
                       <div className="flex flex-wrap gap-1">
                         {p.tags.length > 0 ? (
-                          p.tags.map((t) => (
+                          p.tags.map(t => (
                             <span
-                              className="rounded-full bg-gray-100 px-2 py-0.5 text-gray-600 text-xs"
+                              className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
                               key={t}
                             >
                               {t}
                             </span>
                           ))
                         ) : (
-                          <span className="text-gray-300 text-sm">—</span>
+                          <span className="text-sm text-gray-300">—</span>
                         )}
                       </div>
                     </td>
@@ -235,11 +236,11 @@ function CompareModal({ onClose }: { onClose: () => void }) {
 
               {/* CTA row */}
               <tr>
-                <td className="py-4 pl-6 font-semibold text-gray-400 text-xs uppercase tracking-wide" />
-                {products.map((p) => (
+                <td className="py-4 pl-6 text-xs font-semibold tracking-wide text-gray-400 uppercase" />
+                {products.map(p => (
                   <td className="px-4 py-4 align-top" key={p.id}>
                     <a
-                      className="block w-full rounded-lg bg-brand-500 px-4 py-2 text-center font-semibold text-sm text-white transition-opacity hover:opacity-90"
+                      className="bg-brand-500 block w-full rounded-lg px-4 py-2 text-center text-sm font-semibold text-white transition-opacity hover:opacity-90"
                       href={`/products/${p.slug}`}
                     >
                       Lihat Produk
@@ -267,7 +268,7 @@ function Row({
 }) {
   return (
     <tr className={shaded ? "bg-gray-50/60" : ""}>
-      <td className="py-3.5 pl-6 align-top font-semibold text-gray-400 text-xs uppercase tracking-wide">
+      <td className="py-3.5 pl-6 align-top text-xs font-semibold tracking-wide text-gray-400 uppercase">
         {label}
       </td>
       {children}
@@ -312,11 +313,11 @@ export default function CompareBar() {
   return (
     <>
       {/* Sticky bar */}
-      <div className="fixed right-0 bottom-0 left-0 z-40 border-gray-200 border-t bg-white shadow-[0_-4px_24px_rgba(0,0,0,0.08)]">
+      <div className="fixed right-0 bottom-0 left-0 z-40 border-t border-gray-200 bg-white shadow-[0_-4px_24px_rgba(0,0,0,0.08)]">
         <div className="container mx-auto flex items-center gap-3 px-4 py-3">
           {/* Product thumbnails */}
           <div className="flex flex-1 items-center gap-2 overflow-x-auto">
-            {products.map((p) => (
+            {products.map(p => (
               <div className="relative shrink-0" key={p.id}>
                 <div className="h-10 w-10 overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
                   {p.primaryImage ? (
@@ -356,12 +357,12 @@ export default function CompareBar() {
             {/* Empty slots */}
             {Array.from({ length: MAX_COMPARE - count }).map((_, i) => (
               <div
-                className="h-10 w-10 shrink-0 rounded-lg border-2 border-gray-200 border-dashed"
+                className="h-10 w-10 shrink-0 rounded-lg border-2 border-dashed border-gray-200"
                 key={`slot-${i}`}
               />
             ))}
 
-            <span className="ml-1 whitespace-nowrap text-gray-500 text-xs">
+            <span className="ml-1 text-xs whitespace-nowrap text-gray-500">
               {count}/{MAX_COMPARE} produk
             </span>
           </div>
@@ -369,19 +370,19 @@ export default function CompareBar() {
           {/* Actions */}
           <div className="flex shrink-0 items-center gap-2">
             <button
-              className="hidden rounded-lg border border-gray-200 px-3 py-2 font-medium text-gray-600 text-xs hover:bg-gray-50 sm:block"
+              className="hidden rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 sm:block"
               onClick={clearCompare}
             >
               Hapus semua
             </button>
             <a
-              className="hidden rounded-lg border border-gray-200 px-3 py-2 font-medium text-gray-600 text-xs transition-colors hover:bg-gray-50 sm:block"
+              className="hidden rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 sm:block"
               href="/compare"
             >
               Halaman penuh
             </a>
             <button
-              className="rounded-lg bg-brand-500 px-4 py-2 font-semibold text-sm text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="bg-brand-500 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
               disabled={count < 2}
               onClick={() => $compareOpen.set(true)}
             >

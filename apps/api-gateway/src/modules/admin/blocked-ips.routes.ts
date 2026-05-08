@@ -10,18 +10,19 @@
 // Depends on Redis — returns 503 when Redis is unavailable.
 // =============================================================================
 
-import { failure, success } from "@repo/common/schemas";
-import { Hono } from "hono";
 import { getRedis } from "@/config";
 import { requireAuth, requireRole } from "@/middleware/auth.middleware";
 import {
   BLOCK_KEY_PREFIX,
-  type BlockEntry,
   FAIL_KEY_PREFIX,
   IP_BLOCK_DURATION_SECONDS,
   IP_BLOCK_THRESHOLD,
   IP_BLOCK_WINDOW_SECONDS,
+  type BlockEntry,
 } from "@/middleware/ip-blocklist.middleware";
+import { Hono } from "hono";
+
+import { failure, success } from "@repo/common/schemas";
 
 const app = new Hono();
 
@@ -30,7 +31,7 @@ app.get(
   "/admin/blocked-ips",
   requireAuth,
   requireRole("admin", "super_admin"),
-  async (c) => {
+  async c => {
     const redis = getRedis();
     if (!redis) {
       return c.json(failure("SERVICE_UNAVAILABLE", "Redis not available"), 503);
@@ -97,7 +98,7 @@ app.get(
   "/admin/blocked-ips/:ip/history",
   requireAuth,
   requireRole("admin", "super_admin"),
-  async (c) => {
+  async c => {
     const redis = getRedis();
     if (!redis) {
       return c.json(failure("SERVICE_UNAVAILABLE", "Redis not available"), 503);
@@ -138,7 +139,7 @@ app.post(
   "/admin/blocked-ips/:ip/block",
   requireAuth,
   requireRole("admin", "super_admin"),
-  async (c) => {
+  async c => {
     const redis = getRedis();
     if (!redis) {
       return c.json(failure("SERVICE_UNAVAILABLE", "Redis not available"), 503);
@@ -196,7 +197,7 @@ app.delete(
   "/admin/blocked-ips/:ip/unblock",
   requireAuth,
   requireRole("admin", "super_admin"),
-  async (c) => {
+  async c => {
     const redis = getRedis();
     if (!redis) {
       return c.json(failure("SERVICE_UNAVAILABLE", "Redis not available"), 503);

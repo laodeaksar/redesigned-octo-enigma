@@ -32,7 +32,7 @@ export const oauthAccountsTable = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     ...timestamps(),
   },
-  (t) => ({
+  t => ({
     // One account per provider per user
     oauthAccountsUserProviderIdx: index("oauth_accounts_user_provider_idx").on(
       t.userId,

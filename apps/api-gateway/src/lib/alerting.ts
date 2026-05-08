@@ -250,7 +250,7 @@ async function sendEmail(
     await queue.add(
       "process",
       {
-        to: to.split(",").map((s) => s.trim()),
+        to: to.split(",").map(s => s.trim()),
         subject: `${meta.emoji} [${ctx.environment}] Security Alert — Threat Level ${ctx.level}`,
         html: buildEmailHtml(ctx),
         text: `Security Alert: Threat level escalated to ${ctx.level} in ${ctx.environment}. Failures last hour: ${ctx.failuresLastHour}. Active blocks: ${ctx.activeBlocks}.`,

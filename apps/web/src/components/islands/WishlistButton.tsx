@@ -3,13 +3,13 @@
 // icon variant → product card overlay; full variant → product detail page
 // =============================================================================
 
-import { useStore } from "@nanostores/react";
 import { useEffect, useState } from "react";
 import {
   $wishlistedIds,
   hydrateWishlist,
   toggleWishlist,
 } from "@/stores/wishlist.store";
+import { useStore } from "@nanostores/react";
 
 interface Props {
   isLoggedIn: boolean;
@@ -60,8 +60,7 @@ export default function WishlistButton({
     return (
       <button
         aria-label={wishlisted ? "Hapus dari wishlist" : "Tambah ke wishlist"}
-        className={`absolute top-2 right-2 z-10 rounded-full bg-white/80 p-1.5 shadow-sm backdrop-blur-sm transition-all hover:scale-110 ${wishlisted ? "text-rose-500" : "text-gray-400 hover:text-rose-400"}
-        `}
+        className={`absolute top-2 right-2 z-10 rounded-full bg-white/80 p-1.5 shadow-sm backdrop-blur-sm transition-all hover:scale-110 ${wishlisted ? "text-rose-500" : "text-gray-400 hover:text-rose-400"} `}
         onClick={handleClick}
       >
         <svg
@@ -80,12 +79,11 @@ export default function WishlistButton({
 
   return (
     <button
-      className={`flex items-center gap-2 rounded-lg border px-4 py-2 font-medium text-sm transition-colors ${
+      className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
         wishlisted
           ? "border-rose-300 bg-rose-50 text-rose-600 hover:bg-rose-100"
           : "border-gray-200 bg-white text-gray-700 hover:border-rose-300 hover:text-rose-500"
-      }
-      `}
+      } `}
       onClick={handleClick}
     >
       <svg

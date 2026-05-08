@@ -30,7 +30,7 @@ export const categoriesTable = pgTable(
     ...timestamps(),
     ...softDelete(),
   },
-  (t) => ({
+  t => ({
     categoriesSlugIdx: index("categories_slug_idx").on(t.slug),
     categoriesParentIdIdx: index("categories_parent_id_idx").on(t.parentId),
   })

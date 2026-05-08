@@ -2,9 +2,11 @@
 // Vouchers controller
 // =============================================================================
 
+import type { DB } from "@/config";
+
 import { safeParse } from "@repo/common/errors";
 import { success, validateVoucherSchema } from "@repo/common/schemas";
-import type { DB } from "@/config";
+
 import * as service from "./vouchers.service";
 
 export async function handleValidate(db: DB, body: unknown, userId?: string) {

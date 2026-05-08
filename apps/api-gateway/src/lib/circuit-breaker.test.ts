@@ -5,6 +5,7 @@
  */
 
 import { beforeEach, describe, expect, it } from "bun:test";
+
 import {
   CircuitBreaker,
   CircuitBreakerManager,
@@ -35,7 +36,7 @@ describe("CircuitBreaker — timer hygiene", () => {
     }
 
     // Beri event loop kesempatan menjalankan microtask
-    await new Promise((r) => setImmediate(r));
+    await new Promise(r => setImmediate(r));
     const after = process.getActiveResourcesInfo?.().length ?? 0;
 
     // Boleh tumbuh sedikit untuk infrastruktur Bun, tapi tidak boleh
@@ -49,12 +50,12 @@ describe("CircuitBreaker — timer hygiene", () => {
     let receivedSignal: AbortSignal | null = null;
     let aborted = false;
 
-    const promise = cb.execute((signal) => {
+    const promise = cb.execute(signal => {
       receivedSignal = signal;
       signal.addEventListener("abort", () => {
         aborted = true;
       });
-      return new Promise<string>((resolve) => {
+      return new Promise<string>(resolve => {
         // sengaja melebihi timeout
         setTimeout(() => resolve("late"), 500);
       });
@@ -70,7 +71,7 @@ describe("CircuitBreaker — timer hygiene", () => {
     const cb = new CircuitBreaker({ ...cfg, requestTimeout: 200 });
 
     let signalRef: AbortSignal | null = null;
-    const result = await cb.execute(async (signal) => {
+    const result = await cb.execute(async signal => {
       signalRef = signal;
       return "fast";
     });

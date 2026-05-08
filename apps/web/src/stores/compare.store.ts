@@ -40,8 +40,8 @@ function save(items: CompareProduct[]) {
 export const $compareList = atom<CompareProduct[]>([]);
 export const $compareOpen = atom(false);
 
-export const $compareCount = computed($compareList, (l) => l.length);
-export const $compareIds = computed($compareList, (l) => l.map((p) => p.id));
+export const $compareCount = computed($compareList, l => l.length);
+export const $compareIds = computed($compareList, l => l.map(p => p.id));
 
 export function hydrateCompare() {
   $compareList.set(load());
@@ -52,7 +52,7 @@ export function addToCompare(product: CompareProduct): boolean {
   if (current.length >= MAX_COMPARE) {
     return false;
   }
-  if (current.some((p) => p.id === product.id)) {
+  if (current.some(p => p.id === product.id)) {
     return false;
   }
   const updated = [...current, product];
@@ -62,7 +62,7 @@ export function addToCompare(product: CompareProduct): boolean {
 }
 
 export function removeFromCompare(id: string) {
-  const updated = $compareList.get().filter((p) => p.id !== id);
+  const updated = $compareList.get().filter(p => p.id !== id);
   $compareList.set(updated);
   save(updated);
 }
@@ -73,5 +73,5 @@ export function clearCompare() {
 }
 
 export function isInCompare(id: string): boolean {
-  return $compareList.get().some((p) => p.id === id);
+  return $compareList.get().some(p => p.id === id);
 }

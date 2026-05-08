@@ -48,7 +48,7 @@ async function bootstrap() {
   process.on("SIGTERM", () => void shutdown("SIGTERM"));
   process.on("SIGINT", () => void shutdown("SIGINT"));
 
-  process.on("unhandledRejection", (reason) => {
+  process.on("unhandledRejection", reason => {
     const msg = String(reason);
     if (
       msg.includes("ECONNREFUSED") ||

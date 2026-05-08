@@ -9,9 +9,10 @@
 //  DELETE /vouchers/:id            — delete (admin)
 // =============================================================================
 
-import Elysia, { t } from "elysia";
 import { jwtMiddleware, requireRole } from "@/middleware/jwt.middleware";
 import { databasePlugin } from "@/plugins/database.plugin";
+import Elysia, { t } from "elysia";
+
 import * as controller from "./vouchers.controller";
 
 const UUID_PARAM = t.Object({ id: t.String({ format: "uuid" }) });

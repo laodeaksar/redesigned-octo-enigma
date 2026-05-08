@@ -4,6 +4,8 @@
 // Exposes a minimal HTTP server on METRICS_PORT for /metrics scraping.
 // =============================================================================
 
+import { env } from "@/config";
+
 import {
   CONTENT_TYPE,
   Counter,
@@ -12,7 +14,7 @@ import {
   getMetricsOutput,
   Histogram,
 } from "@repo/common/metrics";
-import { env } from "@/config";
+
 import { logger } from "@/lib/logger";
 
 export const registry = createRegistry({ serviceName: "email-worker" });

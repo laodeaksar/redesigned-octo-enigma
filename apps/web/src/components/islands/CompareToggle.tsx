@@ -1,14 +1,14 @@
-import { useStore } from "@nanostores/react";
 import { useEffect, useState } from "react";
 import {
   $compareIds,
   $compareList,
   addToCompare,
-  type CompareProduct,
   hydrateCompare,
   MAX_COMPARE,
   removeFromCompare,
+  type CompareProduct,
 } from "@/stores/compare.store";
+import { useStore } from "@nanostores/react";
 
 interface Props {
   product: CompareProduct;
@@ -53,15 +53,13 @@ export default function CompareToggle({ product, size = "sm" }: Props) {
   return (
     <div className="relative">
       <button
-        className={`flex items-center gap-1.5 rounded-md font-medium text-xs transition-colors ${isSmall ? "px-2 py-1" : "px-3 py-1.5"}
-          ${
-            active
-              ? "bg-brand-500 text-white hover:bg-brand-600"
-              : full
-                ? "cursor-not-allowed bg-gray-100 text-gray-400"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-          }
-        `}
+        className={`flex items-center gap-1.5 rounded-md text-xs font-medium transition-colors ${isSmall ? "px-2 py-1" : "px-3 py-1.5"} ${
+          active
+            ? "bg-brand-500 hover:bg-brand-600 text-white"
+            : full
+              ? "cursor-not-allowed bg-gray-100 text-gray-400"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+        } `}
         disabled={full}
         onClick={toggle}
         title={
@@ -104,7 +102,7 @@ export default function CompareToggle({ product, size = "sm" }: Props) {
       </button>
 
       {flash === "full" && (
-        <div className="absolute bottom-full left-1/2 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-lg bg-gray-900 px-2.5 py-1 text-white text-xs shadow-lg">
+        <div className="absolute bottom-full left-1/2 mb-1.5 -translate-x-1/2 rounded-lg bg-gray-900 px-2.5 py-1 text-xs whitespace-nowrap text-white shadow-lg">
           Maks. {MAX_COMPARE} produk
         </div>
       )}

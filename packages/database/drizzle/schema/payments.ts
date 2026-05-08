@@ -81,7 +81,7 @@ export const paymentsTable = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     ...timestamps(),
   },
-  (t) => ({
+  t => ({
     paymentsOrderIdIdx: index("payments_order_id_idx").on(t.orderId),
     paymentsUserIdIdx: index("payments_user_id_idx").on(t.userId),
     paymentsStatusIdx: index("payments_status_idx").on(t.status),

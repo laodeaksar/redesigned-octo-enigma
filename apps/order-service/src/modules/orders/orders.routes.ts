@@ -17,13 +17,14 @@
 //   POST   /orders/expire             — expire stale pending orders
 // =============================================================================
 
-import Elysia, { t } from "elysia";
 import {
   internalMiddleware,
   jwtMiddleware,
   requireRole,
 } from "@/middleware/jwt.middleware";
 import { databasePlugin } from "@/plugins/database.plugin";
+import Elysia, { t } from "elysia";
+
 import * as controller from "./orders.controller";
 import * as repo from "./orders.repository";
 
@@ -50,7 +51,7 @@ export const ordersInternalRoutes = new Elysia({ prefix: "/orders" })
         !!order &&
         order.userId === userId &&
         ["delivered", "completed"].includes(order.status) &&
-        order.items.some((i) => i.product.productId === productId);
+        order.items.some(i => i.product.productId === productId);
       return { success: true, data: { verified } };
     },
     {

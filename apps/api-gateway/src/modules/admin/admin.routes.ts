@@ -16,14 +16,16 @@
 //  DELETE /admin/audit-logs                 → local
 // =============================================================================
 
-import { Hono } from "hono";
 import { SERVICES } from "@/config";
-import { buildTargetUrl, proxyRequest } from "@/lib/proxy";
 import { requireAuth, requireRole } from "@/middleware/auth.middleware";
 import {
   defaultRateLimit,
   strictRateLimit,
 } from "@/middleware/rate-limit.middleware";
+import { Hono } from "hono";
+
+import { buildTargetUrl, proxyRequest } from "@/lib/proxy";
+
 import { auditLogsRoutes } from "./audit-logs.routes";
 import { blockedIpsRoutes } from "./blocked-ips.routes";
 import { securityAlertsRoutes } from "./security-alerts.routes";
@@ -55,7 +57,7 @@ app.all(
   requireAuth,
   requireRole("admin", "super_admin"),
   defaultRateLimit,
-  async (c) =>
+  async c =>
     proxyRequest(c, { target: buildTargetUrl(authBase, c), user: c.var.user })
 );
 
@@ -66,7 +68,7 @@ app.get(
   requireAuth,
   requireRole("admin", "super_admin"),
   defaultRateLimit,
-  async (c) =>
+  async c =>
     proxyRequest(c, { target: buildTargetUrl(authBase, c), user: c.var.user })
 );
 
@@ -75,7 +77,7 @@ app.patch(
   requireAuth,
   requireRole("admin", "super_admin"),
   strictRateLimit,
-  async (c) =>
+  async c =>
     proxyRequest(c, { target: buildTargetUrl(authBase, c), user: c.var.user })
 );
 
@@ -84,7 +86,7 @@ app.post(
   requireAuth,
   requireRole("admin", "super_admin"),
   strictRateLimit,
-  async (c) =>
+  async c =>
     proxyRequest(c, { target: buildTargetUrl(authBase, c), user: c.var.user })
 );
 
@@ -93,7 +95,7 @@ app.post(
   requireAuth,
   requireRole("admin", "super_admin"),
   strictRateLimit,
-  async (c) =>
+  async c =>
     proxyRequest(c, { target: buildTargetUrl(authBase, c), user: c.var.user })
 );
 
@@ -102,7 +104,7 @@ app.post(
   requireAuth,
   requireRole("admin", "super_admin"),
   strictRateLimit,
-  async (c) =>
+  async c =>
     proxyRequest(c, { target: buildTargetUrl(authBase, c), user: c.var.user })
 );
 
@@ -111,7 +113,7 @@ app.delete(
   requireAuth,
   requireRole("admin", "super_admin"),
   strictRateLimit,
-  async (c) =>
+  async c =>
     proxyRequest(c, { target: buildTargetUrl(authBase, c), user: c.var.user })
 );
 

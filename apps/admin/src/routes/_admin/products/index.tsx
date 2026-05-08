@@ -2,15 +2,16 @@
 // Products list page
 // =============================================================================
 
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Eye, ImageOff, Pencil, Plus, Search, Trash2 } from "lucide-react";
-import { useState } from "react";
-import { AdminLayout } from "@/components/layout/admin-layout";
-import { type Column, DataTable } from "@/components/shared/data-table";
-import { PageHeader } from "@/components/shared/page-header";
+
 import { api, type PaginatedResponse } from "@/lib/api";
 import { cn, formatDate, formatIDR } from "@/lib/utils";
+import { AdminLayout } from "@/components/layout/admin-layout";
+import { DataTable, type Column } from "@/components/shared/data-table";
+import { PageHeader } from "@/components/shared/page-header";
 
 export const Route = createFileRoute("/_admin/products/")({
   component: ProductsPage,
@@ -53,7 +54,7 @@ function ProductStatusBadge({ status }: { status: Product["status"] }) {
   return (
     <span
       className={cn(
-        "inline-flex rounded-full px-2.5 py-0.5 font-medium text-xs",
+        "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium",
         cfg.className
       )}
     >
@@ -81,7 +82,7 @@ function ProductsPage() {
       api.get<PaginatedResponse<Product>>("/products", {
         params: queryParams,
       }),
-    placeholderData: (prev) => prev,
+    placeholderData: prev => prev,
   });
 
   const deleteMutation = useMutation({
@@ -95,7 +96,7 @@ function ProductsPage() {
     {
       key: "name",
       header: "Produk",
-      cell: (row) => (
+      cell: row => (
         <div className="flex items-center gap-3">
           {row.primaryImage ? (
             <img
@@ -104,12 +105,12 @@ function ProductsPage() {
               src={row.primaryImage}
             />
           ) : (
-            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-muted">
-              <ImageOff className="h-4 w-4 text-muted-foreground" />
+            <div className="bg-muted flex h-10 w-10 items-center justify-center rounded-md">
+              <ImageOff className="text-muted-foreground h-4 w-4" />
             </div>
           )}
           <div>
-            <p className="font-medium text-foreground">{row.name}</p>
+            <p className="text-foreground font-medium">{row.name}</p>
             <p className="text-muted-foreground text-xs">{row.slug}</p>
           </div>
         </div>
@@ -118,13 +119,13 @@ function ProductsPage() {
     {
       key: "status",
       header: "Status",
-      cell: (row) => <ProductStatusBadge status={row.status} />,
+      cell: row => <ProductStatusBadge status={row.status} />,
     },
     {
       key: "price",
       header: "Harga",
       sortable: true,
-      cell: (row) => (
+      cell: row => (
         <span className="font-medium">
           {row.lowestPrice === row.highestPrice
             ? formatIDR(row.lowestPrice)
@@ -136,7 +137,7 @@ function ProductsPage() {
       key: "totalStock",
       header: "Stok",
       sortable: true,
-      cell: (row) => (
+      cell: row => (
         <span
           className={cn(
             "font-medium",
@@ -155,7 +156,7 @@ function ProductsPage() {
       key: "createdAt",
       header: "Dibuat",
       sortable: true,
-      cell: (row) => (
+      cell: row => (
         <span className="text-muted-foreground text-sm">
           {formatDate(row.createdAt)}
         </span>
@@ -165,26 +166,26 @@ function ProductsPage() {
       key: "actions",
       header: "",
       className: "w-28",
-      cell: (row) => (
+      cell: row => (
         <div className="flex items-center gap-1">
           <Link
-            className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-accent"
+            className="hover:bg-accent flex h-7 w-7 items-center justify-center rounded-md"
             params={{ productId: row.id }}
             title="Lihat detail"
             to="/_admin/products/$productId"
           >
-            <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+            <Eye className="text-muted-foreground h-3.5 w-3.5" />
           </Link>
           <Link
-            className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-accent"
+            className="hover:bg-accent flex h-7 w-7 items-center justify-center rounded-md"
             params={{ productId: row.id }}
             title="Edit"
             to="/_admin/products/$productId"
           >
-            <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+            <Pencil className="text-muted-foreground h-3.5 w-3.5" />
           </Link>
           <button
-            className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-destructive/10 hover:text-destructive"
+            className="hover:bg-destructive/10 hover:text-destructive flex h-7 w-7 items-center justify-center rounded-md"
             onClick={() => {
               if (confirm(`Hapus produk "${row.name}"?`)) {
                 deleteMutation.mutate(row.id);
@@ -203,7 +204,7 @@ function ProductsPage() {
     <AdminLayout title="Produk">
       <PageHeader
         actions={
-          <button className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground text-sm hover:opacity-90">
+          <button className="bg-primary text-primary-foreground inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold hover:opacity-90">
             <Plus className="h-4 w-4" />
             Tambah Produk
           </button>
@@ -215,10 +216,10 @@ function ProductsPage() {
       {/* Filters */}
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="relative min-w-[200px] flex-1">
-          <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
           <input
-            className="h-9 w-full rounded-md border border-input bg-background pr-3 pl-9 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            onChange={(e) => {
+            className="border-input bg-background focus:ring-ring h-9 w-full rounded-md border pl-9 pr-3 text-sm focus:outline-none focus:ring-2"
+            onChange={e => {
               setSearch(e.target.value);
               setPage(1);
             }}
@@ -229,8 +230,8 @@ function ProductsPage() {
         </div>
 
         <select
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          onChange={(e) => {
+          className="border-input bg-background focus:ring-ring h-9 rounded-md border px-3 text-sm focus:outline-none focus:ring-2"
+          onChange={e => {
             setStatus(e.target.value);
             setPage(1);
           }}
@@ -247,7 +248,7 @@ function ProductsPage() {
         columns={columns}
         data={data?.data ?? []}
         emptyMessage="Belum ada produk"
-        getRowKey={(row) => row.id}
+        getRowKey={row => row.id}
         isLoading={isLoading}
         meta={data?.meta}
         onPageChange={setPage}

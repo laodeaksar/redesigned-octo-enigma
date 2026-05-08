@@ -2,6 +2,8 @@
 // Users controller
 // =============================================================================
 
+import type { DB } from "@/config";
+
 import { safeParse } from "@repo/common/errors";
 import {
   createAddressSchema,
@@ -9,7 +11,7 @@ import {
   updateAddressSchema,
   updateProfileSchema,
 } from "@repo/common/schemas";
-import type { DB } from "@/config";
+
 import * as usersService from "./users.service";
 
 export async function handleGetProfile(db: DB, userId: string) {

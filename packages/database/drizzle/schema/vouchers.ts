@@ -42,7 +42,7 @@ export const vouchersTable = pgTable(
     restrictedToUserId: uuid("restricted_to_user_id"),
     ...timestamps(),
   },
-  (t) => ({
+  t => ({
     codeIdx: uniqueIndex("vouchers_code_idx").on(t.code),
     isActiveIdx: index("vouchers_is_active_idx").on(t.isActive),
     expiresAtIdx: index("vouchers_expires_at_idx").on(t.expiresAt),

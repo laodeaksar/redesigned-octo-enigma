@@ -2,10 +2,10 @@
 // Dashboard — KPI stats + revenue chart + top products + order status breakdown
 // =============================================================================
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Clock, Package, ShoppingCart, TrendingUp } from "lucide-react";
-import { useState } from "react";
 import {
   Area,
   AreaChart,
@@ -20,11 +20,12 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { AdminLayout } from "@/components/layout/admin-layout";
-import { type Column, DataTable } from "@/components/shared/data-table";
-import { StatCard } from "@/components/shared/stat-card";
+
 import { api } from "@/lib/api";
 import { formatDate, formatIDR, ORDER_STATUS_LABELS } from "@/lib/utils";
+import { AdminLayout } from "@/components/layout/admin-layout";
+import { DataTable, type Column } from "@/components/shared/data-table";
+import { StatCard } from "@/components/shared/stat-card";
 
 export const Route = createFileRoute("/_admin/dashboard")({
   component: DashboardPage,
@@ -109,7 +110,7 @@ function DashboardPage() {
     {
       key: "name",
       header: "Produk",
-      cell: (row) => (
+      cell: row => (
         <div className="flex items-center gap-2">
           {row.imageUrl ? (
             <img
@@ -118,11 +119,11 @@ function DashboardPage() {
               src={row.imageUrl}
             />
           ) : (
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-muted text-sm">
+            <div className="bg-muted flex h-8 w-8 shrink-0 items-center justify-center rounded text-sm">
               📦
             </div>
           )}
-          <span className="max-w-[180px] truncate font-medium text-sm">
+          <span className="max-w-[180px] truncate text-sm font-medium">
             {row.name}
           </span>
         </div>
@@ -132,20 +133,20 @@ function DashboardPage() {
       key: "totalQty",
       header: "Terjual",
       sortable: true,
-      cell: (row) => <span className="font-semibold">{row.totalQty} pcs</span>,
+      cell: row => <span className="font-semibold">{row.totalQty} pcs</span>,
     },
     {
       key: "totalRevenue",
       header: "Pendapatan",
       sortable: true,
-      cell: (row) => (
+      cell: row => (
         <span className="font-semibold">{formatIDR(row.totalRevenue)}</span>
       ),
     },
     {
       key: "orderCount",
       header: "Order",
-      cell: (row) => (
+      cell: row => (
         <span className="text-muted-foreground">{row.orderCount}</span>
       ),
     },
@@ -162,11 +163,11 @@ function DashboardPage() {
     <AdminLayout subtitle="Ringkasan performa toko" title="Dashboard">
       {/* Period selector */}
       <div className="mb-6 flex items-center justify-between">
-        <h2 className="font-semibold text-muted-foreground text-sm">
+        <h2 className="text-muted-foreground text-sm font-semibold">
           Rentang Waktu
         </h2>
-        <div className="flex overflow-hidden rounded-lg border border-border text-sm">
-          {(["7", "30", "90"] as const).map((p) => (
+        <div className="border-border flex overflow-hidden rounded-lg border text-sm">
+          {(["7", "30", "90"] as const).map(p => (
             <button
               className={`px-4 py-1.5 font-medium transition-colors ${period === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
               key={p}
@@ -207,8 +208,8 @@ function DashboardPage() {
 
       {/* Revenue chart + Status pie */}
       <div className="mb-6 grid gap-6 lg:grid-cols-3">
-        <div className="rounded-lg border border-border bg-card p-5 shadow-sm lg:col-span-2">
-          <h3 className="mb-4 font-semibold text-sm">Pendapatan Harian</h3>
+        <div className="border-border bg-card rounded-lg border p-5 shadow-sm lg:col-span-2">
+          <h3 className="mb-4 text-sm font-semibold">Pendapatan Harian</h3>
           <ResponsiveContainer height={240} width="100%">
             <AreaChart
               data={revenue}
@@ -263,10 +264,10 @@ function DashboardPage() {
           </ResponsiveContainer>
         </div>
 
-        <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
-          <h3 className="mb-4 font-semibold text-sm">Status Pesanan</h3>
+        <div className="border-border bg-card rounded-lg border p-5 shadow-sm">
+          <h3 className="mb-4 text-sm font-semibold">Status Pesanan</h3>
           {statuses.length === 0 ? (
-            <p className="flex h-48 items-center justify-center text-muted-foreground text-sm">
+            <p className="text-muted-foreground flex h-48 items-center justify-center text-sm">
               Tidak ada data
             </p>
           ) : (
@@ -331,8 +332,8 @@ function DashboardPage() {
       </div>
 
       {/* Daily order bar chart */}
-      <div className="mb-6 rounded-lg border border-border bg-card p-5 shadow-sm">
-        <h3 className="mb-4 font-semibold text-sm">Jumlah Order Harian</h3>
+      <div className="border-border bg-card mb-6 rounded-lg border p-5 shadow-sm">
+        <h3 className="mb-4 text-sm font-semibold">Jumlah Order Harian</h3>
         <ResponsiveContainer height={160} width="100%">
           <BarChart
             data={revenue}
@@ -366,7 +367,7 @@ function DashboardPage() {
       {/* Top products */}
       <div>
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="font-semibold text-base">
+          <h3 className="text-base font-semibold">
             Produk Terlaris ({period} hari)
           </h3>
           <Link
@@ -380,7 +381,7 @@ function DashboardPage() {
           columns={topCols}
           data={topProds}
           emptyMessage="Belum ada data penjualan"
-          getRowKey={(r) => r.productId}
+          getRowKey={r => r.productId}
         />
       </div>
     </AdminLayout>

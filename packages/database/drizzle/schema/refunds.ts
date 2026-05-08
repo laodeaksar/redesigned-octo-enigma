@@ -52,7 +52,7 @@ export const refundsTable = pgTable(
     status: refundStatusEnum("status"),
     ...timestamps(),
   },
-  (t) => ({
+  t => ({
     paymentIdIdx: index("refunds_payment_id_idx").on(t.paymentId),
     orderIdIdx: index("refunds_order_id_idx").on(t.orderId),
     statusIdx: index("refunds_status_idx").on(t.status),

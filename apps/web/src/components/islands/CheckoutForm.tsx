@@ -3,12 +3,13 @@
 // Fetches real shipping rates from RajaOngkir via /shipping/rates
 // =============================================================================
 
-import { useStore } from "@nanostores/react";
-import type React from "react";
 import { useCallback, useEffect, useState } from "react";
+import type React from "react";
+import { $cart, $cartTotal, clearCart } from "@/stores/cart.store";
+import { useStore } from "@nanostores/react";
+
 import { api } from "@/lib/api";
 import { formatIDR } from "@/lib/utils";
-import { $cart, $cartTotal, clearCart } from "@/stores/cart.store";
 
 interface Address {
   city: string;
@@ -74,7 +75,7 @@ export default function CheckoutForm({
 
   const discount = voucherResult?.discountAmount ?? 0;
   const grandTotal = Math.max(0, total + (selectedRate?.cost ?? 0) - discount);
-  const currentAddress = addresses.find((a) => a.id === selectedAddress);
+  const currentAddress = addresses.find(a => a.id === selectedAddress);
 
   const fetchRates = useCallback(
     async (cityId: string) => {
@@ -98,7 +99,7 @@ export default function CheckoutForm({
   );
 
   useEffect(() => {
-    const addr = addresses.find((a) => a.id === selectedAddress);
+    const addr = addresses.find(a => a.id === selectedAddress);
     if (addr?.cityId) {
       void fetchRates(addr.cityId);
     }
@@ -151,7 +152,7 @@ export default function CheckoutForm({
       const orderRes = await api.post<{ success: true; data: { id: string } }>(
         "/orders",
         {
-          items: cart.map((i) => ({
+          items: cart.map(i => ({
             variantId: i.variantId,
             quantity: i.quantity,
           })),
@@ -208,7 +209,7 @@ export default function CheckoutForm({
         <span className="text-6xl">🛒</span>
         <p>Keranjang kosong</p>
         <a
-          className="font-medium text-accent text-sm hover:underline"
+          className="text-accent text-sm font-medium hover:underline"
           href="/products"
         >
           Mulai belanja →
@@ -223,7 +224,7 @@ export default function CheckoutForm({
         {/* Address selector */}
         <Section title="Alamat Pengiriman">
           {addresses.length === 0 ? (
-            <div className="rounded-lg border-2 border-gray-200 border-dashed p-6 text-center">
+            <div className="rounded-lg border-2 border-dashed border-gray-200 p-6 text-center">
               <svg
                 className="mx-auto mb-3 h-8 w-8 text-gray-300"
                 fill="none"
@@ -242,15 +243,15 @@ export default function CheckoutForm({
                   strokeLinejoin="round"
                 />
               </svg>
-              <p className="mb-1 font-medium text-gray-600 text-sm">
+              <p className="mb-1 text-sm font-medium text-gray-600">
                 Belum ada alamat pengiriman
               </p>
-              <p className="mb-4 text-gray-400 text-xs">
+              <p className="mb-4 text-xs text-gray-400">
                 Tambahkan alamat terlebih dahulu agar kamu bisa melanjutkan
                 checkout
               </p>
               <a
-                className="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 px-4 py-2 font-semibold text-sm text-white transition-opacity hover:opacity-90"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
                 href="/profile/addresses"
               >
                 <svg
@@ -271,7 +272,7 @@ export default function CheckoutForm({
             </div>
           ) : (
             <>
-              {addresses.map((addr) => (
+              {addresses.map(addr => (
                 <label
                   className={`mb-3 flex cursor-pointer gap-3 rounded-lg border p-4 transition-colors ${
                     selectedAddress === addr.id
@@ -282,7 +283,7 @@ export default function CheckoutForm({
                 >
                   <input
                     checked={selectedAddress === addr.id}
-                    className="mt-0.5 accent-brand-500"
+                    className="accent-brand-500 mt-0.5"
                     name="address"
                     onChange={() => setSelectedAddress(addr.id)}
                     type="radio"
@@ -306,7 +307,7 @@ export default function CheckoutForm({
                 </label>
               ))}
               <a
-                className="mt-1 flex items-center gap-1.5 font-medium text-gray-500 text-xs transition-colors hover:text-gray-800"
+                className="mt-1 flex items-center gap-1.5 text-xs font-medium text-gray-500 transition-colors hover:text-gray-800"
                 href="/profile/addresses"
               >
                 <svg
@@ -332,7 +333,7 @@ export default function CheckoutForm({
         <Section title="Pilih Pengiriman">
           {currentAddress?.cityId ? (
             ratesLoading ? (
-              <div className="flex items-center gap-2 py-4 text-gray-500 text-sm">
+              <div className="flex items-center gap-2 py-4 text-sm text-gray-500">
                 <svg
                   className="h-4 w-4 animate-spin"
                   fill="none"
@@ -355,7 +356,7 @@ export default function CheckoutForm({
                 Mengambil tarif ongkir…
               </div>
             ) : ratesError ? (
-              <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-red-700 text-sm">
+              <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
                 {ratesError}
                 <button
                   className="ml-2 underline"
@@ -368,16 +369,16 @@ export default function CheckoutForm({
                 </button>
               </div>
             ) : shippingRates.length === 0 ? (
-              <p className="text-gray-400 text-sm">
+              <p className="text-sm text-gray-400">
                 Tidak ada layanan tersedia untuk kota ini
               </p>
             ) : (
-              shippingRates.map((group) => (
+              shippingRates.map(group => (
                 <div className="mb-4" key={group.courier}>
-                  <p className="mb-2 font-semibold text-gray-500 text-xs uppercase tracking-wider">
+                  <p className="mb-2 text-xs font-semibold tracking-wider text-gray-500 uppercase">
                     {group.name}
                   </p>
-                  {group.rates.map((rate) => {
+                  {group.rates.map(rate => {
                     const isSelected =
                       selectedRate?.courier === group.courier &&
                       selectedRate?.service === rate.service;
@@ -406,17 +407,17 @@ export default function CheckoutForm({
                             type="radio"
                           />
                           <div>
-                            <p className="font-medium text-sm">
+                            <p className="text-sm font-medium">
                               {rate.service} — {rate.description}
                             </p>
                             {rate.etd && (
-                              <p className="text-gray-500 text-xs">
+                              <p className="text-xs text-gray-500">
                                 Estimasi {rate.etd} hari kerja
                               </p>
                             )}
                           </div>
                         </div>
-                        <span className="font-semibold text-sm">
+                        <span className="text-sm font-semibold">
                           {formatIDR(rate.cost)}
                         </span>
                       </label>
@@ -426,7 +427,7 @@ export default function CheckoutForm({
               ))
             )
           ) : (
-            <p className="text-gray-400 text-sm">
+            <p className="text-sm text-gray-400">
               Pilih alamat dengan data kota yang valid terlebih dahulu
             </p>
           )}
@@ -436,14 +437,14 @@ export default function CheckoutForm({
         <Section title="Voucher">
           <div className="flex gap-2">
             <input
-              className="flex-1 rounded-lg border border-gray-200 px-3 py-2.5 font-mono text-sm uppercase outline-none placeholder:font-sans placeholder:normal-case focus:border-brand-500"
-              onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+              className="focus:border-brand-500 flex-1 rounded-lg border border-gray-200 px-3 py-2.5 font-mono text-sm uppercase outline-none placeholder:font-sans placeholder:normal-case"
+              onChange={e => setVoucherCode(e.target.value.toUpperCase())}
               placeholder="Kode voucher"
               type="text"
               value={voucherCode}
             />
             <button
-              className="rounded-lg bg-gray-900 px-4 py-2.5 font-semibold text-sm text-white hover:bg-gray-700"
+              className="rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-gray-700"
               onClick={() => void handleValidateVoucher()}
               type="button"
             >
@@ -451,10 +452,10 @@ export default function CheckoutForm({
             </button>
           </div>
           {voucherError && (
-            <p className="mt-1.5 text-red-600 text-xs">{voucherError}</p>
+            <p className="mt-1.5 text-xs text-red-600">{voucherError}</p>
           )}
           {voucherResult && (
-            <p className="mt-1.5 font-medium text-green-600 text-xs">
+            <p className="mt-1.5 text-xs font-medium text-green-600">
               ✓ Hemat {formatIDR(voucherResult.discountAmount)}
             </p>
           )}
@@ -463,8 +464,8 @@ export default function CheckoutForm({
         {/* Notes */}
         <Section title="Catatan (opsional)">
           <textarea
-            className="w-full resize-none rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500"
-            onChange={(e) => setNote(e.target.value)}
+            className="focus:border-brand-500 w-full resize-none rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none"
+            onChange={e => setNote(e.target.value)}
             placeholder="Pesan untuk penjual"
             rows={3}
             value={note}
@@ -478,8 +479,8 @@ export default function CheckoutForm({
           <h3 className="mb-4 font-semibold text-gray-900">
             Ringkasan Pesanan
           </h3>
-          <ul className="mb-4 space-y-3 border-gray-100 border-b pb-4">
-            {cart.map((item) => (
+          <ul className="mb-4 space-y-3 border-b border-gray-100 pb-4">
+            {cart.map(item => (
               <li
                 className="flex items-center gap-2 text-sm"
                 key={item.variantId}
@@ -498,14 +499,14 @@ export default function CheckoutForm({
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-xs">
+                  <p className="truncate text-xs font-medium">
                     {item.productName}
                   </p>
-                  <p className="text-gray-500 text-xs">
+                  <p className="text-xs text-gray-500">
                     {item.variantName} × {item.quantity}
                   </p>
                 </div>
-                <span className="shrink-0 font-semibold text-xs">
+                <span className="shrink-0 text-xs font-semibold">
                   {formatIDR(item.price * item.quantity)}
                 </span>
               </li>
@@ -524,24 +525,24 @@ export default function CheckoutForm({
                 value={`- ${formatIDR(discount)}`}
               />
             )}
-            <div className="flex justify-between border-gray-100 border-t pt-2 font-bold text-base">
+            <div className="flex justify-between border-t border-gray-100 pt-2 text-base font-bold">
               <span>Total</span>
               <span className="text-accent">{formatIDR(grandTotal)}</span>
             </div>
           </div>
           {error && (
-            <div className="mt-3 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-red-700 text-xs">
+            <div className="mt-3 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-700">
               {error}
             </div>
           )}
           <button
-            className="mt-4 w-full rounded-lg bg-accent py-3.5 font-bold text-sm text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            className="bg-accent mt-4 w-full rounded-lg py-3.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isSubmitting || !selectedRate}
             onClick={() => void handleCheckout()}
           >
             {isSubmitting ? "Memproses…" : `Bayar ${formatIDR(grandTotal)}`}
           </button>
-          <p className="mt-2 text-center text-gray-400 text-xs">
+          <p className="mt-2 text-center text-xs text-gray-400">
             🔒 Pembayaran aman via Midtrans
           </p>
         </div>

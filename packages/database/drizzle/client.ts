@@ -54,7 +54,7 @@ export function createDrizzleClient(
     max_lifetime: 60 * 30, // recycle connections after 30 min
     prepare: false, // MUST be false for PgBouncer transaction mode
     ...(debug && {
-      onnotice: (notice) => console.info("[PostgreSQL notice]", notice),
+      onnotice: notice => console.info("[PostgreSQL notice]", notice),
     }),
   });
 

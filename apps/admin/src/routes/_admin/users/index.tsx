@@ -2,15 +2,16 @@
 // Users list page — admin user management via better-auth admin plugin
 // =============================================================================
 
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { KeyRound, Search, ShieldCheck, UserCheck, UserX } from "lucide-react";
-import { useState } from "react";
-import { AdminLayout } from "@/components/layout/admin-layout";
-import { type Column, DataTable } from "@/components/shared/data-table";
-import { PageHeader } from "@/components/shared/page-header";
-import { type ApiResponse, api } from "@/lib/api";
+
+import { api, type ApiResponse } from "@/lib/api";
 import { cn, formatDate } from "@/lib/utils";
+import { AdminLayout } from "@/components/layout/admin-layout";
+import { DataTable, type Column } from "@/components/shared/data-table";
+import { PageHeader } from "@/components/shared/page-header";
 
 export const Route = createFileRoute("/_admin/users/")({
   component: UsersPage,
@@ -99,7 +100,7 @@ function UsersPage() {
       api.get<ApiResponse<UsersListResponse>>("/admin/users", {
         params: queryParams,
       }),
-    placeholderData: (prev) => prev,
+    placeholderData: prev => prev,
   });
 
   const users = data?.data?.users ?? [];
@@ -162,13 +163,13 @@ function UsersPage() {
     {
       key: "user",
       header: "Pengguna",
-      cell: (row) => (
+      cell: row => (
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 font-semibold text-primary text-sm">
+          <div className="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold">
             {row.name.charAt(0).toUpperCase()}
           </div>
           <div>
-            <p className="font-medium text-foreground text-sm">{row.name}</p>
+            <p className="text-foreground text-sm font-medium">{row.name}</p>
             <p className="text-muted-foreground text-xs">{row.email}</p>
           </div>
         </div>
@@ -177,12 +178,12 @@ function UsersPage() {
     {
       key: "role",
       header: "Role",
-      cell: (row) => {
+      cell: row => {
         const cfg = ROLE_CONFIG[row.role] ?? ROLE_CONFIG["customer"]!;
         return (
           <span
             className={cn(
-              "rounded-full px-2.5 py-0.5 font-medium text-xs",
+              "rounded-full px-2.5 py-0.5 text-xs font-medium",
               cfg.className
             )}
           >
@@ -194,14 +195,14 @@ function UsersPage() {
     {
       key: "status",
       header: "Status",
-      cell: (row) => {
+      cell: row => {
         const banned = isBanned(row);
         if (banned) {
           return (
             <div>
               <span
                 className={cn(
-                  "rounded-full px-2.5 py-0.5 font-medium text-xs",
+                  "rounded-full px-2.5 py-0.5 text-xs font-medium",
                   STATUS_CONFIG["banned"]!.className
                 )}
               >
@@ -209,7 +210,7 @@ function UsersPage() {
               </span>
               {row.banReason && (
                 <p
-                  className="mt-0.5 max-w-[120px] truncate text-muted-foreground text-xs"
+                  className="text-muted-foreground mt-0.5 max-w-[120px] truncate text-xs"
                   title={row.banReason}
                 >
                   {row.banReason}
@@ -227,7 +228,7 @@ function UsersPage() {
         return (
           <span
             className={cn(
-              "rounded-full px-2.5 py-0.5 font-medium text-xs",
+              "rounded-full px-2.5 py-0.5 text-xs font-medium",
               cfg.className
             )}
           >
@@ -239,7 +240,7 @@ function UsersPage() {
     {
       key: "emailVerified",
       header: "Email",
-      cell: (row) => (
+      cell: row => (
         <span
           className={cn(
             "text-xs",
@@ -254,7 +255,7 @@ function UsersPage() {
       key: "createdAt",
       header: "Bergabung",
       sortable: true,
-      cell: (row) => (
+      cell: row => (
         <span className="text-muted-foreground text-xs">
           {formatDate(row.createdAt)}
         </span>
@@ -264,11 +265,11 @@ function UsersPage() {
       key: "actions",
       header: "",
       className: "w-28",
-      cell: (row) => (
+      cell: row => (
         <div className="flex items-center gap-1">
           {/* Set Role */}
           <button
-            className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-blue-50 hover:text-blue-600"
+            className="text-muted-foreground flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-blue-50 hover:text-blue-600"
             onClick={() => {
               setRoleDialog({
                 userId: row.id,
@@ -294,7 +295,7 @@ function UsersPage() {
             </button>
           ) : (
             <button
-              className="flex h-7 w-7 items-center justify-center rounded-md text-destructive transition-colors hover:bg-destructive/10"
+              className="text-destructive hover:bg-destructive/10 flex h-7 w-7 items-center justify-center rounded-md transition-colors"
               onClick={() => setBanDialog({ userId: row.id, name: row.name })}
               title="Blokir"
             >
@@ -304,7 +305,7 @@ function UsersPage() {
 
           {/* Revoke Sessions */}
           <button
-            className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-amber-50 hover:text-amber-600"
+            className="text-muted-foreground flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-amber-50 hover:text-amber-600"
             disabled={revokeSessionsMutation.isPending}
             onClick={() => revokeSessionsMutation.mutate(row.id)}
             title="Cabut semua sesi"
@@ -326,10 +327,10 @@ function UsersPage() {
       {/* Filters */}
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="relative min-w-[200px] flex-1">
-          <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
           <input
-            className="h-9 w-full rounded-md border border-input bg-background pr-3 pl-9 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            onChange={(e) => {
+            className="border-input bg-background focus:ring-ring h-9 w-full rounded-md border pl-9 pr-3 text-sm focus:outline-none focus:ring-2"
+            onChange={e => {
               setSearch(e.target.value);
               setPage(1);
             }}
@@ -340,8 +341,8 @@ function UsersPage() {
         </div>
 
         <select
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          onChange={(e) => {
+          className="border-input bg-background focus:ring-ring h-9 rounded-md border px-3 text-sm focus:outline-none focus:ring-2"
+          onChange={e => {
             setRole(e.target.value);
             setPage(1);
           }}
@@ -358,7 +359,7 @@ function UsersPage() {
         columns={columns}
         data={users}
         emptyMessage="Belum ada pengguna"
-        getRowKey={(row) => row.id}
+        getRowKey={row => row.id}
         isLoading={isLoading}
         meta={meta}
         onPageChange={setPage}
@@ -373,24 +374,24 @@ function UsersPage() {
       {/* ── Role Dialog ───────────────────────────────────────────────────────── */}
       {roleDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-xl">
-            <h3 className="font-semibold text-base text-foreground">
+          <div className="border-border bg-card w-full max-w-sm rounded-xl border p-6 shadow-xl">
+            <h3 className="text-foreground text-base font-semibold">
               Ubah Role
             </h3>
-            <p className="mt-1 text-muted-foreground text-sm">
+            <p className="text-muted-foreground mt-1 text-sm">
               Pengguna:{" "}
-              <span className="font-medium text-foreground">
+              <span className="text-foreground font-medium">
                 {roleDialog.name}
               </span>
             </p>
 
             <div className="mt-4">
-              <label className="mb-1.5 block font-medium text-foreground text-sm">
+              <label className="text-foreground mb-1.5 block text-sm font-medium">
                 Role baru
               </label>
               <select
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                onChange={(e) => setNewRole(e.target.value as typeof newRole)}
+                className="border-input bg-background focus:ring-ring h-9 w-full rounded-md border px-3 text-sm focus:outline-none focus:ring-2"
+                onChange={e => setNewRole(e.target.value as typeof newRole)}
                 value={newRole}
               >
                 <option value="customer">Customer</option>
@@ -400,7 +401,7 @@ function UsersPage() {
             </div>
 
             {newRole !== roleDialog.currentRole && (
-              <p className="mt-2 text-amber-600 text-xs">
+              <p className="mt-2 text-xs text-amber-600">
                 ⚠ Semua sesi aktif pengguna ini akan dicabut setelah perubahan
                 role.
               </p>
@@ -408,13 +409,13 @@ function UsersPage() {
 
             <div className="mt-5 flex justify-end gap-2">
               <button
-                className="rounded-md border border-input px-4 py-2 font-medium text-foreground text-sm transition-colors hover:bg-muted"
+                className="border-input text-foreground hover:bg-muted rounded-md border px-4 py-2 text-sm font-medium transition-colors"
                 onClick={() => setRoleDialog(null)}
               >
                 Batal
               </button>
               <button
-                className="rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground text-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={
                   setRoleMutation.isPending ||
                   newRole === roleDialog.currentRole
@@ -436,25 +437,25 @@ function UsersPage() {
       {/* ── Ban Dialog ────────────────────────────────────────────────────────── */}
       {banDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-xl">
-            <h3 className="font-semibold text-base text-destructive">
+          <div className="border-border bg-card w-full max-w-sm rounded-xl border p-6 shadow-xl">
+            <h3 className="text-destructive text-base font-semibold">
               Blokir Pengguna
             </h3>
-            <p className="mt-1 text-muted-foreground text-sm">
+            <p className="text-muted-foreground mt-1 text-sm">
               Pengguna:{" "}
-              <span className="font-medium text-foreground">
+              <span className="text-foreground font-medium">
                 {banDialog.name}
               </span>
             </p>
 
             <div className="mt-4">
-              <label className="mb-1.5 block font-medium text-foreground text-sm">
+              <label className="text-foreground mb-1.5 block text-sm font-medium">
                 Alasan blokir{" "}
                 <span className="text-muted-foreground">(opsional)</span>
               </label>
               <textarea
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                onChange={(e) => setBanReason(e.target.value)}
+                className="border-input bg-background focus:ring-ring w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2"
+                onChange={e => setBanReason(e.target.value)}
                 placeholder="Misal: melanggar aturan penggunaan..."
                 rows={3}
                 value={banReason}
@@ -463,7 +464,7 @@ function UsersPage() {
 
             <div className="mt-5 flex justify-end gap-2">
               <button
-                className="rounded-md border border-input px-4 py-2 font-medium text-foreground text-sm transition-colors hover:bg-muted"
+                className="border-input text-foreground hover:bg-muted rounded-md border px-4 py-2 text-sm font-medium transition-colors"
                 onClick={() => {
                   setBanDialog(null);
                   setBanReason("");
@@ -472,7 +473,7 @@ function UsersPage() {
                 Batal
               </button>
               <button
-                className="rounded-md bg-destructive px-4 py-2 font-medium text-destructive-foreground text-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                className="bg-destructive text-destructive-foreground rounded-md px-4 py-2 text-sm font-medium transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={banMutation.isPending}
                 onClick={() =>
                   banMutation.mutate({

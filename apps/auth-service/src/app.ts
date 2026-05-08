@@ -2,9 +2,6 @@
 // Elysia app factory
 // =============================================================================
 
-import { cors } from "@elysiajs/cors";
-import { elysiaErrorHandler } from "@repo/common/errors";
-import Elysia from "elysia";
 import { env } from "@/config";
 import { metricsRoutes } from "@/metrics";
 import { adminRoutes } from "@/modules/admin/admin.routes";
@@ -13,6 +10,10 @@ import { betterAuthHandler, oauthRoutes } from "@/modules/auth/oauth.routes";
 import { healthRoutes } from "@/modules/health/health.routes";
 import { usersRoutes } from "@/modules/users/users.routes";
 import { swaggerPlugin } from "@/plugins/swagger.plugin";
+import { cors } from "@elysiajs/cors";
+import Elysia from "elysia";
+
+import { elysiaErrorHandler } from "@repo/common/errors";
 
 export function createApp() {
   return (

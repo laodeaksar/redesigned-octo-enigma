@@ -3,13 +3,8 @@
 // Rules specific to Jest and React Testing Library
 // =============================================================================
 
-import testingLibrary from "eslint-plugin-testing-library";
-
 export default [
   {
-    plugins: {
-      "testing-library": testingLibrary,
-    },
     rules: {
       // Testing Library rules
       "testing-library/no-dom-assertions": "error",

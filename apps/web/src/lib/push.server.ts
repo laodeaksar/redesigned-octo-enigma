@@ -2,10 +2,11 @@
 // Server-side Web Push helpers
 // =============================================================================
 
-import { createDrizzleClient } from "@repo/database/drizzle";
-import { pushSubscriptionsTable } from "@repo/database/drizzle/schema";
 import { eq } from "drizzle-orm";
 import webpush from "web-push";
+
+import { createDrizzleClient } from "@repo/database/drizzle";
+import { pushSubscriptionsTable } from "@repo/database/drizzle/schema";
 
 export const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY ?? "";
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY ?? "";
@@ -73,7 +74,7 @@ export async function sendOrderStatusPush(
   });
 
   const results = await Promise.allSettled(
-    subs.map((sub) =>
+    subs.map(sub =>
       webpush.sendNotification(
         {
           endpoint: sub.endpoint,
@@ -93,7 +94,7 @@ export async function sendOrderStatusPush(
         (r.reason?.statusCode === 410 || r.reason?.statusCode === 404)
       );
     })
-    .map((s) => s.endpoint);
+    .map(s => s.endpoint);
 
   for (const endpoint of expired) {
     await db

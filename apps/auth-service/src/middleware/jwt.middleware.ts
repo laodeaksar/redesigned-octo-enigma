@@ -3,9 +3,10 @@
 // Usage: apply `.use(jwtMiddleware)` before protected route groups
 // =============================================================================
 
+import Elysia from "elysia";
+
 import { InsufficientRoleError, UnauthorizedError } from "@repo/common/errors";
 import type { UserRole } from "@repo/common/types";
-import Elysia from "elysia";
 
 import { verifyAccessToken } from "@/lib/jwt";
 

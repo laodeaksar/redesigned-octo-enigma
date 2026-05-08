@@ -2,15 +2,6 @@
 // Hono app factory
 // =============================================================================
 
-import { swaggerUI } from "@hono/swagger-ui";
-import { normalizeError } from "@repo/common/errors";
-import { failure } from "@repo/common/schemas";
-import { Hono } from "hono";
-import { cors } from "hono/cors";
-import { logger } from "hono/logger";
-import { prettyJSON } from "hono/pretty-json";
-import { secureHeaders } from "hono/secure-headers";
-
 import { env } from "@/config";
 import { metricsMiddleware, metricsRoutes } from "@/metrics";
 import { auditMiddleware } from "@/middleware/audit.middleware";
@@ -26,6 +17,15 @@ import { paymentsRoutes } from "@/modules/payments/payments.routes";
 import { productsRoutes } from "@/modules/products/products.routes";
 import { shippingRoutes } from "@/modules/shipping/shipping.routes";
 import { wishlistRoutes } from "@/modules/wishlist/wishlist.routes";
+import { swaggerUI } from "@hono/swagger-ui";
+import { Hono } from "hono";
+import { cors } from "hono/cors";
+import { logger } from "hono/logger";
+import { prettyJSON } from "hono/pretty-json";
+import { secureHeaders } from "hono/secure-headers";
+
+import { normalizeError } from "@repo/common/errors";
+import { failure } from "@repo/common/schemas";
 
 export function createApp() {
   const app = new Hono();
@@ -83,7 +83,7 @@ export function createApp() {
   );
 
   // Simple OpenAPI spec — lists all services and their base paths
-  app.get("/docs/openapi.json", (c) =>
+  app.get("/docs/openapi.json", c =>
     c.json({
       openapi: "3.0.0",
       info: {
@@ -125,7 +125,7 @@ export function createApp() {
   app.route("/", wishlistRoutes);
 
   // ── 404 handler ────────────────────────────────────────────────────────────
-  app.notFound((c) =>
+  app.notFound(c =>
     c.json(
       failure("NOT_FOUND", `Route ${c.req.method} ${c.req.path} not found`),
       404

@@ -16,20 +16,21 @@
 // Requires "admin" or "super_admin" role.
 // =============================================================================
 
-import { success } from "@repo/common/schemas";
-import { auditLogsTable } from "@repo/database/drizzle/schema";
-import { and, count, desc, gte, sql } from "drizzle-orm";
-import { Hono } from "hono";
 import { db, getRedis } from "@/config";
 import { requireAuth, requireRole } from "@/middleware/auth.middleware";
 import {
   BLOCK_KEY_PREFIX,
-  type BlockEntry,
   FAIL_KEY_PREFIX,
   IP_BLOCK_DURATION_SECONDS,
   IP_BLOCK_THRESHOLD,
   IP_BLOCK_WINDOW_SECONDS,
+  type BlockEntry,
 } from "@/middleware/ip-blocklist.middleware";
+import { and, count, desc, gte, sql } from "drizzle-orm";
+import { Hono } from "hono";
+
+import { success } from "@repo/common/schemas";
+import { auditLogsTable } from "@repo/database/drizzle/schema";
 
 const app = new Hono();
 
@@ -84,7 +85,7 @@ app.get(
   "/admin/security/overview",
   requireAuth,
   requireRole("admin", "super_admin"),
-  async (c) => {
+  async c => {
     const now = Date.now();
     const h1 = new Date(now - 1 * 3_600_000);
     const h24 = new Date(now - 24 * 3_600_000);

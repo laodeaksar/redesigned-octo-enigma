@@ -6,7 +6,7 @@ import { createApp } from "@/app";
 import { env } from "@/config";
 
 // Suppress non-fatal unhandled rejections from Redis/BullMQ when unavailable
-process.on("unhandledRejection", (reason) => {
+process.on("unhandledRejection", reason => {
   const msg = String(reason);
   if (
     msg.includes("ECONNREFUSED") ||

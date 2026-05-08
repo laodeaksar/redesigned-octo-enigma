@@ -6,10 +6,11 @@
 //  POST /health/circuit-breakers/reset   — admin: reset all circuit breakers
 // =============================================================================
 
-import { Hono } from "hono";
 import { getRedis, SERVICES } from "@/config";
-import { CircuitBreakerManager } from "@/lib/circuit-breaker";
 import { requireAuth, requireRole } from "@/middleware/auth.middleware";
+import { Hono } from "hono";
+
+import { CircuitBreakerManager } from "@/lib/circuit-breaker";
 
 const app = new Hono();
 
@@ -25,7 +26,7 @@ async function pingService(url: string): Promise<"ok" | "error"> {
 }
 
 // ── Public: basic liveness check ──────────────────────────────────────────────
-app.get("/health", async (c) => {
+app.get("/health", async c => {
   const checks: Record<string, "ok" | "error"> = {};
 
   try {
@@ -49,7 +50,7 @@ app.get("/health", async (c) => {
   checks["order-service"] = orderStatus;
   checks["payment-service"] = paymentStatus;
 
-  const allOk = Object.values(checks).every((v) => v === "ok");
+  const allOk = Object.values(checks).every(v => v === "ok");
 
   return c.json(
     {
@@ -72,10 +73,10 @@ app.get(
   "/health/circuit-breakers",
   requireAuth,
   requireRole("admin", "super_admin"),
-  async (c) => {
+  async c => {
     const metrics = CircuitBreakerManager.getAllMetrics();
     const allCircuitsOk = Object.values(metrics).every(
-      (m) => m.state === "closed"
+      m => m.state === "closed"
     );
 
     return c.json(
@@ -97,7 +98,7 @@ app.post(
   "/health/circuit-breakers/reset",
   requireAuth,
   requireRole("admin", "super_admin"),
-  async (c) => {
+  async c => {
     CircuitBreakerManager.resetAll();
     return c.json({
       success: true,

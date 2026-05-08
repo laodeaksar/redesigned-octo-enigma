@@ -5,16 +5,17 @@
 // Docs: https://www.better-auth.com
 // =============================================================================
 
+import { db, env } from "@/config";
+import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { admin } from "better-auth/plugins";
+
 import {
   accountsTable,
   sessionsTable,
   usersTable,
   verificationsTable,
 } from "@repo/database/drizzle/schema";
-import { betterAuth } from "better-auth";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { admin } from "better-auth/plugins";
-import { db, env } from "@/config";
 
 export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,

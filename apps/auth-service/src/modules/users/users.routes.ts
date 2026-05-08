@@ -9,9 +9,10 @@
 //  DELETE /users/me/addresses/:id
 // =============================================================================
 
-import Elysia, { t } from "elysia";
 import { jwtMiddleware } from "@/middleware/jwt.middleware";
 import { databasePlugin } from "@/plugins/database.plugin";
+import Elysia, { t } from "elysia";
+
 import * as controller from "./users.controller";
 
 export const usersRoutes = new Elysia({ prefix: "/users" })

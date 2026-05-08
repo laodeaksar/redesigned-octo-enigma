@@ -3,8 +3,8 @@
 // Decorates every handler with `{ db }` via Elysia's `.decorate()`
 // =============================================================================
 
-import Elysia from "elysia";
 import { db } from "@/config";
+import Elysia from "elysia";
 
 export const databasePlugin = new Elysia({ name: "database" }).decorate(
   "db",

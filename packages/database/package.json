@@ -25,8 +25,6 @@
     "db:seed:categories": "bun run seed/categories.seed.ts",
     "db:seed:products": "bun run seed/products.seed.ts",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint . --max-warnings 0",
-    "format": "prettier --write \"**/*.{ts,tsx}\"",
     "clean": "rm -rf .turbo node_modules drizzle/migrations/*.sql"
   },
   "dependencies": {
@@ -35,7 +33,6 @@
     "postgres": "^3.4.9"
   },
   "devDependencies": {
-    "@repo/eslint-config": "workspace:*",
     "@repo/tsconfig": "workspace:*",
     "@types/node": "^25.6.0",
     "drizzle-kit": "^0.31.0",

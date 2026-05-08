@@ -10,8 +10,6 @@
     "build": "astro build",
     "preview": "astro preview",
     "typecheck": "astro check && tsc --noEmit",
-    "lint": "eslint src --max-warnings 0",
-    "format": "prettier --write \"**/*.{ts,tsx}\"",
     "clean": "rm -rf .turbo dist node_modules"
   },
   "dependencies": {
@@ -31,7 +29,6 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
-    "@repo/eslint-config": "workspace:*",
     "@repo/tsconfig": "workspace:*",
     "@tailwindcss/vite": "^4.2.4",
     "@types/web-push": "^3.6.4",

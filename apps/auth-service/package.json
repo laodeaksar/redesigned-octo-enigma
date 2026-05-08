@@ -11,8 +11,6 @@
     "build": "bun build src/index.ts --outdir dist --target bun",
     "start": "bun run dist/index.js",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src --max-warnings 0",
-    "format": "prettier --write \"**/*.{ts,tsx}\"",
     "clean": "rm -rf .turbo dist node_modules"
   },
   "dependencies": {
@@ -28,7 +26,6 @@
     "jose": "^5.3.0"
   },
   "devDependencies": {
-    "@repo/eslint-config": "workspace:*",
     "@repo/tsconfig": "workspace:*",
     "@types/bun": "latest",
     "typescript": "^6.0.3"

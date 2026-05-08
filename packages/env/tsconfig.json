@@ -5,10 +5,7 @@
     "noEmit": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "strict": true,
-    "paths": {
-      "@repo/env/*": ["./*"]
-    }
+    "strict": true
   },
   "include": [
     "index.ts",

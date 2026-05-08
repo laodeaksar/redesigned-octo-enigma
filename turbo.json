@@ -26,12 +26,6 @@
       "outputs": []
     },
 
-    "lint": {
-      "dependsOn": ["^lint"],
-      "inputs": ["src/**", ".eslintrc.*", "eslint.config.*"],
-      "outputs": []
-    },
-
     "clean": {
       "cache": false
     },
@@ -62,9 +56,6 @@
 
     "db:push": {
       "cache": false
-    },
-    "format": {
-      "dependsOn": ["^format"]
     }
   }
 }

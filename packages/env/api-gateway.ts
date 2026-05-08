@@ -34,6 +34,15 @@ export const env = createEnv({
       .string()
       .transform((val) => val.split(",").map((s) => s.trim())),
 
+    // ── Payment gateway (gateway-level webhook verification) ──────────────────
+    /**
+     * Midtrans server key — used at the gateway to pre-verify webhook
+     * signatures before forwarding to payment-service (defense in depth).
+     * Optional: if absent, verification is skipped here and the
+     * payment-service remains the sole verifier.
+     */
+    MIDTRANS_SERVER_KEY: z.string().min(1).optional(),
+
     // ── Security alerting (all optional) ─────────────────────────────────────
     /** Webhook URL — POST JSON alert payload (Slack / Discord / Teams / custom) */
     ALERT_WEBHOOK_URL: z.url().optional(),

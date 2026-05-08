@@ -22,14 +22,18 @@ import {
 } from "@/middleware/auth.middleware";
 import { defaultRateLimit } from "@/middleware/rate-limit.middleware";
 import { proxyRequest, buildTargetUrl } from "@/lib/proxy";
+import { verifyMidtransWebhook } from "@/middleware/webhook-verify.middleware";
 import { SERVICES } from "@/config";
 
 const app = new Hono();
 const paymentBase = SERVICES.payment;
 
-// ── Midtrans webhook — PUBLIC, no auth (Midtrans sends unsigned requests) ─────
-// Signature verification happens inside payment-service.
-app.post("/payments/webhook", async (c) => {
+// ── Midtrans webhook — PUBLIC, signature-verified at gateway ──────────────────
+// verifyMidtransWebhook checks SHA512(order_id+status_code+gross_amount+key)
+// before the request reaches the payment-service, which also re-verifies
+// (defense in depth). If MIDTRANS_SERVER_KEY is absent from gateway env,
+// verification is skipped here and the service remains the sole verifier.
+app.post("/payments/webhook", verifyMidtransWebhook, async (c) => {
   return proxyRequest(c, {
     target: buildTargetUrl(paymentBase, c),
     user: null,

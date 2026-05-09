@@ -1,6 +1,6 @@
 // =============================================================================
-// Order Service ESLint Configuration
-// Node.js/TypeScript order processing service
+// Paymemt Service ESLint Configuration
+// Node.js/TypeScript payment service
 // =============================================================================
 
 import { node } from "@repo/eslint-config/node";
@@ -16,10 +16,10 @@ export default tseslint.config(
       },
     },
     rules: {
-      // MongoDB driver — banyak any type di dokumen
-      "@typescript-eslint/no-unsafe-assignment":    "off",
-      "@typescript-eslint/no-unsafe-member-access":  "off",
-  "@typescript-eslint/no-unsafe-return":         "off",
+      // Webhook handler sering cek raw body — izinkan
+      "@typescript-eslint/no-explicit-any": "warn",
+      // Log semua payment events untuk audit trail
+      "no-console": "off",
     },
   }
-);Order
+);

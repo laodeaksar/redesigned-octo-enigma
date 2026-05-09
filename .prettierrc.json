@@ -9,6 +9,9 @@
 	"importOrder": [
 		"^(react/(.*)$)|^(react$)",
 		"^(astro/(.*)$)|^(astro$)",
+    "<TYPES>^(node:)",
+    "<TYPES>",
+    "<TYPES>^[.]",
 		"<THIRD_PARTY_MODULES>",
 		"",
 		"^@repo/(.*)$",

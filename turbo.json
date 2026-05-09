@@ -22,16 +22,18 @@
     },
 
     "lint": {
-      "dependsOn": ["^build"],
-      "inputs": ["src/**", ".eslintrc.js", "eslint.config.js"],
+      "dependsOn": ["^lint"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        ".eslintignore",
+        "eslint.config.*"
+      ],
       "outputs": []
     },
 
     "lint:fix": {
-      "cache": false,
-      "dependsOn": ["^build"],
-      "inputs": ["src/**", ".eslintrc.js", "eslint.config.js"],
-      "outputs": []
+      dependsOn": ["^lint:fix"],
+      "cache": false
     },
 
     "format": {

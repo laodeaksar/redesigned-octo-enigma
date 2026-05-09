@@ -1,23 +1,19 @@
 // =============================================================================
-// UI Package ESLint Configuration
-// React component library
+// Product Service ESLint Configuration
+// Node.js/TypeScript product service
 // =============================================================================
 
-import { reactConfig } from "@repo/eslint-config/react";
-import tseslint         from "typescript-eslint";
+import { node } from "@repo/eslint-config/node";
+import tseslint  from "typescript-eslint";
 
 export default tseslint.config(
-  ...reactConfig,
+  ...node,
   {
     languageOptions: {
       parserOptions: {
         project:         true,
         tsconfigRootDir: import.meta.dirname,
       },
-    },
-    rules: {
-      // Component library — forwardRef sering tanpa displayName
-      "react/display-name": "off",
     },
   }
 );

@@ -1,96 +1,69 @@
-// =============================================================================
-// Security alert email handler
-// Queue: email.security-alert
-//
-// Job payload:
-//   { to: string | string[], subject: string, html: string, text?: string }
-//
-// Uses a raw BullMQ processor (not createEmailHandler) because the recipient
-// field is `to` (array-capable) rather than a single `email` string.
-// The rich HTML/text body is pre-built by api-gateway/src/lib/alerting.ts.
-// =============================================================================
-
-import { emailSendDuration, emailsFailed, emailsSent } from "@/metrics";
-import type { Job } from "bullmq";
 import { z } from "zod";
+import type { Job } from "@repo/common/events";
 
-import type { EmailHandlerResult } from "@/lib/create-email-handler";
 import { logger } from "@/lib/logger";
 import { sendEmail } from "@/lib/mailer";
+import { withJobLogger } from "@/lib/logger-wrapper";
+import {
+  withTimeout,
+  recordFailure, 
+  recordSuccess,
+  EmailHandlerResult
+} from "@/lib/factory";
+
+// ── Constants ─────────────────────────────────────────────────────────────────
 
 const QUEUE_NAME = "email.security-alert";
+const TIMEOUT_MS = 15_000;
 
-const schema = z.object({
-  to: z.union([z.string().email(), z.array(z.string().email())]),
+// ── Schema ────────────────────────────────────────────────────────────────────
+
+const SecurityAlertSchema = z.object({
+  to: z.union([z.email(), z.array(z.email())]),
   subject: z.string().min(1),
   html: z.string().min(1),
   text: z.string().optional(),
 });
 
-type SecurityAlertJobData = z.infer<typeof schema>;
+type SecurityAlertData = z.infer<typeof SecurityAlertSchema>;
 
-export async function handleSecurityAlertEmail(
-  job: Job<SecurityAlertJobData>
-): Promise<EmailHandlerResult> {
-  const jobId = job.id ?? "unknown";
-  const jobLogger = logger.child({
-    jobId,
-    queueName: QUEUE_NAME,
-    attempt: job.attemptsMade + 1,
-  });
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-  jobLogger.info("Processing security alert email");
+function formatTo(to: SecurityAlertData["to"]): string {
+  return Array.isArray(to) ? to.join(", ") : to;
+}
+
+// ── Handler ───────────────────────────────────────────────────────────────────
+
+async function processor(job: Job<SecurityAlertData>): Promise<EmailHandlerResult> {
+  const data = SecurityAlertSchema.parse(job.data);
   const startMs = Date.now();
 
+  const result = await withTimeout(sendEmail(data), TIMEOUT_MS);
+  const durationSec = (Date.now() - startMs) / 1000;
+
+  recordSuccess({ queueName: QUEUE_NAME, provider: result.provider, durationSec });
+
+  logger.info(
+    { to: formatTo(data.to), provider: result.provider, messageId: result.messageId, durationSec },
+    "Security alert email sent"
+  );
+
+  return {
+    status: "sent",
+    to: formatTo(data.to),
+    provider: result.provider,
+    messageId: result.messageId,
+    sentAt: new Date().toISOString(),
+  };
+}
+
+export const handleSecurityAlertEmail = withJobLogger(QUEUE_NAME, async (job) => {
   try {
-    const data = schema.parse(job.data);
-
-    const result = await Promise.race([
-      sendEmail({
-        to: data.to,
-        subject: data.subject,
-        html: data.html,
-        text: data.text,
-      }),
-      new Promise<never>((_, reject) =>
-        setTimeout(
-          () => reject(new Error("Email provider timeout after 15000ms")),
-          15_000
-        )
-      ),
-    ]);
-
-    const durationSec = (Date.now() - startMs) / 1000;
-
-    emailsSent.inc({ type: QUEUE_NAME, provider: result.provider });
-    emailSendDuration.observe(
-      { type: QUEUE_NAME, provider: result.provider },
-      durationSec
-    );
-
-    const toStr = Array.isArray(data.to) ? data.to.join(", ") : data.to;
-    jobLogger.info(
-      { to: toStr, provider: result.provider, durationSec },
-      "Security alert email sent"
-    );
-
-    return {
-      status: "sent",
-      to: toStr,
-      provider: result.provider,
-      messageId: result.messageId,
-      sentAt: new Date().toISOString(),
-    };
+    return await processor(job as Job<SecurityAlertData>);
   } catch (err) {
-    const durationSec = (Date.now() - startMs) / 1000;
-
-    emailsFailed.inc({ type: QUEUE_NAME });
-    jobLogger.error({ err, durationSec }, "Security alert email failed");
-
-    if (err instanceof Error) {
-      err.message = `[${QUEUE_NAME}] ${err.message}`;
-    }
+    recordFailure({ queueName: QUEUE_NAME });
 
     throw err;
   }
-}
+});

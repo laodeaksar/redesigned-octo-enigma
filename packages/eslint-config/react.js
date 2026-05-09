@@ -3,79 +3,117 @@
 // Rules specific to React components
 // =============================================================================
 
-import reactPlugin from "eslint-plugin-react";
-import reactHooksPlugin from "eslint-plugin-react-hooks";
-import globals from "globals";
+import tseslint   from "typescript-eslint";
+import react      from "eslint-plugin-react";
+import reactHooks from "eslint-plugin-react-hooks";
+import jsxA11y   from "eslint-plugin-jsx-a11y";
+import globals    from "globals";
+import { base }   from "./base.js";
 
-export default [
+/** @type {import("typescript-eslint").ConfigArray} */
+export const reactConfig = tseslint.config(
+  ...base,
+
+  // ── Browser globals ──────────────────────────────────────────────────────
   {
     languageOptions: {
       globals: {
         ...globals.browser,
       },
     },
+  },
+
+  // ── React ────────────────────────────────────────────────────────────────
+  {
+    files: ["**/*.{tsx,jsx}"],
     plugins: {
-      react: reactPlugin,
-      "react-hooks": reactHooksPlugin,
+      react,
+      "react-hooks": reactHooks,
+      "jsx-a11y":    jsxA11y,
     },
     settings: {
-      react: {
-        version: "detect",
-      },
+      react: { version: "detect" },
     },
     rules: {
-      // React specific rules
-      "react/display-name": "warn",
-      "react/forbid-component-props": "off",
-      "react/forbid-elements": "off",
-      "react/function-component-definition": [
-        "warn",
-        {
-          namedComponents: "function",
-          unnamedComponents: "arrow",
-        },
+      // ── React core ──────────────────────────────────────────────────────
+
+      // Tidak perlu import React di React 17+ (new JSX transform)
+      "react/react-in-jsx-scope":  "off",
+      "react/jsx-uses-react":      "off",
+
+      // Self-closing elements
+      "react/self-closing-comp": ["error", { component: true, html: true }],
+
+      // Key prop di list
+      "react/jsx-key": [
+        "error",
+        { checkFragmentShorthand: true, checkKeyMustBeforeSpread: true },
       ],
-      "react/jsx-boolean-prop-naming": "warn",
-      "react/jsx-child-element-to-fragment": "warn",
-      "react/jsx-curly-spacing": "warn",
-      "react/jsx-equals-space": "warn",
-      "react/jsx-first-prop-new-line": "warn",
-      "react/jsx-key": "error",
-      "react/jsx-max-props-per-line": "warn",
-      "react/jsx-no-bind": [
-        "warn",
-        {
-          ignore: ["jsx"],
-        },
-      ],
-      "react/jsx-no-duplicate-props": "error",
-      "react/jsx-no-literals": "off",
-      "react/jsx-no-undef": "error",
-      "react/jsx-pascal-case": "error",
-      "react/jsx-sort-props": "off",
-      "react/jsx-uses-react": "off", // Not needed with React 17+
-      "react/jsx-uses-vars": "error",
-      "react/no-danger": "warn",
-      "react/no-deprecated": "error",
-      "react/no-deprecated-functions": "error",
-      "react/no-did-mount-set-state": "error",
-      "react/no-did-update-set-state": "error",
-      "react/no-direct-mutation-state": "error",
-      "react/no-is-mounted": "error",
-      "react/no-nested-components": "warn",
-      "react/no-set-state": "error",
-      "react/no-string-refs": "error",
-      "react/no-unknown-property": "error",
-      "react/no-unsafe": "error",
-      "react/no-unsafe-lifecycles": "error",
-      "react/prefer-es6-class": "warn",
-      "react/prefer-read-only-props": "warn",
-      "react/prefer-stateless-function": "warn",
+
+      // Prop types tidak perlu — pakai TypeScript
       "react/prop-types": "off",
-      "react/react-in-jsx-scope": "off",
-      "react/self-closing-comp": "warn",
-      "react/sort-comp": "warn",
-      "react/wrap-multilines-in-newline": "warn",
+
+      // Hindari array index sebagai key (bisa menyebabkan bugs di reorder)
+      "react/no-array-index-key": "warn",
+
+      // Tidak boleh set innerHTML langsung
+      "react/no-danger": "error",
+
+      // Fragment shorthand
+      "react/jsx-fragments":            ["error", "syntax"],
+
+      // Boolean prop — tulis isLoading bukan isLoading={true}
+      "react/jsx-boolean-value":        ["error", "never"],
+
+      // Curly braces — konsisten
+      "react/jsx-curly-brace-presence": [
+        "error",
+        { props: "never", children: "never" },
+      ],
+
+      // Sort props (nama dulu, baru handler, baru className)
+      "react/sort-prop-types": "off",   // terlalu strict
+
+      // Component naming
+      "react/display-name":             "off", // banyak arrow function component
+
+      // ── React Hooks ────────────────────────────────────────────────────
+
+      "react-hooks/rules-of-hooks":  "error",
+      "react-hooks/exhaustive-deps": "warn",
+
+      // ── Accessibility ───────────────────────────────────────────────────
+
+      "jsx-a11y/alt-text":                  "error",
+      "jsx-a11y/aria-props":                "error",
+      "jsx-a11y/aria-role":                 "error",
+      "jsx-a11y/aria-unsupported-elements": "error",
+      "jsx-a11y/click-events-have-key-events": "warn",
+      "jsx-a11y/no-static-element-interactions": "warn",
+      "jsx-a11y/anchor-is-valid":           "warn",
+      "jsx-a11y/label-has-associated-control": "error",
+
+      // Interactive elements harus bisa difocus
+      "jsx-a11y/interactive-supports-focus": "warn",
     },
   },
-];
+
+  // ── nanostores — tidak perlu await (reactive/sync API) ───────────────────
+  {
+    files: ["**/stores/**/*.ts", "**/*.store.ts"],
+    rules: {
+      "@typescript-eslint/no-floating-promises": "off",
+    },
+  },
+
+  // ── Island components — client:load, tidak ada SSR concerns ──────────────
+  {
+    files: ["**/islands/**/*.tsx", "**/components/islands/**/*.tsx"],
+    rules: {
+      // localStorage akses di islands itu valid (client-only)
+      "unicorn/prefer-global-this": "off",
+    },
+  }
+);
+
+export default reactConfig;

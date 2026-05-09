@@ -10,6 +10,8 @@
     "build": "bun build src/index.ts --outdir dist --target bun",
     "start": "bun run dist/index.js",
     "typecheck": "tsc --noEmit",
+    "lint":     "eslint .",
+    "lint:fix": "eslint . --fix",
     "clean": "rm -rf .turbo dist node_modules"
   },
   "dependencies": {

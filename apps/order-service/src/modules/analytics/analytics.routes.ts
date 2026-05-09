@@ -97,14 +97,20 @@ export const analyticsRoutes = new Elysia({ prefix: "/analytics" })
     "/order-statuses",
     async () => {
       const breakdown = await OrderModel.aggregate([
-        { $group: { _id: "$status", count: { $sum: 1 } } },
-        { $project: { _id: 0, status: "$_id", count: 1 } },
+        {
+          $group: {
+            _id: "$status",
+            count: { $sum: 1 },
+            revenue: { $sum: "$pricing.grandTotal" },
+          },
+        },
+        { $project: { _id: 0, status: "$_id", count: 1, revenue: 1 } },
         { $sort: { count: -1 } },
       ]);
       return success(breakdown);
     },
     {
-      detail: { tags: ["Analytics"], summary: "Order count by status (admin)" },
+      detail: { tags: ["Analytics"], summary: "Order count and revenue by status (admin)" },
     }
   )
 

@@ -1,26 +1,29 @@
 // =============================================================================
-// OrderStatusSummary — clickable status-count cards above the orders table
-// Uses @repo/ui Card + Skeleton throughout
+// OrderStatusSummary — clickable status-count + revenue cards above orders table
+// Uses @repo/ui Card, Skeleton, Separator throughout
 // =============================================================================
 
 import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
-import { cn, ORDER_STATUS_LABELS } from "@/lib/utils";
+import { cn, formatIDR, ORDER_STATUS_LABELS } from "@/lib/utils";
 import { ALL_ORDER_STATUSES } from "@/lib/orders";
 
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@repo/ui/components/card";
+import { Separator } from "@repo/ui/components/separator";
 import { Skeleton } from "@repo/ui/components/skeleton";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface StatusBreakdown {
   count: number;
+  revenue: number;
   status: string;
 }
 
@@ -44,15 +47,83 @@ const STATUS_CONFIG: Record<string, { dot: string; value: string }> = {
 
 const STATUS_ALL = "__all__";
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function compactIDR(amount: number): string {
+  if (amount >= 1_000_000_000)
+    return `Rp ${(amount / 1_000_000_000).toFixed(1)}M`;
+  if (amount >= 1_000_000)
+    return `Rp ${(amount / 1_000_000).toFixed(1)}jt`;
+  if (amount >= 1_000)
+    return `Rp ${(amount / 1_000).toFixed(0)}rb`;
+  return formatIDR(amount);
+}
+
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 
 function SummarySkeletons() {
   return (
     <div className="mb-6 grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-9">
       {Array.from({ length: 9 }).map((_, i) => (
-        <Skeleton key={i} className="h-[84px] rounded-xl" />
+        <Skeleton key={i} className="h-[108px] rounded-xl" />
       ))}
     </div>
+  );
+}
+
+// ── Single status card ────────────────────────────────────────────────────────
+
+interface StatusCardProps {
+  colorClass?: string;
+  count: number;
+  dot?: string;
+  isActive: boolean;
+  label: string;
+  revenue: number;
+  onClick: () => void;
+}
+
+function StatusCard({
+  colorClass,
+  count,
+  dot,
+  isActive,
+  label,
+  revenue,
+  onClick,
+}: StatusCardProps) {
+  return (
+    <Card
+      size="sm"
+      className={cn(
+        "cursor-pointer select-none transition-all hover:shadow-md",
+        isActive
+          ? "ring-primary ring-2 ring-offset-1"
+          : "hover:ring-border hover:ring-1"
+      )}
+      onClick={onClick}
+    >
+      <CardHeader>
+        <CardTitle className="text-muted-foreground flex items-center gap-1.5 truncate text-xs font-medium">
+          {dot && (
+            <span className={cn("inline-block h-2 w-2 shrink-0 rounded-full", dot)} />
+          )}
+          <span className="truncate">{label}</span>
+        </CardTitle>
+      </CardHeader>
+
+      <CardContent>
+        <p className={cn("text-2xl font-bold tabular-nums", colorClass)}>
+          {count}
+        </p>
+
+        <Separator className="my-1.5" />
+
+        <CardDescription className="truncate text-xs tabular-nums">
+          {revenue > 0 ? compactIDR(revenue) : "—"}
+        </CardDescription>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -76,10 +147,13 @@ export function OrderStatusSummary({
   }
 
   const statuses = data?.data ?? [];
-  const countByStatus = Object.fromEntries(
-    statuses.map(s => [s.status, s.count])
+
+  const byStatus = Object.fromEntries(
+    statuses.map(s => [s.status, { count: s.count, revenue: s.revenue ?? 0 }])
   );
-  const total = statuses.reduce((sum, s) => sum + s.count, 0);
+
+  const totalCount   = statuses.reduce((sum, s) => sum + s.count, 0);
+  const totalRevenue = statuses.reduce((sum, s) => sum + (s.revenue ?? 0), 0);
 
   const handleClick = (status: string) => {
     if (!onStatusFilter) return;
@@ -89,70 +163,31 @@ export function OrderStatusSummary({
   return (
     <div className="mb-6 grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-9">
       {/* ── Total card ─────────────────────────────────────────────────────── */}
-      <Card
-        size="sm"
-        className={cn(
-          "cursor-pointer select-none transition-all hover:shadow-md",
-          activeStatus === STATUS_ALL
-            ? "ring-primary ring-2 ring-offset-1"
-            : "hover:ring-border hover:ring-1"
-        )}
+      <StatusCard
+        count={totalCount}
+        isActive={activeStatus === STATUS_ALL}
+        label="Semua"
+        revenue={totalRevenue}
+        colorClass="text-foreground"
         onClick={() => onStatusFilter?.(STATUS_ALL)}
-      >
-        <CardHeader>
-          <CardTitle className="text-muted-foreground truncate text-xs font-medium">
-            Semua
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-foreground text-2xl font-bold tabular-nums">
-            {total}
-          </p>
-        </CardContent>
-      </Card>
+      />
 
       {/* ── Per-status cards ────────────────────────────────────────────────── */}
       {ALL_ORDER_STATUSES.map(status => {
-        const count = countByStatus[status] ?? 0;
+        const { count, revenue } = byStatus[status] ?? { count: 0, revenue: 0 };
         const cfg = STATUS_CONFIG[status];
-        const isActive = activeStatus === status;
 
         return (
-          <Card
+          <StatusCard
             key={status}
-            size="sm"
-            className={cn(
-              "cursor-pointer select-none transition-all hover:shadow-md",
-              isActive
-                ? "ring-primary ring-2 ring-offset-1"
-                : "hover:ring-border hover:ring-1"
-            )}
+            count={count}
+            colorClass={count === 0 ? "text-muted-foreground" : cfg?.value}
+            dot={cfg?.dot}
+            isActive={activeStatus === status}
+            label={ORDER_STATUS_LABELS[status] ?? status}
+            revenue={revenue}
             onClick={() => handleClick(status)}
-          >
-            <CardHeader>
-              <CardTitle className="text-muted-foreground flex items-center gap-1.5 truncate text-xs font-medium">
-                <span
-                  className={cn(
-                    "inline-block h-2 w-2 shrink-0 rounded-full",
-                    cfg?.dot
-                  )}
-                />
-                <span className="truncate">
-                  {ORDER_STATUS_LABELS[status] ?? status}
-                </span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p
-                className={cn(
-                  "text-2xl font-bold tabular-nums",
-                  count === 0 ? "text-muted-foreground" : cfg?.value
-                )}
-              >
-                {count}
-              </p>
-            </CardContent>
-          </Card>
+          />
         );
       })}
     </div>

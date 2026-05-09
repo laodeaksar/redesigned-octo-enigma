@@ -2,6 +2,9 @@
 // Config — validated env + MongoDB + Drizzle (vouchers) + BullMQ queue clients
 // =============================================================================
 
+import Redis from "ioredis";
+
+import { addJob, createQueue, QUEUES } from "@repo/common/events";
 import { createDrizzleClient } from "@repo/database/drizzle";
 import { connectMongo } from "@repo/database/mongo";
 import { env as rawEnv } from "@repo/env/order-service";
@@ -32,10 +35,65 @@ export async function initMongo(): Promise<void> {
   });
 }
 
-// ── Redis + BullMQ queues (disabled — Redis not available in this env) ─────────
+// ── Redis ─────────────────────────────────────────────────────────────────────
 
-export const redis = null;
+let _redis: Redis | null = null;
+let _redisAvailable = false;
 
+export function getRedis(): Redis | null {
+  return _redisAvailable ? _redis : null;
+}
+
+export async function initRedis(): Promise<boolean> {
+  try {
+    const probe = new Redis(env.REDIS_URL, {
+      lazyConnect: true,
+      maxRetriesPerRequest: 0,
+      enableReadyCheck: false,
+      retryStrategy: () => null,
+    });
+
+    await probe.connect();
+    await probe.ping();
+    await probe.quit();
+
+    _redis = new Redis(env.REDIS_URL, {
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+      retryStrategy: times => Math.min(times * 200, 3000),
+    });
+    _redis.on("error", err => console.warn("[Redis] Error:", err.message));
+    _redis.on("connect", () => console.info("[Redis] Connected"));
+
+    _redisAvailable = true;
+    return true;
+  } catch {
+    console.warn("⚠ Redis unavailable — email notifications disabled");
+    return false;
+  }
+}
+
+// ── Email queue helper — creates a fresh queue, enqueues job, then closes ─────
+// BullMQ queues are lightweight; closing after each publish avoids idle
+// connections. Each publish takes ~1ms.
+
+export async function enqueueEmail<T>(
+  queueName: string,
+  data: T
+): Promise<void> {
+  const redis = getRedis();
+  if (!redis) return;
+  const queue = createQueue<T>(queueName, redis);
+  try {
+    await addJob(queue, data);
+  } catch (err) {
+    console.warn(`[email-queue] Failed to enqueue ${queueName}:`, err);
+  } finally {
+    await queue.close().catch(() => {});
+  }
+}
+
+// Legacy-compat shape kept so nothing else needs changing
 export const queues = {
   emailOrderConfirmation: null as null,
   emailOrderShipped: null as null,

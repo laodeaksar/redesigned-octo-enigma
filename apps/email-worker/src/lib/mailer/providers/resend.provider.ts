@@ -2,7 +2,7 @@ import type { CreateEmailOptions, Resend } from "resend";
 import { env } from "@/config";
 import type { EmailPayload, SendResult } from "../schemas";
 import { formatSender, resolveReplyTo } from "../utils";
-import { BaseProvider } from "../base.provider";
+import { BaseProvider } from "./base.provider";
 
 export class ResendProvider extends BaseProvider {
   protected readonly providerName = "Resend";

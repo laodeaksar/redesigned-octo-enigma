@@ -1,7 +1,7 @@
 import { env } from "@/config";
 import type { EmailPayload, SendResult } from "../schemas.fixed";
 import { formatSender, resolveReplyTo } from "../utils";
-import { BaseProvider } from "/base.provider";
+import { BaseProvider } from "./base.provider";
 
 // ── API Constants ─────────────────────────────────────────────────────────────
 

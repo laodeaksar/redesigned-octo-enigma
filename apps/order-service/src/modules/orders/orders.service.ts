@@ -157,6 +157,7 @@ export async function createOrder(
   const order = await repo.createOrder({
     orderNumber,
     userId,
+    userEmail,
     status: "pending_payment",
     items,
     shipping: {
@@ -332,7 +333,9 @@ export async function updateOrderStatus(
     throw new NotFoundError("Order");
   }
 
-  // Set tracking number if shipping
+  // Resolve the customer email from the stored order (not the admin's email)
+  const customerEmail = order.userEmail ?? userEmail;
+
   if (input.status === "shipped" && input.trackingNumber) {
     updated =
       (await repo.setTrackingNumber(
@@ -341,7 +344,13 @@ export async function updateOrderStatus(
         input.trackingNumber
       )) ?? updated;
 
-    await events.publishOrderShipped(orderId, updated, userEmail);
+    await events.publishOrderShipped(orderId, updated, customerEmail);
+  } else if (input.status === "delivered") {
+    await events.publishOrderDelivered(orderId, updated, customerEmail);
+  } else if (input.status === "completed") {
+    await events.publishOrderCompleted(orderId, updated, customerEmail);
+  } else if (input.status === "cancelled") {
+    await events.publishOrderCancelled(orderId, updated, customerEmail);
   }
 
   return updated;

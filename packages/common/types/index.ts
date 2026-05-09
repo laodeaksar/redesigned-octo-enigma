@@ -29,7 +29,9 @@ export type {
 export * from "./email";
 export type {
   OrderCancelledEmailJobData,
+  OrderCompletedEmailJobData,
   OrderConfirmationEmailJobData,
+  OrderDeliveredEmailJobData,
   OrderExpirySweepJobData,
   OrderPaymentConfirmedJobData,
   OrderShippedEmailJobData,

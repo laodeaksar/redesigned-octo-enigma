@@ -4,7 +4,9 @@
 
 import { redis } from "@/config";
 import { handleOrderCancelledEmail } from "@/handlers/order-cancelled.handler";
+import { handleOrderCompletedEmail } from "@/handlers/order-completed.handler";
 import { handleOrderConfirmationEmail } from "@/handlers/order-confirmation.handler";
+import { handleOrderDeliveredEmail } from "@/handlers/order-delivered.handler";
 import { handleOrderShippedEmail } from "@/handlers/order-shipped.handler";
 import { handlePasswordResetEmail } from "@/handlers/password-reset.handler";
 import { handleSecurityAlertEmail } from "@/handlers/security-alert.handler";
@@ -42,6 +44,16 @@ const BINDINGS: WorkerBinding[] = [
   {
     queue: QUEUES.EMAIL_ORDER_SHIPPED,
     processor: handleOrderShippedEmail,
+    options: DEFAULT_WORKER_OPTS,
+  },
+  {
+    queue: QUEUES.EMAIL_ORDER_DELIVERED,
+    processor: handleOrderDeliveredEmail,
+    options: DEFAULT_WORKER_OPTS,
+  },
+  {
+    queue: QUEUES.EMAIL_ORDER_COMPLETED,
+    processor: handleOrderCompletedEmail,
     options: DEFAULT_WORKER_OPTS,
   },
   {

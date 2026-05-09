@@ -7,6 +7,8 @@ export const QUEUES = {
   EMAIL_WELCOME: "email.welcome",
   EMAIL_ORDER_CONFIRMATION: "email.order-confirmation",
   EMAIL_ORDER_SHIPPED: "email.order-shipped",
+  EMAIL_ORDER_DELIVERED: "email.order-delivered",
+  EMAIL_ORDER_COMPLETED: "email.order-completed",
   EMAIL_ORDER_CANCELLED: "email.order-cancelled",
   EMAIL_PASSWORD_RESET: "email.password-reset",
   EMAIL_SECURITY_ALERT: "email.security-alert",

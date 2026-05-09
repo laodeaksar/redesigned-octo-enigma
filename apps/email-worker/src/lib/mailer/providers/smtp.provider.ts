@@ -17,7 +17,7 @@ import { env } from "@/config";
 import { SMTP_CONFIG } from "../constants";
 import type { EmailPayload, SendResult } from "../schemas";
 import { formatSender, resolveReplyTo } from "../utils";
-import { BaseProvider } from "../base.provider";
+import { BaseProvider } from "./base.provider";
 
 export class SmtpProvider extends BaseProvider {
   protected readonly providerName = "SMTP";

@@ -94,6 +94,7 @@ export interface IOrder {
   statusHistory: IOrderStatusEvent[];
   updatedAt: Date;
   userId: string;
+  userEmail: string | null;
 }
 
 export interface IOrderDocument extends IOrder, Document {}
@@ -211,6 +212,10 @@ const OrderSchema = new Schema<IOrderDocument>(
       type: String,
       required: true,
       index: true,
+    },
+    userEmail: {
+      type: String,
+      default: null,
     },
     status: {
       type: String,

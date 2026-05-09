@@ -389,7 +389,116 @@ export function orderCancelledTemplate(p: OrderCancelledPayload): {
   return { subject, html: baseLayout(subject, content), text };
 }
 
-// ── 5. Password reset ─────────────────────────────────────────────────────────
+// ── 5. Order delivered ────────────────────────────────────────────────────────
+
+export interface OrderDeliveredPayload {
+  address: {
+    city: string;
+    province: string;
+    recipientName: string;
+  };
+  email: string;
+  grandTotal: number;
+  orderNumber: string;
+}
+
+export function orderDeliveredTemplate(p: OrderDeliveredPayload): {
+  subject: string;
+  html: string;
+  text: string;
+} {
+  const subject = `Pesanan ${p.orderNumber} Telah Diterima ✅`;
+  const reviewUrl = appUrl("/orders");
+
+  const content = `
+    <h1 style="margin:0 0 4px;font-size:22px;color:${COLORS.brand};">Paketmu Sudah Tiba! 📦</h1>
+    <p style="margin:0 0 24px;color:${COLORS.muted};">Nomor pesanan: <strong>${p.orderNumber}</strong></p>
+
+    <p>Pesananmu senilai <strong>${formatIDR(p.grandTotal)}</strong> telah berhasil dikirim ke <strong>${p.address.recipientName}</strong> di ${p.address.city}, ${p.address.province}.</p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px;margin:16px 0;">
+      <tr>
+        <td style="font-size:14px;color:#166534;font-weight:600;">
+          ✅ Status: Terkirim
+        </td>
+      </tr>
+      <tr>
+        <td style="font-size:13px;color:#15803d;padding-top:6px;">
+          Paket telah diterima di alamat tujuan.
+        </td>
+      </tr>
+    </table>
+
+    <p>Sudah coba produknya? Bagikan pengalamanmu dan bantu pembeli lain dengan memberikan ulasan.</p>
+
+    ${button("Lihat Pesanan & Beri Ulasan", reviewUrl)}
+
+    <p style="font-size:13px;color:${COLORS.muted};">
+      Ada masalah dengan pesananmu? Hubungi kami di
+      <a href="mailto:support@my-ecommerce.com" style="color:${COLORS.accent};">support@my-ecommerce.com</a>
+      dalam 7 hari untuk pengajuan retur.
+    </p>
+  `;
+
+  const text = `Pesanan ${p.orderNumber} (${formatIDR(p.grandTotal)}) telah diterima di ${p.address.city}. Lihat pesanan: ${reviewUrl}`;
+
+  return { subject, html: baseLayout(subject, content), text };
+}
+
+// ── 6. Order completed ────────────────────────────────────────────────────────
+
+export interface OrderCompletedPayload {
+  email: string;
+  grandTotal: number;
+  orderNumber: string;
+}
+
+export function orderCompletedTemplate(p: OrderCompletedPayload): {
+  subject: string;
+  html: string;
+  text: string;
+} {
+  const subject = `Pesanan ${p.orderNumber} Selesai — Terima Kasih! 🎉`;
+  const shopUrl = appUrl("/products");
+  const ordersUrl = appUrl("/orders");
+
+  const content = `
+    <h1 style="margin:0 0 4px;font-size:22px;color:${COLORS.brand};">Pesanan Selesai 🎉</h1>
+    <p style="margin:0 0 24px;color:${COLORS.muted};">Nomor pesanan: <strong>${p.orderNumber}</strong></p>
+
+    <p>Pesananmu senilai <strong>${formatIDR(p.grandTotal)}</strong> telah selesai. Terima kasih sudah berbelanja di <strong>My Ecommerce</strong>!</p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#fefce8;border:1px solid #fde68a;border-radius:8px;padding:16px 20px;margin:16px 0;">
+      <tr>
+        <td style="font-size:14px;color:#92400e;font-weight:600;">
+          ⭐ Bantu Kami Berkembang
+        </td>
+      </tr>
+      <tr>
+        <td style="font-size:13px;color:#b45309;padding-top:6px;">
+          Ulasanmu sangat berarti bagi pembeli lain. Luangkan 1 menit untuk memberikan rating produk.
+        </td>
+      </tr>
+    </table>
+
+    ${button("Beri Ulasan Sekarang", ordersUrl)}
+
+    <p style="margin-top:24px;">Ingin belanja lagi? Kami selalu punya produk terbaru untukmu.</p>
+
+    ${button("Belanja Lagi", shopUrl)}
+
+    <p style="font-size:13px;color:${COLORS.muted};">
+      Ada pertanyaan? Hubungi kami di
+      <a href="mailto:support@my-ecommerce.com" style="color:${COLORS.accent};">support@my-ecommerce.com</a>
+    </p>
+  `;
+
+  const text = `Pesanan ${p.orderNumber} (${formatIDR(p.grandTotal)}) selesai. Terima kasih sudah berbelanja! Belanja lagi: ${shopUrl}`;
+
+  return { subject, html: baseLayout(subject, content), text };
+}
+
+// ── 7. Password reset ─────────────────────────────────────────────────────────
 
 export interface PasswordResetPayload {
   email: string;

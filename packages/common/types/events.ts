@@ -60,6 +60,25 @@ export interface OrderShippedEmailJobData {
   trackingNumber: string | null;
 }
 
+export interface OrderDeliveredEmailJobData {
+  email: string;
+  orderId: string;
+  orderNumber: string;
+  grandTotal: number;
+  address: {
+    recipientName: string;
+    city: string;
+    province: string;
+  };
+}
+
+export interface OrderCompletedEmailJobData {
+  email: string;
+  orderId: string;
+  orderNumber: string;
+  grandTotal: number;
+}
+
 export interface OrderCancelledEmailJobData {
   email: string;
   grandTotal: number;

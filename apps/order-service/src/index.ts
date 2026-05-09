@@ -3,7 +3,7 @@
 // =============================================================================
 
 import { createApp } from "@/app";
-import { env, initMongo } from "@/config";
+import { env, initMongo, initRedis } from "@/config";
 
 async function bootstrap() {
   console.info(`\n🚀 Starting order-service [${env.NODE_ENV}]…`);
@@ -20,6 +20,12 @@ async function bootstrap() {
     if (env.NODE_ENV === "production") {
       process.exit(1);
     }
+  }
+
+  // ── Redis (email notifications) ──────────────────────────────────────────
+  const redisOk = await initRedis();
+  if (redisOk) {
+    console.info("✓ Redis connected (email notifications active)");
   }
 
   // ── Elysia server ────────────────────────────────────────────────────────

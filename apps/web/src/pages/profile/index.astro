@@ -1,0 +1,138 @@
+---
+import UserSettingsForm from "@/components/islands/UserSettingsForm";
+import BaseLayout from "@/components/layout/BaseLayout.astro";
+import { api } from "@/lib/api";
+import { getTokenFromCookies, requireAuth } from "@/lib/auth";
+
+const user = await requireAuth(Astro, "/auth/login?redirect=/profile");
+const token = getTokenFromCookies(Astro.cookies)!;
+
+// Fetch fresh profile (includes emailVerified etc.)
+let profile = user;
+try {
+  const res = await api.get<{ success: true; data: typeof user }>(
+    "/users/me",
+    { token }
+  );
+  profile = res.data;
+} catch {
+  // fall back to session user
+}
+
+function formatDate(date: string) {
+  return new Date(date).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+---
+
+<BaseLayout title="Pengaturan Akun">
+  <div class="min-h-[calc(100vh-8rem)] bg-gray-50/50 py-8">
+    <div class="mx-auto max-w-3xl px-4">
+
+      <!-- Breadcrumb -->
+      <nav class="mb-6 flex items-center gap-1.5 text-sm text-gray-500">
+        <a class="hover:text-gray-800 transition-colors" href="/">Beranda</a>
+        <svg class="h-3.5 w-3.5 text-gray-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="font-medium text-gray-800">Pengaturan Akun</span>
+      </nav>
+
+      <!-- Profile header card -->
+      <div class="mb-6 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+        <!-- Cover gradient -->
+        <div class="h-24 bg-gradient-to-r from-brand-500/80 to-brand-500/40"></div>
+
+        <div class="px-6 pb-6">
+          <!-- Avatar + name row -->
+          <div class="flex flex-wrap items-end gap-4 -mt-10 mb-4">
+            {profile.avatarUrl ? (
+              <img
+                alt={profile.name}
+                class="h-20 w-20 rounded-full object-cover ring-4 ring-white shadow-md"
+                src={profile.avatarUrl}
+              />
+            ) : (
+              <span class="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-brand-500 text-2xl font-bold text-white ring-4 ring-white shadow-md">
+                {profile.name.charAt(0).toUpperCase()}
+              </span>
+            )}
+
+            <div class="mb-1 min-w-0">
+              <h1 class="text-xl font-bold text-gray-900 leading-tight">{profile.name}</h1>
+              <p class="text-sm text-gray-500">{profile.email}</p>
+            </div>
+          </div>
+
+          <!-- Info chips -->
+          <div class="flex flex-wrap items-center gap-2">
+            {profile.emailVerified ? (
+              <span class="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path clip-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" fill-rule="evenodd"/>
+                </svg>
+                Email Terverifikasi
+              </span>
+            ) : (
+              <span class="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700">
+                Email Belum Terverifikasi
+              </span>
+            )}
+            <span class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600 capitalize">
+              {profile.role}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Side nav + main content -->
+      <div class="flex flex-col gap-4 md:flex-row md:items-start">
+
+        <!-- Sidebar navigation -->
+        <aside class="w-full md:w-52 shrink-0">
+          <nav class="rounded-xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+            <p class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400 border-b border-gray-100">
+              Akun Saya
+            </p>
+            {[
+              { href: "/profile",           label: "Pengaturan",       active: true  },
+              { href: "/profile/addresses", label: "Alamat Pengiriman", active: false },
+              { href: "/orders",            label: "Pesanan Saya",      active: false },
+              { href: "/wishlist",          label: "Wishlist",          active: false },
+            ].map(item => (
+              <a
+                class:list={[
+                  "flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors border-b border-gray-50 last:border-0",
+                  item.active
+                    ? "bg-brand-500/5 font-semibold text-brand-600"
+                    : "text-gray-600 hover:bg-gray-50",
+                ]}
+                href={item.href}
+              >
+                {item.active && (
+                  <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-500"></span>
+                )}
+                {item.label}
+              </a>
+            ))}
+          </nav>
+        </aside>
+
+        <!-- Main settings content -->
+        <div class="flex-1 min-w-0 rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+          <h2 class="mb-6 text-lg font-bold text-gray-900">Pengaturan Akun</h2>
+
+          <UserSettingsForm
+            client:load
+            token={token}
+            user={profile}
+          />
+        </div>
+      </div>
+
+    </div>
+  </div>
+</BaseLayout>

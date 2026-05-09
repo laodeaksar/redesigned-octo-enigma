@@ -11,6 +11,7 @@ import { CalendarIcon, FileDown, RefreshCw } from "lucide-react";
 import { api } from "@/lib/api";
 import { cn, formatIDR, formatRelativeTime, ORDER_STATUS_LABELS } from "@/lib/utils";
 import { ALL_ORDER_STATUSES } from "@/lib/orders";
+import { OrderStatusChart } from "@/components/shared/order-status-chart";
 
 import {
   Card,
@@ -608,6 +609,13 @@ export function OrderStatusSummary({
           );
         })}
       </div>
+
+      {/* ── Bar chart ──────────────────────────────────────────────────────── */}
+      <OrderStatusChart
+        statuses={statuses}
+        activeStatus={activeStatus}
+        onStatusFilter={onStatusFilter}
+      />
     </div>
   );
 }

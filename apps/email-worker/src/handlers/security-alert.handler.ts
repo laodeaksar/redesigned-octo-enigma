@@ -1,4 +1,4 @@
-import { z } from "zod";
+/*import { z } from "zod";
 import type { Job } from "@repo/common/events";
 
 import { logger } from "@/lib/logger";
@@ -66,4 +66,38 @@ export const handleSecurityAlertEmail = withJobLogger(QUEUE_NAME, async (job) =>
 
     throw err;
   }
+});*/
+
+// =============================================================================
+// Security alert email handler
+// Queue: email.security-alert
+// =============================================================================
+
+import { z } from "zod";
+import { createEmailHandler } from "@/lib/factory";
+
+const schema = z.object({
+  to:      z.union([z.email(), z.array(z.email())]),
+  subject: z.string().min(1),
+  html:    z.string().min(1),
+  text:    z.string().optional(),
+}).transform((data) => ({
+  ...data,
+  // `email` is required by createEmailHandler for rate-limit keying.
+  // For multi-recipient alerts, use the first address as the canonical key.
+  email: Array.isArray(data.to) ? data.to[0]! : data.to,
+}));
+
+export const handleSecurityAlertEmail = createEmailHandler({
+  queueName: "email.security-alert",
+  schema,
+  getPayload: (data) => ({
+    to:      data.to,
+    subject: data.subject,
+    html:    data.html,
+    text:    data.text,
+  }),
+  timeoutMs: 15_000,
+  // No rateLimitSec  – security alerts must always be delivered.
+  // No checkExpiry   – security alerts are always time-critical.
 });

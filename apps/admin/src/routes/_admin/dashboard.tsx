@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Clock, Package, ShoppingCart, TrendingUp } from "lucide-react";
+import { ArrowUpRight, Clock, Package, ShoppingCart, TrendingUp } from "lucide-react";
 import { Button } from "@repo/ui/components/button";
 import {
   Cell,
@@ -204,10 +204,21 @@ function DashboardPage() {
       {/* Revenue trend + Status pie */}
       <div className="mb-6 grid gap-6 lg:grid-cols-3">
         <div className="border-border bg-card rounded-lg border p-5 shadow-sm lg:col-span-2">
-          <h3 className="mb-1 text-sm font-semibold">Tren Pendapatan &amp; Order Harian</h3>
-          <p className="text-muted-foreground mb-4 text-xs">
-            Pendapatan (area) &amp; jumlah order (garis putus-putus)
-          </p>
+          <div className="mb-1 flex items-start justify-between gap-2">
+            <div>
+              <h3 className="text-sm font-semibold">Tren Pendapatan &amp; Order Harian</h3>
+              <p className="text-muted-foreground mt-0.5 text-xs">
+                Pendapatan (area) &amp; jumlah order (garis putus-putus)
+              </p>
+            </div>
+            <Button asChild size="sm" variant="outline" className="h-7 shrink-0 gap-1 px-2.5 text-xs">
+              <Link to="/_admin/analytics">
+                Analitik Lengkap
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          </div>
+          <div className="mb-4" />
           <RevenueChart
             data={revenue}
             periodDays={Number(period)}

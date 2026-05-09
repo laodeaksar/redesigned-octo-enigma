@@ -8,10 +8,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   Activity,
   AlertTriangle,
+  Check,
   CheckCircle2,
+  Copy,
   Filter,
   Search,
   Shield,
+  ShieldAlert,
   X,
 } from "lucide-react";
 import {
@@ -47,6 +50,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@repo/ui/components/select";
+import { ScrollArea } from "@repo/ui/components/scroll-area";
 import { Separator } from "@repo/ui/components/separator";
 import {
   Sheet,
@@ -56,6 +60,14 @@ import {
   SheetTitle,
 } from "@repo/ui/components/sheet";
 import { Skeleton } from "@repo/ui/components/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@repo/ui/components/table";
 
 // ── Route ─────────────────────────────────────────────────────────────────────
 
@@ -81,6 +93,14 @@ interface WebhookEventDetail extends WebhookEvent {
   rawPayload: unknown;
 }
 
+interface TopIp {
+  attacks: number;
+  blocked: number;
+  forwarded: number;
+  ip: string | null;
+  total: number;
+}
+
 interface Stats {
   byOutcome: { count: number; outcome: string }[];
   last24h: {
@@ -95,6 +115,7 @@ interface Stats {
   };
   recentTrend: { count: number; hour: string; outcome: string }[];
   since: string;
+  topIps: TopIp[];
   total: number;
 }
 
@@ -228,6 +249,174 @@ function HourlyTrendChart({
   );
 }
 
+// ── Top attacking IPs table ───────────────────────────────────────────────────
+
+function attackLevelVariant(
+  attacks: number,
+  total: number
+): "destructive" | "secondary" | "outline" {
+  if (total === 0) return "outline";
+  const rate = attacks / total;
+  if (rate >= 0.5) return "destructive";
+  if (rate >= 0.2) return "secondary";
+  return "outline";
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    void navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
+  return (
+    <button
+      className="text-muted-foreground hover:text-foreground ml-1.5 inline-flex shrink-0 items-center rounded p-0.5 transition-colors"
+      onClick={handleCopy}
+      title="Salin IP"
+      type="button"
+    >
+      {copied ? (
+        <Check className="h-3 w-3 text-green-500" />
+      ) : (
+        <Copy className="h-3 w-3" />
+      )}
+    </button>
+  );
+}
+
+function TopIpsTable({
+  data,
+  isLoading,
+  onFilterByIp,
+}: {
+  data: TopIp[];
+  isLoading: boolean;
+  onFilterByIp: (ip: string) => void;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <ShieldAlert className="text-destructive h-4 w-4" />
+          <div>
+            <CardTitle>Top IP Penyerang (7 Hari Terakhir)</CardTitle>
+            <CardDescription className="mt-0.5">
+              10 IP dengan volume tertinggi — klik IP untuk filter tabel audit
+            </CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+
+      <Separator />
+
+      <CardContent className="p-0">
+        {isLoading ? (
+          <div className="space-y-2 p-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton className="h-9 w-full" key={i} />
+            ))}
+          </div>
+        ) : data.length === 0 ? (
+          <div className="text-muted-foreground flex h-32 items-center justify-center text-sm">
+            Tidak ada data IP dalam periode ini
+          </div>
+        ) : (
+          <ScrollArea className="max-h-[340px]">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-8 pl-4 text-xs">#</TableHead>
+                  <TableHead className="text-xs">IP Address</TableHead>
+                  <TableHead className="text-right text-xs">Total</TableHead>
+                  <TableHead className="text-right text-xs">
+                    <span className="text-green-600">Diteruskan</span>
+                  </TableHead>
+                  <TableHead className="text-right text-xs">
+                    <span className="text-destructive">Serangan</span>
+                  </TableHead>
+                  <TableHead className="text-right text-xs">
+                    <span className="text-orange-500">Diblokir</span>
+                  </TableHead>
+                  <TableHead className="pr-4 text-right text-xs">
+                    Level
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+
+              <TableBody>
+                {data.map((row, idx) => {
+                  const ip = row.ip ?? "—";
+                  const variant = attackLevelVariant(row.attacks, row.total);
+                  const label =
+                    variant === "destructive"
+                      ? "Tinggi"
+                      : variant === "secondary"
+                        ? "Sedang"
+                        : "Rendah";
+
+                  return (
+                    <TableRow key={ip + idx}>
+                      <TableCell className="pl-4 text-xs font-medium text-muted-foreground">
+                        {idx + 1}
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="flex items-center">
+                          <button
+                            className="font-mono text-xs hover:underline focus:outline-none"
+                            onClick={() => row.ip && onFilterByIp(row.ip)}
+                            title="Filter berdasarkan IP ini"
+                            type="button"
+                          >
+                            {ip}
+                          </button>
+                          {row.ip && <CopyButton text={row.ip} />}
+                        </div>
+                      </TableCell>
+
+                      <TableCell className="text-right">
+                        <span className="font-mono text-xs font-semibold">
+                          {row.total.toLocaleString("id-ID")}
+                        </span>
+                      </TableCell>
+
+                      <TableCell className="text-right">
+                        <span className="font-mono text-xs text-green-600">
+                          {row.forwarded.toLocaleString("id-ID")}
+                        </span>
+                      </TableCell>
+
+                      <TableCell className="text-right">
+                        <span className="text-destructive font-mono text-xs">
+                          {row.attacks.toLocaleString("id-ID")}
+                        </span>
+                      </TableCell>
+
+                      <TableCell className="text-right">
+                        <span className="font-mono text-xs text-orange-500">
+                          {row.blocked.toLocaleString("id-ID")}
+                        </span>
+                      </TableCell>
+
+                      <TableCell className="pr-4 text-right">
+                        <Badge variant={variant}>{label}</Badge>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Event detail sheet ────────────────────────────────────────────────────────
 
 function EventDetailSheet({
@@ -332,11 +521,12 @@ function EventDetailSheet({
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 function WebhookEventsPage() {
-  const [page, setPage]       = useState(1);
-  const [outcome, setOutcome] = useState(OUTCOME_ALL);
-  const [search, setSearch]   = useState("");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo]   = useState("");
+  const [page, setPage]           = useState(1);
+  const [outcome, setOutcome]     = useState(OUTCOME_ALL);
+  const [search, setSearch]       = useState("");
+  const [ipFilter, setIpFilter]   = useState("");
+  const [dateFrom, setDateFrom]   = useState("");
+  const [dateTo, setDateTo]       = useState("");
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen]   = useState(false);
@@ -355,6 +545,7 @@ function WebhookEventsPage() {
     limit: 50,
     ...(apiOutcome            && { outcome:   apiOutcome }),
     ...(search                && { orderId:   search }),
+    ...(ipFilter              && { ip:        ipFilter }),
     ...(dateFrom              && { since:     new Date(dateFrom).toISOString() }),
     ...(dateTo                && { until:     new Date(dateTo + "T23:59:59").toISOString() }),
   };
@@ -373,14 +564,25 @@ function WebhookEventsPage() {
   const items      = listRes?.data?.items ?? [];
   const pagination = listRes?.data?.pagination;
 
-  const filtersActive = Boolean(outcome !== OUTCOME_ALL || search || dateFrom || dateTo);
+  const filtersActive = Boolean(
+    outcome !== OUTCOME_ALL || search || ipFilter || dateFrom || dateTo
+  );
 
   const clearFilters = () => {
     setOutcome(OUTCOME_ALL);
     setSearch("");
+    setIpFilter("");
     setDateFrom("");
     setDateTo("");
     setPage(1);
+  };
+
+  const handleFilterByIp = (ip: string) => {
+    setIpFilter(ip);
+    setPage(1);
+    document
+      .getElementById("webhook-audit-table")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   // ── Table columns ──────────────────────────────────────────────────────────
@@ -550,8 +752,17 @@ function WebhookEventsPage() {
         </CardContent>
       </Card>
 
+      {/* ── Top IPs table ─────────────────────────────────────────────────── */}
+      <div className="mb-6">
+        <TopIpsTable
+          data={stats?.topIps ?? []}
+          isLoading={statsLoading}
+          onFilterByIp={handleFilterByIp}
+        />
+      </div>
+
       {/* ── Filters ───────────────────────────────────────────────────────── */}
-      <div className="mb-4 flex flex-wrap items-center gap-3">
+      <div className="mb-4 flex flex-wrap items-center gap-3" id="webhook-audit-table">
         <div className="relative min-w-[220px] flex-1">
           <Search className="text-muted-foreground absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2" />
           <Input
@@ -605,6 +816,23 @@ function WebhookEventsPage() {
           </Button>
         )}
       </div>
+
+      {/* Active IP filter chip */}
+      {ipFilter && (
+        <div className="mb-3 flex items-center gap-2">
+          <span className="text-muted-foreground text-xs">Filter IP aktif:</span>
+          <Badge variant="secondary" className="gap-1 font-mono text-xs">
+            {ipFilter}
+            <button
+              className="hover:text-foreground ml-1 opacity-60 transition-opacity hover:opacity-100"
+              onClick={() => { setIpFilter(""); setPage(1); }}
+              type="button"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </Badge>
+        </div>
+      )}
 
       {/* ── Table ─────────────────────────────────────────────────────────── */}
       <DataTable

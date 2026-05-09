@@ -35,6 +35,8 @@
     "@tanstack/router-plugin": "^1.132.0",
     "@tanstack/store": "latest",
     "better-auth": "^1.5.3",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.577.0",
     "nitro": "latest",
     "react": "^19.2.0",

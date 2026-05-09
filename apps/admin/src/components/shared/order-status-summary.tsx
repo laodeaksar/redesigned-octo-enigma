@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { RefreshCw } from "lucide-react";
+import { FileDown, RefreshCw } from "lucide-react";
 
 import { api } from "@/lib/api";
 import { cn, formatIDR, formatRelativeTime, ORDER_STATUS_LABELS } from "@/lib/utils";
@@ -90,6 +90,118 @@ function formatCountdown(seconds: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+// ── PDF export ────────────────────────────────────────────────────────────────
+
+async function exportSummaryPDF(
+  statuses: StatusBreakdown[],
+  generatedAt: number
+) {
+  const { jsPDF } = await import("jspdf");
+  const { autoTable } = await import("jspdf-autotable");
+
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+  const pageW  = doc.internal.pageSize.getWidth();
+  const margin = 15;
+  const now    = new Date(generatedAt);
+
+  const totalCount   = statuses.reduce((s, r) => s + r.count, 0);
+  const totalRevenue = statuses.reduce((s, r) => s + (r.revenue ?? 0), 0);
+
+  // ── Title block ────────────────────────────────────────────────────────────
+  doc.setFillColor(15, 23, 42);
+  doc.rect(0, 0, pageW, 32, "F");
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  doc.setTextColor(255, 255, 255);
+  doc.text("Ringkasan Status Pesanan", margin, 15);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(148, 163, 184);
+  doc.text(
+    `Dihasilkan: ${now.toLocaleString("id-ID", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })}`,
+    margin,
+    24
+  );
+
+  // ── Summary numbers below header ───────────────────────────────────────────
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(30, 30, 30);
+
+  const summaryY = 42;
+  doc.text(`Total Pesanan: ${totalCount}`, margin, summaryY);
+  doc.text(
+    `Total Pendapatan: ${formatIDR(totalRevenue)}`,
+    pageW / 2,
+    summaryY
+  );
+
+  // ── Table ──────────────────────────────────────────────────────────────────
+  const rows = ALL_ORDER_STATUSES.map(status => {
+    const found = statuses.find(s => s.status === status);
+    return [
+      ORDER_STATUS_LABELS[status] ?? status,
+      String(found?.count ?? 0),
+      formatIDR(found?.revenue ?? 0),
+    ];
+  });
+
+  autoTable(doc, {
+    startY: summaryY + 8,
+    margin: { left: margin, right: margin },
+    theme: "grid",
+    head: [["Status", "Jumlah Pesanan", "Pendapatan"]],
+    body: rows,
+    foot: [["TOTAL", String(totalCount), formatIDR(totalRevenue)]],
+    showFoot: "lastPage",
+    headStyles: {
+      fillColor: [15, 23, 42],
+      textColor: [255, 255, 255],
+      fontStyle: "bold",
+      halign: "left",
+    },
+    footStyles: {
+      fillColor: [241, 245, 249],
+      textColor: [15, 23, 42],
+      fontStyle: "bold",
+    },
+    bodyStyles: { textColor: [30, 30, 30] },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    columnStyles: {
+      0: { cellWidth: "auto" },
+      1: { halign: "center", cellWidth: 40 },
+      2: { halign: "right",  cellWidth: 55 },
+    },
+  });
+
+  // ── Footer ─────────────────────────────────────────────────────────────────
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    const footY = doc.internal.pageSize.getHeight() - 8;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text("Admin Dashboard — My Ecommerce", margin, footY);
+    doc.text(`Halaman ${i} / ${pageCount}`, pageW - margin, footY, {
+      align: "right",
+    });
+  }
+
+  // ── Download ────────────────────────────────────────────────────────────────
+  const filename = `ringkasan-pesanan-${now.toISOString().slice(0, 10)}.pdf`;
+  doc.save(filename);
+}
+
 // ── Countdown hook ────────────────────────────────────────────────────────────
 
 function useCountdown(dataUpdatedAt: number): number {
@@ -100,7 +212,6 @@ function useCountdown(dataUpdatedAt: number): number {
 
   const [remaining, setRemaining] = useState(calcRemaining);
 
-  // Reset whenever a fresh response arrives
   useEffect(() => {
     setRemaining(calcRemaining());
 
@@ -124,6 +235,7 @@ function SummarySkeletons() {
       <div className="mb-2 flex items-center justify-end gap-3">
         <Skeleton className="h-4 w-36 rounded" />
         <Skeleton className="h-4 w-24 rounded" />
+        <Skeleton className="h-7 w-24 rounded-lg" />
         <Skeleton className="h-7 w-20 rounded-lg" />
       </div>
       <Skeleton className="mb-3 h-1 w-full rounded-full" />
@@ -198,6 +310,8 @@ export function OrderStatusSummary({
   activeStatus = STATUS_ALL,
   onStatusFilter,
 }: OrderStatusSummaryProps) {
+  const [isExporting, setIsExporting] = useState(false);
+
   const { data, dataUpdatedAt, isFetching, isLoading, refetch } = useQuery({
     queryKey: ["analytics", "order-statuses"],
     queryFn: () =>
@@ -208,9 +322,9 @@ export function OrderStatusSummary({
     refetchInterval: REFRESH_INTERVAL_S * 1000,
   });
 
-  const remaining    = useCountdown(dataUpdatedAt);
-  const progressPct  = (remaining / REFRESH_INTERVAL_S) * 100;
-  const almostDue    = remaining <= 30 && !isFetching;
+  const remaining   = useCountdown(dataUpdatedAt);
+  const progressPct = (remaining / REFRESH_INTERVAL_S) * 100;
+  const almostDue   = remaining <= 30 && !isFetching;
 
   if (isLoading) {
     return <SummarySkeletons />;
@@ -228,6 +342,15 @@ export function OrderStatusSummary({
   const handleClick = (status: string) => {
     if (!onStatusFilter) return;
     onStatusFilter(activeStatus === status ? STATUS_ALL : status);
+  };
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      await exportSummaryPDF(statuses, dataUpdatedAt || Date.now());
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -256,7 +379,9 @@ export function OrderStatusSummary({
                 <span
                   className={cn(
                     "cursor-default text-xs tabular-nums transition-colors",
-                    almostDue ? "text-destructive font-medium" : "text-muted-foreground"
+                    almostDue
+                      ? "text-destructive font-medium"
+                      : "text-muted-foreground"
                   )}
                 >
                   Refresh dalam{" "}
@@ -269,6 +394,32 @@ export function OrderStatusSummary({
             </Tooltip>
           </TooltipProvider>
         )}
+
+        {/* PDF export button */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                disabled={isExporting || statuses.length === 0}
+                size="sm"
+                variant="outline"
+                onClick={() => void handleExport()}
+                className="h-7 gap-1.5 px-2 text-xs"
+              >
+                <FileDown
+                  className={cn(
+                    "h-3.5 w-3.5",
+                    isExporting && "animate-bounce"
+                  )}
+                />
+                {isExporting ? "Mengekspor…" : "Ekspor PDF"}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              Download ringkasan status pesanan sebagai PDF
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
 
         {/* Manual refresh button */}
         <Button

@@ -6,26 +6,24 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Clock, Package, ShoppingCart, TrendingUp } from "lucide-react";
+import { Button } from "@repo/ui/components/button";
 import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
   Cell,
   Pie,
   PieChart,
   ResponsiveContainer,
   Tooltip,
-  XAxis,
-  YAxis,
 } from "recharts";
 
 import { api } from "@/lib/api";
-import { formatDate, formatIDR, ORDER_STATUS_LABELS } from "@/lib/utils";
+import { formatIDR, ORDER_STATUS_LABELS } from "@/lib/utils";
 import { AdminLayout } from "@/components/layout/admin-layout";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { StatCard } from "@/components/shared/stat-card";
+import {
+  RevenueChart,
+  type RevenueSeries,
+} from "@/components/shared/revenue-chart";
 
 export const Route = createFileRoute("/_admin/dashboard")({
   component: DashboardPage,
@@ -36,11 +34,6 @@ interface Summary {
   month: { orders: number; revenue: number; avgOrderValue: number };
   today: { orders: number; revenue: number; avgOrderValue: number };
   week: { orders: number; revenue: number; avgOrderValue: number };
-}
-interface RevenueSeries {
-  date: string;
-  orders: number;
-  revenue: number;
 }
 interface StatusBreakdown {
   count: number;
@@ -166,15 +159,17 @@ function DashboardPage() {
         <h2 className="text-muted-foreground text-sm font-semibold">
           Rentang Waktu
         </h2>
-        <div className="border-border flex overflow-hidden rounded-lg border text-sm">
+        <div className="flex gap-1 rounded-lg border p-0.5">
           {(["7", "30", "90"] as const).map(p => (
-            <button
-              className={`px-4 py-1.5 font-medium transition-colors ${period === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
+            <Button
               key={p}
+              size="sm"
+              variant={period === p ? "default" : "ghost"}
               onClick={() => setPeriod(p)}
+              className="h-7 px-3 text-xs"
             >
               {p === "7" ? "7 Hari" : p === "30" ? "30 Hari" : "90 Hari"}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -206,62 +201,17 @@ function DashboardPage() {
         />
       </div>
 
-      {/* Revenue chart + Status pie */}
+      {/* Revenue trend + Status pie */}
       <div className="mb-6 grid gap-6 lg:grid-cols-3">
         <div className="border-border bg-card rounded-lg border p-5 shadow-sm lg:col-span-2">
-          <h3 className="mb-4 text-sm font-semibold">Pendapatan Harian</h3>
-          <ResponsiveContainer height={240} width="100%">
-            <AreaChart
-              data={revenue}
-              margin={{ top: 0, right: 4, left: 0, bottom: 0 }}
-            >
-              <defs>
-                <linearGradient id="grad" x1="0" x2="0" y1="0" y2="1">
-                  <stop
-                    offset="5%"
-                    stopColor="hsl(var(--primary))"
-                    stopOpacity={0.2}
-                  />
-                  <stop
-                    offset="95%"
-                    stopColor="hsl(var(--primary))"
-                    stopOpacity={0}
-                  />
-                </linearGradient>
-              </defs>
-              <CartesianGrid
-                stroke="hsl(var(--border))"
-                strokeDasharray="3 3"
-              />
-              <XAxis
-                dataKey="date"
-                stroke="hsl(var(--muted-foreground))"
-                tick={{ fontSize: 11 }}
-                tickFormatter={(v: string) => v.slice(5)}
-              />
-              <YAxis
-                stroke="hsl(var(--muted-foreground))"
-                tick={{ fontSize: 11 }}
-                tickFormatter={(v: number) =>
-                  v >= 1_000_000
-                    ? `${(v / 1_000_000).toFixed(1)}jt`
-                    : `${(v / 1000).toFixed(0)}rb`
-                }
-              />
-              <Tooltip
-                contentStyle={tooltipStyle}
-                formatter={(v: number) => [formatIDR(v), "Pendapatan"]}
-                labelFormatter={(l: string) => formatDate(l)}
-              />
-              <Area
-                dataKey="revenue"
-                fill="url(#grad)"
-                stroke="hsl(var(--primary))"
-                strokeWidth={2}
-                type="monotone"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          <h3 className="mb-1 text-sm font-semibold">Tren Pendapatan &amp; Order Harian</h3>
+          <p className="text-muted-foreground mb-4 text-xs">
+            Pendapatan (area) &amp; jumlah order (garis putus-putus)
+          </p>
+          <RevenueChart
+            data={revenue}
+            periodDays={Number(period)}
+          />
         </div>
 
         <div className="border-border bg-card rounded-lg border p-5 shadow-sm">
@@ -329,39 +279,6 @@ function DashboardPage() {
             </>
           )}
         </div>
-      </div>
-
-      {/* Daily order bar chart */}
-      <div className="border-border bg-card mb-6 rounded-lg border p-5 shadow-sm">
-        <h3 className="mb-4 text-sm font-semibold">Jumlah Order Harian</h3>
-        <ResponsiveContainer height={160} width="100%">
-          <BarChart
-            data={revenue}
-            margin={{ top: 0, right: 4, left: 0, bottom: 0 }}
-          >
-            <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" />
-            <XAxis
-              dataKey="date"
-              stroke="hsl(var(--muted-foreground))"
-              tick={{ fontSize: 11 }}
-              tickFormatter={(v: string) => v.slice(5)}
-            />
-            <YAxis
-              stroke="hsl(var(--muted-foreground))"
-              tick={{ fontSize: 11 }}
-            />
-            <Tooltip
-              contentStyle={tooltipStyle}
-              formatter={(v: number) => [v, "Order"]}
-              labelFormatter={(l: string) => formatDate(l)}
-            />
-            <Bar
-              dataKey="orders"
-              fill="hsl(var(--primary))"
-              radius={[3, 3, 0, 0]}
-            />
-          </BarChart>
-        </ResponsiveContainer>
       </div>
 
       {/* Top products */}

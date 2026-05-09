@@ -18,6 +18,7 @@ import {
 } from "@/lib/orders";
 import { AdminLayout } from "@/components/layout/admin-layout";
 import { DataTable, type Column } from "@/components/shared/data-table";
+import { OrderStatusSummary } from "@/components/shared/order-status-summary";
 import { PageHeader } from "@/components/shared/page-header";
 
 import { Button } from "@repo/ui/components/button";
@@ -261,6 +262,12 @@ function OrdersPage() {
         }
         description={`${data?.meta.total ?? 0} total pesanan`}
         title="Pesanan"
+      />
+
+      {/* ── Status summary cards ─────────────────────────────────────────────── */}
+      <OrderStatusSummary
+        activeStatus={status}
+        onStatusFilter={s => { setStatus(s); setPage(1); }}
       />
 
       {/* ── Filters ────────────────────────────────────────────────────────── */}

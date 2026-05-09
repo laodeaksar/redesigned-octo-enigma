@@ -1,12 +1,13 @@
 // =============================================================================
 // OrderStatusSummary — clickable status-count + revenue cards above orders table
-// Uses @repo/ui Card, Skeleton, Separator throughout
+// Uses @repo/ui Card, Skeleton, Separator, Button, Tooltip throughout
 // =============================================================================
 
 import { useQuery } from "@tanstack/react-query";
+import { RefreshCw } from "lucide-react";
 
 import { api } from "@/lib/api";
-import { cn, formatIDR, ORDER_STATUS_LABELS } from "@/lib/utils";
+import { cn, formatIDR, formatRelativeTime, ORDER_STATUS_LABELS } from "@/lib/utils";
 import { ALL_ORDER_STATUSES } from "@/lib/orders";
 
 import {
@@ -16,8 +17,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@repo/ui/components/card";
+import { Button } from "@repo/ui/components/button";
 import { Separator } from "@repo/ui/components/separator";
 import { Skeleton } from "@repo/ui/components/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@repo/ui/components/tooltip";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -59,14 +67,30 @@ function compactIDR(amount: number): string {
   return formatIDR(amount);
 }
 
+function formatExact(ts: number): string {
+  return new Date(ts).toLocaleString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 
 function SummarySkeletons() {
   return (
-    <div className="mb-6 grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-9">
-      {Array.from({ length: 9 }).map((_, i) => (
-        <Skeleton key={i} className="h-[108px] rounded-xl" />
-      ))}
+    <div className="mb-6">
+      <div className="mb-2 flex justify-end">
+        <Skeleton className="h-7 w-52 rounded-lg" />
+      </div>
+      <div className="grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-9">
+        {Array.from({ length: 9 }).map((_, i) => (
+          <Skeleton key={i} className="h-[108px] rounded-xl" />
+        ))}
+      </div>
     </div>
   );
 }
@@ -133,7 +157,7 @@ export function OrderStatusSummary({
   activeStatus = STATUS_ALL,
   onStatusFilter,
 }: OrderStatusSummaryProps) {
-  const { data, isLoading } = useQuery({
+  const { data, dataUpdatedAt, isFetching, isLoading, refetch } = useQuery({
     queryKey: ["analytics", "order-statuses"],
     queryFn: () =>
       api.get<{ success: true; data: StatusBreakdown[] }>(
@@ -161,35 +185,69 @@ export function OrderStatusSummary({
   };
 
   return (
-    <div className="mb-6 grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-9">
-      {/* ── Total card ─────────────────────────────────────────────────────── */}
-      <StatusCard
-        count={totalCount}
-        isActive={activeStatus === STATUS_ALL}
-        label="Semua"
-        revenue={totalRevenue}
-        colorClass="text-foreground"
-        onClick={() => onStatusFilter?.(STATUS_ALL)}
-      />
+    <div className="mb-6">
+      {/* ── Toolbar row ──────────────────────────────────────────────────────── */}
+      <div className="mb-2 flex items-center justify-end gap-2">
+        {dataUpdatedAt > 0 && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <span className="text-muted-foreground cursor-default text-xs">
+                  Diperbarui {formatRelativeTime(new Date(dataUpdatedAt))}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                {formatExact(dataUpdatedAt)}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
 
-      {/* ── Per-status cards ────────────────────────────────────────────────── */}
-      {ALL_ORDER_STATUSES.map(status => {
-        const { count, revenue } = byStatus[status] ?? { count: 0, revenue: 0 };
-        const cfg = STATUS_CONFIG[status];
-
-        return (
-          <StatusCard
-            key={status}
-            count={count}
-            colorClass={count === 0 ? "text-muted-foreground" : cfg?.value}
-            dot={cfg?.dot}
-            isActive={activeStatus === status}
-            label={ORDER_STATUS_LABELS[status] ?? status}
-            revenue={revenue}
-            onClick={() => handleClick(status)}
+        <Button
+          disabled={isFetching}
+          size="sm"
+          variant="ghost"
+          onClick={() => void refetch()}
+          className="h-7 gap-1.5 px-2 text-xs"
+        >
+          <RefreshCw
+            className={cn("h-3.5 w-3.5", isFetching && "animate-spin")}
           />
-        );
-      })}
+          {isFetching ? "Memperbarui…" : "Refresh"}
+        </Button>
+      </div>
+
+      {/* ── Cards grid ───────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-9">
+        {/* Total card */}
+        <StatusCard
+          count={totalCount}
+          colorClass="text-foreground"
+          isActive={activeStatus === STATUS_ALL}
+          label="Semua"
+          revenue={totalRevenue}
+          onClick={() => onStatusFilter?.(STATUS_ALL)}
+        />
+
+        {/* Per-status cards */}
+        {ALL_ORDER_STATUSES.map(status => {
+          const { count, revenue } = byStatus[status] ?? { count: 0, revenue: 0 };
+          const cfg = STATUS_CONFIG[status];
+
+          return (
+            <StatusCard
+              key={status}
+              count={count}
+              colorClass={count === 0 ? "text-muted-foreground" : cfg?.value}
+              dot={cfg?.dot}
+              isActive={activeStatus === status}
+              label={ORDER_STATUS_LABELS[status] ?? status}
+              revenue={revenue}
+              onClick={() => handleClick(status)}
+            />
+          );
+        })}
+      </div>
     </div>
   );
 }

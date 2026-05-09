@@ -1,23 +1,42 @@
 // =============================================================================
-// Orders list page
+// Orders list — bulk status update · date-range filter · CSV export
+// Uses @repo/ui components throughout
 // =============================================================================
 
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useCallback, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Eye, Search } from "lucide-react";
+import { Download, Eye, Filter, Loader2, Search, X } from "lucide-react";
 
 import { api, type PaginatedResponse } from "@/lib/api";
+import { cn, formatDateTime, formatIDR, ORDER_STATUS_LABELS } from "@/lib/utils";
 import {
-  cn,
-  formatDateTime,
-  formatIDR,
-  ORDER_STATUS_COLORS,
-  ORDER_STATUS_LABELS,
-} from "@/lib/utils";
+  ALL_ORDER_STATUSES,
+  BULK_TARGET_STATUSES,
+  orderKeys,
+  OrderStatusBadge,
+} from "@/lib/orders";
 import { AdminLayout } from "@/components/layout/admin-layout";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { PageHeader } from "@/components/shared/page-header";
+
+import { Button } from "@repo/ui/components/button";
+import { Checkbox } from "@repo/ui/components/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@repo/ui/components/dialog";
+import { Input } from "@repo/ui/components/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@repo/ui/components/select";
 
 export const Route = createFileRoute("/_admin/orders/")({
   component: OrdersPage,
@@ -36,79 +55,143 @@ interface Order {
   userId: string;
 }
 
-// ── Query keys ────────────────────────────────────────────────────────────────
+// Sentinel value meaning "no status filter"
+const STATUS_ALL = "__all__";
 
-export const orderKeys = {
-  list: (params: Record<string, unknown>) =>
-    ["orders", "list", params] as const,
-  detail: (id: string) => ["orders", "detail", id] as const,
-};
+// ── CSV export ────────────────────────────────────────────────────────────────
 
-// ── Status badge ──────────────────────────────────────────────────────────────
+function exportToCsv(orders: Order[]) {
+  const headers = [
+    "No. Pesanan",
+    "Status",
+    "Produk Utama",
+    "Jumlah Item",
+    "Total (IDR)",
+    "Tanggal",
+  ];
+  const rows = orders.map(o => [
+    o.orderNumber,
+    ORDER_STATUS_LABELS[o.status] ?? o.status,
+    o.primaryItemName,
+    String(o.itemCount),
+    String(o.grandTotal),
+    formatDateTime(o.createdAt),
+  ]);
+  const csv = [headers, ...rows]
+    .map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(","))
+    .join("\n");
 
-const COLOR_MAP: Record<string, string> = {
-  warning: "bg-yellow-100 text-yellow-800",
-  info: "bg-blue-100 text-blue-800",
-  success: "bg-green-100 text-green-800",
-  destructive: "bg-red-100 text-red-800",
-  secondary: "bg-muted text-muted-foreground",
-  default: "bg-muted text-muted-foreground",
-};
-
-export function OrderStatusBadge({ status }: { status: string }) {
-  const label = ORDER_STATUS_LABELS[status] ?? status;
-  const color = ORDER_STATUS_COLORS[status] ?? "default";
-  return (
-    <span
-      className={cn(
-        "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium",
-        COLOR_MAP[color]
-      )}
-    >
-      {label}
-    </span>
-  );
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `pesanan-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-const ALL_STATUSES = [
-  "pending_payment",
-  "processing",
-  "shipped",
-  "delivered",
-  "completed",
-  "cancelled",
-  "refund_requested",
-  "refunded",
-];
-
 function OrdersPage() {
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
-  const [sortBy, setSortBy] = useState("createdAt");
+  // ── Filter state ──────────────────────────────────────────────────────────
+  const [page, setPage]           = useState(1);
+  const [search, setSearch]       = useState("");
+  const [status, setStatus]       = useState(STATUS_ALL);
+  const [dateFrom, setDateFrom]   = useState("");
+  const [dateTo, setDateTo]       = useState("");
+  const [sortBy, setSortBy]       = useState("createdAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
-  const queryParams = { page, limit: 20, search, status, sortBy, sortOrder };
+  // ── Bulk selection state ──────────────────────────────────────────────────
+  const [selectedIds, setSelectedIds]         = useState<Set<string>>(new Set());
+  const [bulkTargetStatus, setBulkTargetStatus] = useState(BULK_TARGET_STATUSES[0].value);
+  const [bulkDialogOpen, setBulkDialogOpen]   = useState(false);
+
+  const queryClient = useQueryClient();
+
+  // Strip sentinel before sending to API
+  const apiStatus = status === STATUS_ALL ? "" : status;
+
+  const queryParams = { page, limit: 20, search, status: apiStatus, dateFrom, dateTo, sortBy, sortOrder };
 
   const { data, isLoading } = useQuery({
     queryKey: orderKeys.list(queryParams),
-    queryFn: () =>
-      api.get<PaginatedResponse<Order>>("/orders", {
-        params: queryParams,
-      }),
+    queryFn: () => api.get<PaginatedResponse<Order>>("/orders", { params: queryParams }),
     placeholderData: prev => prev,
   });
 
-  const columns: Column<Order>[] = [
+  const currentData = data?.data ?? [];
+
+  // ── Bulk update mutation ──────────────────────────────────────────────────
+  const bulkMutation = useMutation({
+    mutationFn: async ({ ids, newStatus }: { ids: string[]; newStatus: string }) => {
+      await Promise.all(
+        ids.map(id => api.patch(`/orders/${id}/status`, { status: newStatus }))
+      );
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["orders", "list"] });
+      setSelectedIds(new Set());
+      setBulkDialogOpen(false);
+      setBulkTargetStatus(BULK_TARGET_STATUSES[0].value);
+    },
+  });
+
+  // ── Selection helpers ─────────────────────────────────────────────────────
+  const allOnPageSelected =
+    currentData.length > 0 && currentData.every(o => selectedIds.has(o.id));
+
+  const someOnPageSelected =
+    currentData.some(o => selectedIds.has(o.id)) && !allOnPageSelected;
+
+  const toggleRow = useCallback((id: string, checked: boolean) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
+
+  const toggleAll = useCallback((checked: boolean) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (checked) currentData.forEach(o => next.add(o.id));
+      else currentData.forEach(o => next.delete(o.id));
+      return next;
+    });
+  }, [currentData]);
+
+  const filtersActive = Boolean(search || status !== STATUS_ALL || dateFrom || dateTo);
+
+  const clearFilters = () => {
+    setSearch("");
+    setStatus(STATUS_ALL);
+    setDateFrom("");
+    setDateTo("");
+    setPage(1);
+  };
+
+  // ── Table columns ─────────────────────────────────────────────────────────
+  const columns: Column<Order>[] = useMemo(() => [
+    {
+      key: "select",
+      header: "",
+      headerClassName: "w-10 px-3",
+      className: "w-10 px-3",
+      cell: row => (
+        <Checkbox
+          checked={selectedIds.has(row.id)}
+          onCheckedChange={checked => toggleRow(row.id, Boolean(checked))}
+          onClick={(e: React.MouseEvent) => e.stopPropagation()}
+        />
+      ),
+    },
     {
       key: "orderNumber",
       header: "No. Pesanan",
       cell: row => (
-        <span className="font-mono text-xs font-semibold">
-          {row.orderNumber}
-        </span>
+        <span className="font-mono text-xs font-semibold">{row.orderNumber}</span>
       ),
     },
     {
@@ -160,62 +243,203 @@ function OrdersPage() {
         </Link>
       ),
     },
-  ];
+  ], [selectedIds, toggleRow]);
 
   return (
     <AdminLayout title="Pesanan">
       <PageHeader
+        actions={
+          <Button
+            disabled={currentData.length === 0}
+            onClick={() => exportToCsv(currentData)}
+            size="sm"
+            variant="outline"
+          >
+            <Download className="mr-1.5 h-3.5 w-3.5" />
+            Export CSV
+          </Button>
+        }
         description={`${data?.meta.total ?? 0} total pesanan`}
         title="Pesanan"
       />
 
-      {/* Filters */}
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <div className="relative min-w-[200px] flex-1">
-          <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
-          <input
-            className="border-input bg-background focus:ring-ring h-9 w-full rounded-md border pl-9 pr-3 text-sm focus:outline-none focus:ring-2"
-            onChange={e => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            placeholder="Cari nomor pesanan..."
-            type="search"
-            value={search}
-          />
+      {/* ── Filters ────────────────────────────────────────────────────────── */}
+      <div className="mb-4 space-y-3">
+
+        {/* Row 1: search + status filter */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative min-w-[220px] flex-1">
+            <Search className="text-muted-foreground absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2" />
+            <Input
+              className="pl-8"
+              onChange={e => { setSearch(e.target.value); setPage(1); }}
+              placeholder="Cari nomor pesanan atau produk…"
+              type="search"
+              value={search}
+            />
+          </div>
+
+          <Select value={status} onValueChange={v => { setStatus(v); setPage(1); }}>
+            <SelectTrigger className="w-[180px]">
+              <Filter className="mr-1.5 h-3.5 w-3.5 shrink-0 opacity-50" />
+              <SelectValue placeholder="Semua Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={STATUS_ALL}>Semua Status</SelectItem>
+              {ALL_ORDER_STATUSES.map(s => (
+                <SelectItem key={s} value={s}>
+                  {ORDER_STATUS_LABELS[s] ?? s}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {filtersActive && (
+            <Button onClick={clearFilters} size="sm" variant="ghost">
+              <X className="mr-1 h-3.5 w-3.5" />
+              Reset
+            </Button>
+          )}
         </div>
-        <select
-          className="border-input bg-background focus:ring-ring h-9 rounded-md border px-3 text-sm focus:outline-none focus:ring-2"
-          onChange={e => {
-            setStatus(e.target.value);
-            setPage(1);
-          }}
-          value={status}
-        >
-          <option value="">Semua Status</option>
-          {ALL_STATUSES.map(s => (
-            <option key={s} value={s}>
-              {ORDER_STATUS_LABELS[s] ?? s}
-            </option>
-          ))}
-        </select>
+
+        {/* Row 2: date range */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground text-sm whitespace-nowrap">Dari</span>
+            <Input
+              className="w-[160px]"
+              onChange={e => { setDateFrom(e.target.value); setPage(1); }}
+              type="date"
+              value={dateFrom}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground text-sm whitespace-nowrap">Sampai</span>
+            <Input
+              className="w-[160px]"
+              onChange={e => { setDateTo(e.target.value); setPage(1); }}
+              type="date"
+              value={dateTo}
+            />
+          </div>
+        </div>
+
+        {/* Row 3: select-all helper */}
+        {currentData.length > 0 && (
+          <div className="flex items-center gap-3">
+            <Checkbox
+              checked={allOnPageSelected}
+              onCheckedChange={checked => toggleAll(Boolean(checked))}
+              data-indeterminate={someOnPageSelected ? true : undefined}
+            />
+            <span className="text-muted-foreground text-sm">
+              {allOnPageSelected
+                ? `Semua ${currentData.length} pesanan di halaman ini dipilih`
+                : "Pilih semua pesanan di halaman ini"}
+            </span>
+            {selectedIds.size > 0 && !allOnPageSelected && (
+              <span className="text-muted-foreground text-sm">
+                · {selectedIds.size} terpilih
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
+      {/* ── Data table ───────────────────────────────────────────────────────── */}
       <DataTable
         columns={columns}
-        data={data?.data ?? []}
+        data={currentData}
         emptyMessage="Belum ada pesanan"
         getRowKey={row => row.id}
         isLoading={isLoading}
         meta={data?.meta}
-        onPageChange={setPage}
-        onSortChange={(key, dir) => {
-          setSortBy(key);
-          setSortOrder(dir);
-        }}
+        onPageChange={p => { setPage(p); setSelectedIds(new Set()); }}
+        onSortChange={(key, dir) => { setSortBy(key); setSortOrder(dir); }}
         sortDir={sortOrder}
         sortKey={sortBy}
       />
+
+      {/* ── Bulk action bar (floating) ────────────────────────────────────────── */}
+      {selectedIds.size > 0 && (
+        <div className="bg-card border-border fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-xl border px-5 py-3 shadow-xl">
+          <span className="text-sm font-semibold whitespace-nowrap">
+            {selectedIds.size} pesanan dipilih
+          </span>
+
+          <Select
+            value={bulkTargetStatus}
+            onValueChange={v => setBulkTargetStatus(v)}
+          >
+            <SelectTrigger className="w-[160px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {BULK_TARGET_STATUSES.map(s => (
+                <SelectItem key={s.value} value={s.value}>
+                  {s.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Button onClick={() => setBulkDialogOpen(true)} size="sm">
+            Terapkan
+          </Button>
+
+          <Button
+            onClick={() => setSelectedIds(new Set())}
+            size="sm"
+            variant="ghost"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
+      {/* ── Bulk confirm dialog ───────────────────────────────────────────────── */}
+      <Dialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Perubahan Status Massal</DialogTitle>
+          </DialogHeader>
+
+          <p className="text-muted-foreground text-sm">
+            Ubah status{" "}
+            <strong className="text-foreground">{selectedIds.size} pesanan</strong>{" "}
+            menjadi{" "}
+            <strong className="text-foreground">
+              {ORDER_STATUS_LABELS[bulkTargetStatus] ?? bulkTargetStatus}
+            </strong>
+            ? Aksi ini tidak dapat dibatalkan.
+          </p>
+
+          <DialogFooter>
+            <Button onClick={() => setBulkDialogOpen(false)} variant="outline">
+              Batal
+            </Button>
+            <Button
+              disabled={bulkMutation.isPending}
+              onClick={() =>
+                bulkMutation.mutate({
+                  ids: Array.from(selectedIds),
+                  newStatus: bulkTargetStatus,
+                })
+              }
+              variant={bulkTargetStatus === "cancelled" ? "destructive" : "default"}
+            >
+              {bulkMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Memproses…
+                </>
+              ) : (
+                "Terapkan Sekarang"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }

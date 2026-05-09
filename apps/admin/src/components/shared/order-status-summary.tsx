@@ -1,8 +1,9 @@
 // =============================================================================
 // OrderStatusSummary — clickable status-count + revenue cards above orders table
-// Uses @repo/ui Card, Skeleton, Separator, Button, Tooltip throughout
+// Uses @repo/ui Card, Skeleton, Separator, Button, Tooltip, Progress throughout
 // =============================================================================
 
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
 
@@ -18,6 +19,7 @@ import {
   CardTitle,
 } from "@repo/ui/components/card";
 import { Button } from "@repo/ui/components/button";
+import { Progress } from "@repo/ui/components/progress";
 import { Separator } from "@repo/ui/components/separator";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import {
@@ -39,6 +41,10 @@ interface OrderStatusSummaryProps {
   activeStatus?: string;
   onStatusFilter?: (status: string) => void;
 }
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const REFRESH_INTERVAL_S = 5 * 60; // 5 minutes
 
 // ── Status visual config ──────────────────────────────────────────────────────
 
@@ -78,14 +84,49 @@ function formatExact(ts: number): string {
   });
 }
 
+function formatCountdown(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+// ── Countdown hook ────────────────────────────────────────────────────────────
+
+function useCountdown(dataUpdatedAt: number): number {
+  const calcRemaining = () =>
+    dataUpdatedAt > 0
+      ? Math.max(0, REFRESH_INTERVAL_S - Math.floor((Date.now() - dataUpdatedAt) / 1000))
+      : REFRESH_INTERVAL_S;
+
+  const [remaining, setRemaining] = useState(calcRemaining);
+
+  // Reset whenever a fresh response arrives
+  useEffect(() => {
+    setRemaining(calcRemaining());
+
+    const id = setInterval(
+      () => setRemaining(prev => Math.max(0, prev - 1)),
+      1000
+    );
+
+    return () => clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataUpdatedAt]);
+
+  return remaining;
+}
+
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 
 function SummarySkeletons() {
   return (
     <div className="mb-6">
-      <div className="mb-2 flex justify-end">
-        <Skeleton className="h-7 w-52 rounded-lg" />
+      <div className="mb-2 flex items-center justify-end gap-3">
+        <Skeleton className="h-4 w-36 rounded" />
+        <Skeleton className="h-4 w-24 rounded" />
+        <Skeleton className="h-7 w-20 rounded-lg" />
       </div>
+      <Skeleton className="mb-3 h-1 w-full rounded-full" />
       <div className="grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-9">
         {Array.from({ length: 9 }).map((_, i) => (
           <Skeleton key={i} className="h-[108px] rounded-xl" />
@@ -163,8 +204,13 @@ export function OrderStatusSummary({
       api.get<{ success: true; data: StatusBreakdown[] }>(
         "/analytics/order-statuses"
       ),
-    staleTime: 2 * 60_000,
+    staleTime: REFRESH_INTERVAL_S * 1000,
+    refetchInterval: REFRESH_INTERVAL_S * 1000,
   });
+
+  const remaining    = useCountdown(dataUpdatedAt);
+  const progressPct  = (remaining / REFRESH_INTERVAL_S) * 100;
+  const almostDue    = remaining <= 30 && !isFetching;
 
   if (isLoading) {
     return <SummarySkeletons />;
@@ -186,8 +232,9 @@ export function OrderStatusSummary({
 
   return (
     <div className="mb-6">
-      {/* ── Toolbar row ──────────────────────────────────────────────────────── */}
-      <div className="mb-2 flex items-center justify-end gap-2">
+      {/* ── Toolbar ────────────────────────────────────────────────────────── */}
+      <div className="mb-1.5 flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+        {/* Last-updated timestamp */}
         {dataUpdatedAt > 0 && (
           <TooltipProvider>
             <Tooltip>
@@ -196,13 +243,34 @@ export function OrderStatusSummary({
                   Diperbarui {formatRelativeTime(new Date(dataUpdatedAt))}
                 </span>
               </TooltipTrigger>
+              <TooltipContent>{formatExact(dataUpdatedAt)}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+
+        {/* Countdown — hidden while actively fetching */}
+        {!isFetching && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <span
+                  className={cn(
+                    "cursor-default text-xs tabular-nums transition-colors",
+                    almostDue ? "text-destructive font-medium" : "text-muted-foreground"
+                  )}
+                >
+                  Refresh dalam{" "}
+                  <span className="font-mono">{formatCountdown(remaining)}</span>
+                </span>
+              </TooltipTrigger>
               <TooltipContent>
-                {formatExact(dataUpdatedAt)}
+                Auto-refresh setiap {REFRESH_INTERVAL_S / 60} menit
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         )}
 
+        {/* Manual refresh button */}
         <Button
           disabled={isFetching}
           size="sm"
@@ -217,9 +285,17 @@ export function OrderStatusSummary({
         </Button>
       </div>
 
-      {/* ── Cards grid ───────────────────────────────────────────────────────── */}
+      {/* ── Countdown progress bar ──────────────────────────────────────────── */}
+      <Progress
+        value={isFetching ? 100 : progressPct}
+        className={cn(
+          "mb-3 [&_[data-slot=progress-indicator]]:transition-[width,background-color]",
+          almostDue && "[&_[data-slot=progress-indicator]]:bg-destructive"
+        )}
+      />
+
+      {/* ── Cards grid ─────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-9">
-        {/* Total card */}
         <StatusCard
           count={totalCount}
           colorClass="text-foreground"
@@ -229,7 +305,6 @@ export function OrderStatusSummary({
           onClick={() => onStatusFilter?.(STATUS_ALL)}
         />
 
-        {/* Per-status cards */}
         {ALL_ORDER_STATUSES.map(status => {
           const { count, revenue } = byStatus[status] ?? { count: 0, revenue: 0 };
           const cfg = STATUS_CONFIG[status];

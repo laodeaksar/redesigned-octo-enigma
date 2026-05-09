@@ -6,6 +6,7 @@ import type React from "react";
 import { useAuth } from "@/stores/auth.store";
 import { Link } from "@tanstack/react-router";
 import {
+  BarChart2,
   CreditCard,
   LayoutDashboard,
   LogOut,
@@ -25,12 +26,13 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", href: "/_admin/dashboard", icon: LayoutDashboard },
-  { label: "Produk", href: "/_admin/products/", icon: Package },
-  { label: "Pesanan", href: "/_admin/orders/", icon: ShoppingCart },
-  { label: "Pengguna", href: "/_admin/users/", icon: Users },
-  { label: "Voucher", href: "/_admin/vouchers/", icon: Tag },
-  { label: "Pembayaran", href: "/_admin/payments/", icon: CreditCard },
+  { label: "Dashboard",  href: "/_admin/dashboard",  icon: LayoutDashboard },
+  { label: "Analitik",   href: "/_admin/analytics",  icon: BarChart2        },
+  { label: "Produk",     href: "/_admin/products/",  icon: Package          },
+  { label: "Pesanan",    href: "/_admin/orders/",    icon: ShoppingCart     },
+  { label: "Pengguna",   href: "/_admin/users/",     icon: Users            },
+  { label: "Voucher",    href: "/_admin/vouchers/",  icon: Tag              },
+  { label: "Pembayaran", href: "/_admin/payments/",  icon: CreditCard       },
 ];
 
 export function Sidebar() {

@@ -95,8 +95,27 @@ export const analyticsRoutes = new Elysia({ prefix: "/analytics" })
   // ── Order status breakdown ──────────────────────────────────────────────────
   .get(
     "/order-statuses",
-    async () => {
-      const breakdown = await OrderModel.aggregate([
+    async ({ query }) => {
+      const matchStage: Record<string, unknown> = {};
+
+      if (query.from || query.to) {
+        const createdAt: Record<string, Date> = {};
+        if (query.from) {
+          const d = new Date(query.from);
+          if (!Number.isNaN(d.getTime())) createdAt.$gte = d;
+        }
+        if (query.to) {
+          const d = new Date(query.to);
+          if (!Number.isNaN(d.getTime())) {
+            d.setHours(23, 59, 59, 999);
+            createdAt.$lte = d;
+          }
+        }
+        if (Object.keys(createdAt).length > 0) matchStage.createdAt = createdAt;
+      }
+
+      const pipeline = [
+        ...(Object.keys(matchStage).length > 0 ? [{ $match: matchStage }] : []),
         {
           $group: {
             _id: "$status",
@@ -106,10 +125,16 @@ export const analyticsRoutes = new Elysia({ prefix: "/analytics" })
         },
         { $project: { _id: 0, status: "$_id", count: 1, revenue: 1 } },
         { $sort: { count: -1 } },
-      ]);
+      ];
+
+      const breakdown = await OrderModel.aggregate(pipeline);
       return success(breakdown);
     },
     {
+      query: t.Object({
+        from: t.Optional(t.String()),
+        to:   t.Optional(t.String()),
+      }),
       detail: { tags: ["Analytics"], summary: "Order count and revenue by status (admin)" },
     }
   )

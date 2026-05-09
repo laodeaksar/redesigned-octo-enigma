@@ -1,11 +1,12 @@
 // =============================================================================
 // OrderStatusSummary — clickable status-count + revenue cards above orders table
-// Uses @repo/ui Card, Skeleton, Separator, Button, Tooltip, Progress throughout
+// Uses @repo/ui Card, Skeleton, Separator, Button, Tooltip, Progress,
+//           Select, Popover, Calendar throughout
 // =============================================================================
 
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { FileDown, RefreshCw } from "lucide-react";
+import { CalendarIcon, FileDown, RefreshCw } from "lucide-react";
 
 import { api } from "@/lib/api";
 import { cn, formatIDR, formatRelativeTime, ORDER_STATUS_LABELS } from "@/lib/utils";
@@ -19,7 +20,20 @@ import {
   CardTitle,
 } from "@repo/ui/components/card";
 import { Button } from "@repo/ui/components/button";
+import { Calendar } from "@repo/ui/components/calendar";
 import { Progress } from "@repo/ui/components/progress";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@repo/ui/components/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@repo/ui/components/select";
 import { Separator } from "@repo/ui/components/separator";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import {
@@ -37,6 +51,11 @@ interface StatusBreakdown {
   status: string;
 }
 
+interface DateRange {
+  from?: Date;
+  to?: Date;
+}
+
 interface OrderStatusSummaryProps {
   activeStatus?: string;
   onStatusFilter?: (status: string) => void;
@@ -45,6 +64,17 @@ interface OrderStatusSummaryProps {
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const REFRESH_INTERVAL_S = 5 * 60; // 5 minutes
+const STATUS_ALL         = "__all__";
+
+const PRESETS = [
+  { value: "all", label: "Semua Waktu"       },
+  { value: "7d",  label: "7 Hari Terakhir"   },
+  { value: "30d", label: "30 Hari Terakhir"  },
+  { value: "90d", label: "90 Hari Terakhir"  },
+  { value: "custom", label: "Kustom…"        },
+] as const;
+
+type PresetValue = (typeof PRESETS)[number]["value"];
 
 // ── Status visual config ──────────────────────────────────────────────────────
 
@@ -58,8 +88,6 @@ const STATUS_CONFIG: Record<string, { dot: string; value: string }> = {
   refund_requested: { dot: "bg-orange-500",  value: "text-orange-700" },
   refunded:         { dot: "bg-gray-400",    value: "text-gray-500"   },
 };
-
-const STATUS_ALL = "__all__";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -75,12 +103,8 @@ function compactIDR(amount: number): string {
 
 function formatExact(ts: number): string {
   return new Date(ts).toLocaleString("id-ID", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
+    day: "numeric", month: "short", year: "numeric",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
   });
 }
 
@@ -90,17 +114,44 @@ function formatCountdown(seconds: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+function formatShortDate(d: Date): string {
+  return d.toLocaleDateString("id-ID", {
+    day: "numeric", month: "short", year: "numeric",
+  });
+}
+
+/** Derive { from, to } from a named preset (not for "custom"). */
+function getPresetRange(preset: PresetValue): DateRange {
+  if (preset === "all" || preset === "custom") return {};
+  const now  = new Date();
+  const to   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  const days = preset === "7d" ? 7 : preset === "30d" ? 30 : 90;
+  return { from: new Date(to.getTime() - days * 86_400_000), to };
+}
+
+/** Human-readable range label shown in toolbar & PDF. */
+function rangeSummary(preset: PresetValue, custom: DateRange): string {
+  if (preset !== "custom") {
+    return PRESETS.find(p => p.value === preset)?.label ?? "Semua Waktu";
+  }
+  const { from, to } = custom;
+  if (from && to)  return `${formatShortDate(from)} – ${formatShortDate(to)}`;
+  if (from)        return `Dari ${formatShortDate(from)}`;
+  if (to)          return `Sampai ${formatShortDate(to)}`;
+  return "Rentang Kustom";
+}
+
 // ── PDF export ────────────────────────────────────────────────────────────────
 
 async function exportSummaryPDF(
   statuses: StatusBreakdown[],
-  generatedAt: number
+  generatedAt: number,
+  rangeLabel: string
 ) {
-  const { jsPDF } = await import("jspdf");
+  const { jsPDF }    = await import("jspdf");
   const { autoTable } = await import("jspdf-autotable");
 
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-
+  const doc    = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageW  = doc.internal.pageSize.getWidth();
   const margin = 15;
   const now    = new Date(generatedAt);
@@ -110,7 +161,7 @@ async function exportSummaryPDF(
 
   // ── Title block ────────────────────────────────────────────────────────────
   doc.setFillColor(15, 23, 42);
-  doc.rect(0, 0, pageW, 32, "F");
+  doc.rect(0, 0, pageW, 36, "F");
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
@@ -120,30 +171,23 @@ async function exportSummaryPDF(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(148, 163, 184);
+  doc.text(`Periode: ${rangeLabel}`, margin, 23);
   doc.text(
     `Dihasilkan: ${now.toLocaleString("id-ID", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
+      day: "numeric", month: "long", year: "numeric",
+      hour: "2-digit", minute: "2-digit",
     })}`,
     margin,
-    24
+    30
   );
 
-  // ── Summary numbers below header ───────────────────────────────────────────
+  // ── Summary numbers ────────────────────────────────────────────────────────
+  const summaryY = 46;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.setTextColor(30, 30, 30);
-
-  const summaryY = 42;
   doc.text(`Total Pesanan: ${totalCount}`, margin, summaryY);
-  doc.text(
-    `Total Pendapatan: ${formatIDR(totalRevenue)}`,
-    pageW / 2,
-    summaryY
-  );
+  doc.text(`Total Pendapatan: ${formatIDR(totalRevenue)}`, pageW / 2, summaryY);
 
   // ── Table ──────────────────────────────────────────────────────────────────
   const rows = ALL_ORDER_STATUSES.map(status => {
@@ -164,15 +208,11 @@ async function exportSummaryPDF(
     foot: [["TOTAL", String(totalCount), formatIDR(totalRevenue)]],
     showFoot: "lastPage",
     headStyles: {
-      fillColor: [15, 23, 42],
-      textColor: [255, 255, 255],
-      fontStyle: "bold",
-      halign: "left",
+      fillColor: [15, 23, 42], textColor: [255, 255, 255],
+      fontStyle: "bold", halign: "left",
     },
     footStyles: {
-      fillColor: [241, 245, 249],
-      textColor: [15, 23, 42],
-      fontStyle: "bold",
+      fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: "bold",
     },
     bodyStyles: { textColor: [30, 30, 30] },
     alternateRowStyles: { fillColor: [248, 250, 252] },
@@ -183,7 +223,7 @@ async function exportSummaryPDF(
     },
   });
 
-  // ── Footer ─────────────────────────────────────────────────────────────────
+  // ── Per-page footer ────────────────────────────────────────────────────────
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
@@ -192,34 +232,25 @@ async function exportSummaryPDF(
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
     doc.text("Admin Dashboard — My Ecommerce", margin, footY);
-    doc.text(`Halaman ${i} / ${pageCount}`, pageW - margin, footY, {
-      align: "right",
-    });
+    doc.text(`Halaman ${i} / ${pageCount}`, pageW - margin, footY, { align: "right" });
   }
 
-  // ── Download ────────────────────────────────────────────────────────────────
-  const filename = `ringkasan-pesanan-${now.toISOString().slice(0, 10)}.pdf`;
-  doc.save(filename);
+  doc.save(`ringkasan-pesanan-${now.toISOString().slice(0, 10)}.pdf`);
 }
 
 // ── Countdown hook ────────────────────────────────────────────────────────────
 
 function useCountdown(dataUpdatedAt: number): number {
-  const calcRemaining = () =>
+  const calc = () =>
     dataUpdatedAt > 0
       ? Math.max(0, REFRESH_INTERVAL_S - Math.floor((Date.now() - dataUpdatedAt) / 1000))
       : REFRESH_INTERVAL_S;
 
-  const [remaining, setRemaining] = useState(calcRemaining);
+  const [remaining, setRemaining] = useState(calc);
 
   useEffect(() => {
-    setRemaining(calcRemaining());
-
-    const id = setInterval(
-      () => setRemaining(prev => Math.max(0, prev - 1)),
-      1000
-    );
-
+    setRemaining(calc());
+    const id = setInterval(() => setRemaining(prev => Math.max(0, prev - 1)), 1000);
     return () => clearInterval(id);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataUpdatedAt]);
@@ -232,11 +263,14 @@ function useCountdown(dataUpdatedAt: number): number {
 function SummarySkeletons() {
   return (
     <div className="mb-6">
-      <div className="mb-2 flex items-center justify-end gap-3">
-        <Skeleton className="h-4 w-36 rounded" />
-        <Skeleton className="h-4 w-24 rounded" />
-        <Skeleton className="h-7 w-24 rounded-lg" />
-        <Skeleton className="h-7 w-20 rounded-lg" />
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <Skeleton className="h-7 w-40 rounded-lg" />
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-4 w-36 rounded" />
+          <Skeleton className="h-4 w-24 rounded" />
+          <Skeleton className="h-7 w-24 rounded-lg" />
+          <Skeleton className="h-7 w-20 rounded-lg" />
+        </div>
       </div>
       <Skeleton className="mb-3 h-1 w-full rounded-full" />
       <div className="grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-9">
@@ -244,6 +278,98 @@ function SummarySkeletons() {
           <Skeleton key={i} className="h-[108px] rounded-xl" />
         ))}
       </div>
+    </div>
+  );
+}
+
+// ── Date range picker ─────────────────────────────────────────────────────────
+
+interface DateRangePickerProps {
+  preset: PresetValue;
+  customRange: DateRange;
+  onPresetChange: (p: PresetValue) => void;
+  onCustomRangeChange: (r: DateRange) => void;
+}
+
+function DateRangePicker({
+  preset,
+  customRange,
+  onPresetChange,
+  onCustomRangeChange,
+}: DateRangePickerProps) {
+  const [calOpen, setCalOpen] = useState(false);
+
+  const handlePreset = (val: string) => {
+    const p = val as PresetValue;
+    onPresetChange(p);
+    if (p !== "custom") setCalOpen(false);
+    else setCalOpen(true);
+  };
+
+  const customLabel =
+    customRange.from || customRange.to
+      ? rangeSummary("custom", customRange)
+      : "Pilih tanggal…";
+
+  return (
+    <div className="flex items-center gap-2">
+      <Select value={preset} onValueChange={handlePreset}>
+        <SelectTrigger size="sm" className="h-7 w-40 text-xs">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {PRESETS.map(p => (
+            <SelectItem key={p.value} value={p.value} className="text-xs">
+              {p.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {preset === "custom" && (
+        <Popover open={calOpen} onOpenChange={setCalOpen}>
+          <PopoverTrigger render={
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 gap-1.5 px-2 text-xs"
+            >
+              <CalendarIcon className="h-3.5 w-3.5" />
+              <span className="max-w-[160px] truncate">{customLabel}</span>
+            </Button>
+          } />
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="range"
+              selected={customRange as { from?: Date; to?: Date }}
+              onSelect={r => onCustomRangeChange(r ?? {})}
+              disabled={{ after: new Date() }}
+              numberOfMonths={2}
+            />
+            {(customRange.from || customRange.to) && (
+              <div className="border-t p-2 text-right">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 text-xs"
+                  onClick={() => {
+                    onCustomRangeChange({});
+                  }}
+                >
+                  Reset
+                </Button>
+                <Button
+                  size="sm"
+                  className="ml-1 h-7 text-xs"
+                  onClick={() => setCalOpen(false)}
+                >
+                  Terapkan
+                </Button>
+              </div>
+            )}
+          </PopoverContent>
+        </Popover>
+      )}
     </div>
   );
 }
@@ -261,13 +387,7 @@ interface StatusCardProps {
 }
 
 function StatusCard({
-  colorClass,
-  count,
-  dot,
-  isActive,
-  label,
-  revenue,
-  onClick,
+  colorClass, count, dot, isActive, label, revenue, onClick,
 }: StatusCardProps) {
   return (
     <Card
@@ -293,9 +413,7 @@ function StatusCard({
         <p className={cn("text-2xl font-bold tabular-nums", colorClass)}>
           {count}
         </p>
-
         <Separator className="my-1.5" />
-
         <CardDescription className="truncate text-xs tabular-nums">
           {revenue > 0 ? compactIDR(revenue) : "—"}
         </CardDescription>
@@ -310,13 +428,23 @@ export function OrderStatusSummary({
   activeStatus = STATUS_ALL,
   onStatusFilter,
 }: OrderStatusSummaryProps) {
+  const [preset, setPreset]           = useState<PresetValue>("all");
+  const [customRange, setCustomRange] = useState<DateRange>({});
   const [isExporting, setIsExporting] = useState(false);
 
+  // Resolve the active date range from preset or custom selection
+  const activeRange: DateRange =
+    preset === "custom" ? customRange : getPresetRange(preset);
+
+  const fromParam = activeRange.from?.toISOString();
+  const toParam   = activeRange.to?.toISOString();
+
   const { data, dataUpdatedAt, isFetching, isLoading, refetch } = useQuery({
-    queryKey: ["analytics", "order-statuses"],
+    queryKey: ["analytics", "order-statuses", fromParam ?? "", toParam ?? ""],
     queryFn: () =>
       api.get<{ success: true; data: StatusBreakdown[] }>(
-        "/analytics/order-statuses"
+        "/analytics/order-statuses",
+        { params: { from: fromParam, to: toParam } }
       ),
     staleTime: REFRESH_INTERVAL_S * 1000,
     refetchInterval: REFRESH_INTERVAL_S * 1000,
@@ -326,9 +454,7 @@ export function OrderStatusSummary({
   const progressPct = (remaining / REFRESH_INTERVAL_S) * 100;
   const almostDue   = remaining <= 30 && !isFetching;
 
-  if (isLoading) {
-    return <SummarySkeletons />;
-  }
+  if (isLoading) return <SummarySkeletons />;
 
   const statuses = data?.data ?? [];
 
@@ -340,14 +466,17 @@ export function OrderStatusSummary({
   const totalRevenue = statuses.reduce((sum, s) => sum + (s.revenue ?? 0), 0);
 
   const handleClick = (status: string) => {
-    if (!onStatusFilter) return;
-    onStatusFilter(activeStatus === status ? STATUS_ALL : status);
+    onStatusFilter?.(activeStatus === status ? STATUS_ALL : status);
   };
 
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      await exportSummaryPDF(statuses, dataUpdatedAt || Date.now());
+      await exportSummaryPDF(
+        statuses,
+        dataUpdatedAt || Date.now(),
+        rangeSummary(preset, customRange)
+      );
     } finally {
       setIsExporting(false);
     }
@@ -356,84 +485,89 @@ export function OrderStatusSummary({
   return (
     <div className="mb-6">
       {/* ── Toolbar ────────────────────────────────────────────────────────── */}
-      <div className="mb-1.5 flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
-        {/* Last-updated timestamp */}
-        {dataUpdatedAt > 0 && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                <span className="text-muted-foreground cursor-default text-xs">
-                  Diperbarui {formatRelativeTime(new Date(dataUpdatedAt))}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>{formatExact(dataUpdatedAt)}</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
+      <div className="mb-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        {/* LEFT — date range picker */}
+        <DateRangePicker
+          preset={preset}
+          customRange={customRange}
+          onPresetChange={p => {
+            setPreset(p);
+            if (p !== "custom") setCustomRange({});
+          }}
+          onCustomRangeChange={setCustomRange}
+        />
 
-        {/* Countdown — hidden while actively fetching */}
-        {!isFetching && (
+        {/* RIGHT — meta + actions */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          {/* Last-updated timestamp */}
+          {dataUpdatedAt > 0 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <span className="text-muted-foreground cursor-default text-xs">
+                    Diperbarui {formatRelativeTime(new Date(dataUpdatedAt))}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>{formatExact(dataUpdatedAt)}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+
+          {/* Countdown — hidden while fetching */}
+          {!isFetching && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <span
+                    className={cn(
+                      "cursor-default text-xs tabular-nums transition-colors",
+                      almostDue ? "text-destructive font-medium" : "text-muted-foreground"
+                    )}
+                  >
+                    Refresh dalam{" "}
+                    <span className="font-mono">{formatCountdown(remaining)}</span>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Auto-refresh setiap {REFRESH_INTERVAL_S / 60} menit
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+
+          {/* PDF export */}
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger>
-                <span
-                  className={cn(
-                    "cursor-default text-xs tabular-nums transition-colors",
-                    almostDue
-                      ? "text-destructive font-medium"
-                      : "text-muted-foreground"
-                  )}
+              <TooltipTrigger asChild>
+                <Button
+                  disabled={isExporting || statuses.length === 0}
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void handleExport()}
+                  className="h-7 gap-1.5 px-2 text-xs"
                 >
-                  Refresh dalam{" "}
-                  <span className="font-mono">{formatCountdown(remaining)}</span>
-                </span>
+                  <FileDown className={cn("h-3.5 w-3.5", isExporting && "animate-bounce")} />
+                  {isExporting ? "Mengekspor…" : "Ekspor PDF"}
+                </Button>
               </TooltipTrigger>
               <TooltipContent>
-                Auto-refresh setiap {REFRESH_INTERVAL_S / 60} menit
+                Download ringkasan status pesanan sebagai PDF
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-        )}
 
-        {/* PDF export button */}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                disabled={isExporting || statuses.length === 0}
-                size="sm"
-                variant="outline"
-                onClick={() => void handleExport()}
-                className="h-7 gap-1.5 px-2 text-xs"
-              >
-                <FileDown
-                  className={cn(
-                    "h-3.5 w-3.5",
-                    isExporting && "animate-bounce"
-                  )}
-                />
-                {isExporting ? "Mengekspor…" : "Ekspor PDF"}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              Download ringkasan status pesanan sebagai PDF
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-
-        {/* Manual refresh button */}
-        <Button
-          disabled={isFetching}
-          size="sm"
-          variant="ghost"
-          onClick={() => void refetch()}
-          className="h-7 gap-1.5 px-2 text-xs"
-        >
-          <RefreshCw
-            className={cn("h-3.5 w-3.5", isFetching && "animate-spin")}
-          />
-          {isFetching ? "Memperbarui…" : "Refresh"}
-        </Button>
+          {/* Manual refresh */}
+          <Button
+            disabled={isFetching}
+            size="sm"
+            variant="ghost"
+            onClick={() => void refetch()}
+            className="h-7 gap-1.5 px-2 text-xs"
+          >
+            <RefreshCw className={cn("h-3.5 w-3.5", isFetching && "animate-spin")} />
+            {isFetching ? "Memperbarui…" : "Refresh"}
+          </Button>
+        </div>
       </div>
 
       {/* ── Countdown progress bar ──────────────────────────────────────────── */}

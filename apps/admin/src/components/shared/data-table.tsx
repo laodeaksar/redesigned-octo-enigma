@@ -44,6 +44,7 @@ interface DataTableProps<T> {
   isLoading?: boolean;
   meta?: PaginationMeta | undefined;
   onPageChange?: (page: number) => void;
+  onRowClick?: (row: T) => void;
   onSortChange?: (key: string, dir: "asc" | "desc") => void;
   sortDir?: "asc" | "desc";
   sortKey?: string;
@@ -58,6 +59,7 @@ export function DataTable<T extends object>({
   isLoading = false,
   emptyMessage = "Tidak ada data",
   onPageChange,
+  onRowClick,
   onSortChange,
   sortKey,
   sortDir,
@@ -130,8 +132,12 @@ export function DataTable<T extends object>({
             ) : (
               data.map((row, rowIndex) => (
                 <tr
-                  className="hover:bg-muted/30 transition-colors"
+                  className={cn(
+                    "hover:bg-muted/30 transition-colors",
+                    onRowClick && "cursor-pointer"
+                  )}
                   key={getRowKey ? getRowKey(row) : rowIndex}
+                  onClick={() => onRowClick?.(row)}
                 >
                   {columns.map(col => (
                     <td

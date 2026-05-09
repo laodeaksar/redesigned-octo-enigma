@@ -21,6 +21,7 @@ import { Route as AdminProductsIndexRouteImport } from './routes/_admin/products
 import { Route as AdminOrdersIndexRouteImport } from './routes/_admin/orders/index'
 import { Route as AdminProductsProductIdRouteImport } from './routes/_admin/products/$productId'
 import { Route as AdminOrdersOrderIdRouteImport } from './routes/_admin/orders/$orderId'
+import { Route as AdminWebhookEventsIndexRouteImport } from './routes/_admin/webhook-events/index'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/_auth',
@@ -80,6 +81,11 @@ const AdminOrdersOrderIdRoute = AdminOrdersOrderIdRouteImport.update({
   path: '/orders/$orderId',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminWebhookEventsIndexRoute = AdminWebhookEventsIndexRouteImport.update({
+  id: '/webhook-events/',
+  path: '/webhook-events/',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -92,6 +98,7 @@ export interface FileRoutesByFullPath {
   '/products/': typeof AdminProductsIndexRoute
   '/users/': typeof AdminUsersIndexRoute
   '/vouchers/': typeof AdminVouchersIndexRoute
+  '/webhook-events/': typeof AdminWebhookEventsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -104,6 +111,7 @@ export interface FileRoutesByTo {
   '/products': typeof AdminProductsIndexRoute
   '/users': typeof AdminUsersIndexRoute
   '/vouchers': typeof AdminVouchersIndexRoute
+  '/webhook-events': typeof AdminWebhookEventsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -119,6 +127,7 @@ export interface FileRoutesById {
   '/_admin/products/': typeof AdminProductsIndexRoute
   '/_admin/users/': typeof AdminUsersIndexRoute
   '/_admin/vouchers/': typeof AdminVouchersIndexRoute
+  '/_admin/webhook-events/': typeof AdminWebhookEventsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -133,6 +142,7 @@ export interface FileRouteTypes {
     | '/products/'
     | '/users/'
     | '/vouchers/'
+    | '/webhook-events/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -145,6 +155,7 @@ export interface FileRouteTypes {
     | '/products'
     | '/users'
     | '/vouchers'
+    | '/webhook-events'
   id:
     | '__root__'
     | '/'
@@ -159,6 +170,7 @@ export interface FileRouteTypes {
     | '/_admin/products/'
     | '/_admin/users/'
     | '/_admin/vouchers/'
+    | '/_admin/webhook-events/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -253,6 +265,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminOrdersOrderIdRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/_admin/webhook-events/': {
+      id: '/_admin/webhook-events/'
+      path: '/webhook-events'
+      fullPath: '/webhook-events/'
+      preLoaderRoute: typeof AdminWebhookEventsIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
@@ -265,6 +284,7 @@ interface AdminRouteChildren {
   AdminProductsIndexRoute: typeof AdminProductsIndexRoute
   AdminUsersIndexRoute: typeof AdminUsersIndexRoute
   AdminVouchersIndexRoute: typeof AdminVouchersIndexRoute
+  AdminWebhookEventsIndexRoute: typeof AdminWebhookEventsIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -276,6 +296,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminProductsIndexRoute: AdminProductsIndexRoute,
   AdminUsersIndexRoute: AdminUsersIndexRoute,
   AdminVouchersIndexRoute: AdminVouchersIndexRoute,
+  AdminWebhookEventsIndexRoute: AdminWebhookEventsIndexRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)

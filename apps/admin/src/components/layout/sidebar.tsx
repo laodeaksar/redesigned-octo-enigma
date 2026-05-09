@@ -14,6 +14,7 @@ import {
   ShoppingCart,
   Tag,
   Users,
+  Webhook,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -32,7 +33,8 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Pesanan",    href: "/_admin/orders/",    icon: ShoppingCart     },
   { label: "Pengguna",   href: "/_admin/users/",     icon: Users            },
   { label: "Voucher",    href: "/_admin/vouchers/",  icon: Tag              },
-  { label: "Pembayaran", href: "/_admin/payments/",  icon: CreditCard       },
+  { label: "Pembayaran", href: "/_admin/payments/",        icon: CreditCard },
+  { label: "Webhook",    href: "/_admin/webhook-events/",  icon: Webhook    },
 ];
 
 export function Sidebar() {

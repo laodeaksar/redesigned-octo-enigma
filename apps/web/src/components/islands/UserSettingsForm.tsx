@@ -1,11 +1,17 @@
 // =============================================================================
-// UserSettingsForm — profile edit + security island (client:load)
+// UserSettingsForm — profile edit + security island using @repo/ui (client:load)
 // =============================================================================
 
 import { useState } from "react";
 import type React from "react";
 
 import { api } from "@/lib/api";
+
+import { Badge } from "@repo/ui/components/badge";
+import { Button } from "@repo/ui/components/button";
+import { Separator } from "@repo/ui/components/separator";
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface User {
   avatarUrl: string | null;
@@ -22,16 +28,16 @@ interface Props {
   user: User;
 }
 
-type Section = "profile" | "security";
+type Tab = "profile" | "security";
 
-// ── Small helpers ─────────────────────────────────────────────────────────────
+// ── Avatar ────────────────────────────────────────────────────────────────────
 
 function Avatar({
-  name,
   avatarUrl,
+  name,
 }: {
-  name: string;
   avatarUrl: string | null;
+  name: string;
 }) {
   if (avatarUrl) {
     return (
@@ -48,6 +54,8 @@ function Avatar({
     </span>
   );
 }
+
+// ── Alert helpers ─────────────────────────────────────────────────────────────
 
 function SuccessAlert({ message }: { message: string }) {
   return (
@@ -91,9 +99,9 @@ function ErrorAlert({ message }: { message: string }) {
   );
 }
 
-// ── Profile section ───────────────────────────────────────────────────────────
+// ── Profile tab ───────────────────────────────────────────────────────────────
 
-function ProfileSection({ user, token }: { user: User; token: string }) {
+function ProfileTab({ user, token }: { user: User; token: string }) {
   const [name, setName]           = useState(user.name);
   const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl ?? "");
   const [loading, setLoading]     = useState(false);
@@ -115,19 +123,13 @@ function ProfileSection({ user, token }: { user: User; token: string }) {
     try {
       await api.patch(
         "/users/me",
-        {
-          name: name.trim() || undefined,
-          avatarUrl: avatarUrl.trim() || null,
-        },
+        { name: name.trim() || undefined, avatarUrl: avatarUrl.trim() || null },
         { token }
       );
       setSuccess("Profil berhasil diperbarui!");
-      // Reload so Navbar also reflects new name
-      setTimeout(() => window.location.reload(), 1000);
+      setTimeout(() => window.location.reload(), 900);
     } catch (err: unknown) {
-      const msg =
-        err instanceof Error ? err.message : "Gagal memperbarui profil.";
-      setError(msg);
+      setError(err instanceof Error ? err.message : "Gagal memperbarui profil.");
     } finally {
       setLoading(false);
     }
@@ -136,14 +138,14 @@ function ProfileSection({ user, token }: { user: User; token: string }) {
   return (
     <form className="space-y-5" onSubmit={e => void handleSubmit(e)}>
       {success && <SuccessAlert message={success} />}
-      {error && <ErrorAlert message={error} />}
+      {error   && <ErrorAlert message={error} />}
 
       {/* Avatar preview */}
       <div className="flex items-center gap-4">
         <Avatar avatarUrl={avatarUrl || null} name={name || user.name} />
-        <div className="min-w-0">
+        <div>
           <p className="text-sm font-medium text-gray-900">Foto Profil</p>
-          <p className="mt-0.5 text-xs text-gray-500">
+          <p className="mt-0.5 text-xs text-muted-foreground">
             Masukkan URL gambar (JPG, PNG, WebP)
           </p>
         </div>
@@ -157,7 +159,7 @@ function ProfileSection({ user, token }: { user: User; token: string }) {
         <input
           className="focus:border-brand-500 focus:ring-brand-500/10 w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none focus:ring-2"
           onChange={e => setAvatarUrl(e.target.value)}
-          placeholder="https://example.com/avatar.jpg (opsional)"
+          placeholder="https://example.com/foto.jpg (opsional)"
           type="url"
           value={avatarUrl}
         />
@@ -179,41 +181,37 @@ function ProfileSection({ user, token }: { user: User; token: string }) {
         />
       </div>
 
-      <button
-        className="rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+      <Button
+        className="bg-brand-500 text-white hover:bg-brand-500/90 h-9 px-5 text-sm font-semibold"
         disabled={loading || !dirty}
         type="submit"
       >
         {loading ? "Menyimpan…" : "Simpan Perubahan"}
-      </button>
+      </Button>
     </form>
   );
 }
 
-// ── Security section ──────────────────────────────────────────────────────────
+// ── Security tab ──────────────────────────────────────────────────────────────
 
-function SecuritySection({ user }: { user: User }) {
+function SecurityTab({ user }: { user: User }) {
   return (
-    <div className="space-y-5">
-      {/* Email row */}
+    <div className="space-y-6">
+      {/* Email */}
       <div>
         <label className="mb-1.5 block text-sm font-medium text-gray-700">
           Email
         </label>
         <div className="flex items-center gap-3">
           <input
-            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-600"
+            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-500"
             disabled
             type="email"
             value={user.email}
           />
           {user.emailVerified ? (
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700">
-              <svg
-                className="h-3 w-3"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
+            <Badge className="shrink-0 bg-green-100 text-green-700 border-green-200">
+              <svg className="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
                 <path
                   clipRule="evenodd"
                   d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z"
@@ -221,17 +219,19 @@ function SecuritySection({ user }: { user: User }) {
                 />
               </svg>
               Terverifikasi
-            </span>
+            </Badge>
           ) : (
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-yellow-100 px-2.5 py-1 text-xs font-semibold text-yellow-700">
+            <Badge className="shrink-0 bg-yellow-100 text-yellow-700 border-yellow-200">
               Belum terverifikasi
-            </span>
+            </Badge>
           )}
         </div>
-        <p className="mt-1.5 text-xs text-gray-500">
-          Email tidak dapat diubah langsung. Hubungi dukungan jika perlu.
+        <p className="mt-1.5 text-xs text-muted-foreground">
+          Email tidak dapat diubah. Hubungi dukungan jika perlu.
         </p>
       </div>
+
+      <Separator />
 
       {/* Password */}
       <div>
@@ -245,17 +245,23 @@ function SecuritySection({ user }: { user: User }) {
             type="password"
             value="••••••••••••"
           />
-          <a
-            className="shrink-0 rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-            href={`/auth/forgot-password?email=${encodeURIComponent(user.email)}`}
+          <Button
+            className="shrink-0"
+            onClick={() => {
+              window.location.href = `/auth/forgot-password?email=${encodeURIComponent(user.email)}`;
+            }}
+            type="button"
+            variant="outline"
           >
             Ubah
-          </a>
+          </Button>
         </div>
-        <p className="mt-1.5 text-xs text-gray-500">
+        <p className="mt-1.5 text-xs text-muted-foreground">
           Klik "Ubah" untuk menerima email tautan reset password.
         </p>
       </div>
+
+      <Separator />
 
       {/* Danger zone */}
       <div className="rounded-xl border border-red-100 bg-red-50/50 p-4">
@@ -264,24 +270,25 @@ function SecuritySection({ user }: { user: User }) {
           Semua sesi aktif akan diakhiri. Kamu harus masuk kembali setelahnya.
         </p>
         <form action="/api/auth/logout" method="post">
-          <button
-            className="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+          <Button
+            className="border-red-200 text-red-600 hover:bg-red-50 bg-white"
             type="submit"
+            variant="outline"
           >
             Keluar Sekarang
-          </button>
+          </Button>
         </form>
       </div>
     </div>
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// ── Main ──────────────────────────────────────────────────────────────────────
 
 export default function UserSettingsForm({ user, token }: Props) {
-  const [active, setActive] = useState<Section>("profile");
+  const [active, setActive] = useState<Tab>("profile");
 
-  const TABS: { id: Section; label: string }[] = [
+  const TABS: { id: Tab; label: string }[] = [
     { id: "profile",  label: "Edit Profil" },
     { id: "security", label: "Keamanan" },
   ];
@@ -295,7 +302,7 @@ export default function UserSettingsForm({ user, token }: Props) {
             className={`px-4 py-2.5 text-sm font-medium transition-colors ${
               active === tab.id
                 ? "border-b-2 border-brand-500 text-brand-600"
-                : "text-gray-500 hover:text-gray-700"
+                : "text-muted-foreground hover:text-gray-700"
             }`}
             key={tab.id}
             onClick={() => setActive(tab.id)}
@@ -306,13 +313,8 @@ export default function UserSettingsForm({ user, token }: Props) {
         ))}
       </div>
 
-      {/* Section content */}
-      {active === "profile" && (
-        <ProfileSection token={token} user={user} />
-      )}
-      {active === "security" && (
-        <SecuritySection user={user} />
-      )}
+      {active === "profile"  && <ProfileTab  token={token} user={user} />}
+      {active === "security" && <SecurityTab user={user} />}
     </div>
   );
 }

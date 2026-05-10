@@ -65,6 +65,51 @@ const user = await getCurrentUser(Astro.cookies);
       hydrateCart();
     </script>
 
+    <!-- Prefetch /checkout as soon as the cart has items.
+         Two triggers:
+           1. Page load  — check localStorage directly (catches returning users
+              and multi-page sessions before $cart is hydrated)
+           2. First add-to-cart this session — subscribe to $cart atom,
+              inject once when the count transitions 0 → ≥1, then unsub.
+         prefetchCheckout() is idempotent — duplicate calls are no-ops. -->
+    <script>
+      import { $cart } from "@/stores/cart.store";
+
+      function prefetchCheckout() {
+        // Already on the checkout page — nothing to prefetch
+        if (window.location.pathname === "/checkout") return;
+        // Link already injected this session
+        if (document.querySelector('link[rel="prefetch"][href="/checkout"]')) return;
+
+        const link = document.createElement("link");
+        link.rel = "prefetch";
+        link.href = "/checkout";
+        link.as = "document";
+        document.head.appendChild(link);
+      }
+
+      // Trigger 1: check localStorage before $cart is hydrated
+      try {
+        const raw = localStorage.getItem("cart");
+        if (raw) {
+          const stored = JSON.parse(raw) as Array<unknown>;
+          if (Array.isArray(stored) && stored.length > 0) {
+            prefetchCheckout();
+          }
+        }
+      } catch {
+        // Corrupt storage — skip
+      }
+
+      // Trigger 2: watch for the first add-to-cart this session
+      const unsub = $cart.subscribe(items => {
+        if (items.length > 0) {
+          prefetchCheckout();
+          unsub(); // fire once — no need to keep watching
+        }
+      });
+    </script>
+
     <!-- Hydrate wishlist when user is logged in -->
     {user && (
       <script>

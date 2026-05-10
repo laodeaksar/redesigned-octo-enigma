@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "fjBdZ7eaOsY2W1s0jcDCW"
+uri = "file://ANALYSIS.md"
+type = "text"
+title = "ANALYSIS.md — Architectural Analysis"

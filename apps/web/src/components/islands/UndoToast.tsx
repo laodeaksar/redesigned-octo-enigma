@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   $cart,
+  $removeRequested,
   addToCart,
   removeFromCart,
   type CartItem,
@@ -22,13 +23,14 @@ const ANIMATION_DURATION = 200;
 
 export function UndoToast() {
   const cartItems = useStore($cart);
+  const removeRequested = useStore($removeRequested);
   const [pendingDeletions, setPendingDeletions] = useState<PendingDeletion[]>(
     []
   );
   const [toastVisible, setToastVisible] = useState(false);
   const [animating, setAnimating] = useState(false);
 
-  // Handler ketika item dihapus dari keranjang
+  // Start an undo countdown for a cart item
   const handleItemDelete = useCallback((item: CartItem) => {
     const deletionId = crypto.randomUUID();
     const pendingItem: PendingDeletion = {
@@ -48,13 +50,12 @@ export function UndoToast() {
       variantId: item.variantId,
     });
 
-    // Schedule permanent deletion
+    // Commit the deletion after the undo window expires
     setTimeout(() => {
       setPendingDeletions(prev => {
-        const item = prev.find(p => p.id === deletionId);
-        if (item && !item.restored) {
-          // Hapus permanen dari state keranjang
-          removeFromCart(item.item.variantId);
+        const pending = prev.find(p => p.id === deletionId);
+        if (pending && !pending.restored) {
+          removeFromCart(pending.item.variantId);
           console.debug("[UndoToast] Item permanently deleted after timeout", {
             deletionId,
           });
@@ -64,12 +65,24 @@ export function UndoToast() {
     }, TOAST_DURATION);
   }, []);
 
-  // Handler undo penghapusan
+  // React to $removeRequested atom — this replaces the window global hack
+  useEffect(() => {
+    if (!removeRequested) return;
+
+    const item = cartItems.find(i => i.variantId === removeRequested);
+    if (item) {
+      handleItemDelete(item);
+    }
+
+    // Acknowledge the event so the atom is cleared and won't re-fire
+    $removeRequested.set(null);
+  }, [removeRequested]); // intentionally excludes cartItems: we want to react to the signal, not every cart change
+
+  // Handler for the Batalkan (undo) button
   const handleUndo = useCallback((deletionId: string) => {
     setPendingDeletions(prev => {
       const item = prev.find(p => p.id === deletionId);
       if (item && !item.restored && !item.restoring) {
-        // Tandai sebagai loading sebelum operasi
         return prev.map(p =>
           p.id === deletionId ? { ...p, restoring: true } : p
         );
@@ -77,14 +90,16 @@ export function UndoToast() {
       return prev;
     });
 
-    // Simulasi async delay untuk menunjukkan loading
+    // Brief delay to show the loading spinner before restoring
     setTimeout(() => {
       setPendingDeletions(prev => {
         const item = prev.find(p => p.id === deletionId);
         if (item && item.restoring) {
           addToCart(item.item);
           return prev.map(p =>
-            p.id === deletionId ? { ...p, restored: true, restoring: false } : p
+            p.id === deletionId
+              ? { ...p, restored: true, restoring: false }
+              : p
           );
         }
         return prev;
@@ -96,7 +111,7 @@ export function UndoToast() {
     }, 300);
   }, []);
 
-  // Auto hide toast ketika tidak ada pending item
+  // Auto-hide toast when all pending deletions are resolved
   useEffect(() => {
     if (pendingDeletions.length === 0) {
       setAnimating(true);
@@ -106,24 +121,6 @@ export function UndoToast() {
       }, ANIMATION_DURATION);
     }
   }, [pendingDeletions.length]);
-
-  // Override fungsi removeFromCart global untuk inject undo
-  useEffect(() => {
-    const originalRemove = removeFromCart;
-
-    // @ts-expect-error override fungsi global
-    window.removeFromCartWithUndo = (variantId: string) => {
-      const item = cartItems.find(i => i.variantId === variantId);
-      if (item) {
-        handleItemDelete(item);
-      }
-    };
-
-    return () => {
-      // @ts-expect-error restore original
-      window.removeFromCartWithUndo = undefined;
-    };
-  }, [cartItems, handleItemDelete]);
 
   if (!toastVisible) {
     return null;

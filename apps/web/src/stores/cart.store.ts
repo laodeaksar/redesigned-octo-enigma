@@ -1,5 +1,15 @@
 // =============================================================================
 // Cart store — nanostores (shared between React islands client-side)
+//
+// Removal flow (undo-safe):
+//   1. UI button calls requestRemoveFromCart(variantId)
+//      → sets $removeRequested atom (event signal)
+//   2. UndoToast subscribes to $removeRequested, shows a 6-second countdown
+//   3. On timeout (no undo): UndoToast calls removeFromCart(variantId) to
+//      commit the deletion
+//   4. On undo: UndoToast calls addToCart(item) to restore, clears the atom
+//
+// This replaces the previous window.removeFromCartWithUndo global hack.
 // =============================================================================
 
 import { atom, computed } from "nanostores";
@@ -18,6 +28,12 @@ export interface CartItem {
 
 export const $cart = atom<CartItem[]>([]);
 export const $isCartOpen = atom(false);
+
+// Event atom: set to a variantId when the user requests removal (to show the
+// undo toast). UndoToast watches this, starts the countdown, then calls
+// removeFromCart() once the window expires.  Cleared automatically after
+// UndoToast picks up the event.
+export const $removeRequested = atom<string | null>(null);
 
 // ── Computed ──────────────────────────────────────────────────────────────────
 
@@ -53,7 +69,8 @@ export function addToCart(item: CartItem) {
 
 export function updateQuantity(variantId: string, quantity: number) {
   if (quantity <= 0) {
-    removeFromCart(variantId);
+    // Treat stepper-to-zero the same as a remove button — show undo toast
+    requestRemoveFromCart(variantId);
     return;
   }
   $cart.set(
@@ -62,22 +79,28 @@ export function updateQuantity(variantId: string, quantity: number) {
   persistCart();
 }
 
-export function removeFromCart(variantId: string, withUndo = true) {
-  if (withUndo && typeof window !== "undefined") {
-    // @ts-expect-error undo handler di-inject oleh UndoToast component
-    if (window.removeFromCartWithUndo) {
-      // @ts-expect-error
-      window.removeFromCartWithUndo(variantId);
-      return;
-    }
-  }
+// Signal that the user wants to remove an item.
+// UndoToast reacts to this and starts the undo countdown.
+// For programmatic removals that should skip the toast (e.g. checkout
+// clearing the cart), call removeFromCart() directly.
+export function requestRemoveFromCart(variantId: string) {
+  $removeRequested.set(variantId);
+}
 
+// Commit the removal — called by UndoToast after the undo window expires,
+// or directly when no undo is needed (clearCart, quantity stepper bypass).
+export function removeFromCart(variantId: string) {
   $cart.set($cart.get().filter(i => i.variantId !== variantId));
+  // Clear the event atom if it was still pointing at this item
+  if ($removeRequested.get() === variantId) {
+    $removeRequested.set(null);
+  }
   persistCart();
 }
 
 export function clearCart() {
   $cart.set([]);
+  $removeRequested.set(null);
   if (typeof localStorage !== "undefined") {
     localStorage.removeItem("cart");
   }

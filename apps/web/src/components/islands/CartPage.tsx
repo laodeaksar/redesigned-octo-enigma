@@ -9,7 +9,7 @@ import {
   $cartTotal,
   clearCart,
   hydrateCart,
-  removeFromCart,
+  requestRemoveFromCart,
   updateQuantity,
   type CartItem,
 } from "@/stores/cart.store";
@@ -104,7 +104,7 @@ function CartItemRow({ item }: { item: CartItem }) {
             <button
               aria-label="Hapus item"
               className="text-gray-400 transition-colors hover:text-red-500"
-              onClick={() => removeFromCart(item.variantId)}
+              onClick={() => requestRemoveFromCart(item.variantId)}
             >
               <svg
                 className="h-5 w-5"

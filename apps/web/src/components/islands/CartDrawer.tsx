@@ -6,7 +6,7 @@ import {
   $cart,
   $cartTotal,
   $isCartOpen,
-  removeFromCart,
+  requestRemoveFromCart,
   updateQuantity,
 } from "@/stores/cart.store";
 import { useStore } from "@nanostores/react";
@@ -116,7 +116,7 @@ export default function CartDrawer() {
 
                       <button
                         className="text-xs text-red-500 hover:underline"
-                        onClick={() => removeFromCart(item.variantId)}
+                        onClick={() => requestRemoveFromCart(item.variantId)}
                       >
                         Hapus
                       </button>

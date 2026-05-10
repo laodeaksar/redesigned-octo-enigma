@@ -7,7 +7,7 @@ import TrackProductView from "@/components/islands/TrackProductView";
 import WishlistButton from "@/components/islands/WishlistButton";
 import BaseLayout from "@/components/layout/BaseLayout.astro";
 import Badge from "@/components/shared/Badge.astro";
-import { api, type ProductDetail } from "@/lib/api";
+import { getPDPBFF, type Product, type ProductDetail } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
 import { formatDate } from "@/lib/utils";
 
@@ -16,12 +16,13 @@ const user = await getCurrentUser(Astro.cookies);
 const { slug } = Astro.params;
 
 let product: ProductDetail | null = null;
+let relatedProducts: Product[] = [];
 
 try {
-  const res = await api.get<{ success: true; data: ProductDetail }>(
-    `/products/slug/${slug}`
-  );
-  product = res.data;
+  // Single BFF request: product detail + related products in parallel upstream
+  const bff = await getPDPBFF(slug!);
+  product = bff.product as ProductDetail;
+  relatedProducts = bff.relatedProducts as Product[];
 } catch {
   return Astro.redirect("/404");
 }

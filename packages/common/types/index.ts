@@ -111,6 +111,11 @@ export type {
   UserStatus,
   UserSummary,
 } from "./user";
+// ── BFF (Backend-for-Frontend) aggregation types & Zod schemas ───────────────
+// Import from: "@repo/common/types"
+export { homeBFFResponseSchema, pdpBFFResponseSchema } from "./bff";
+export type { HomeBFFResponse, PDPBFFResponse } from "./bff";
+
 // ── Storefront API response types ─────────────────────────────────────────────
 // These represent what api-gateway returns to HTTP clients (string dates,
 // computed/denormalized fields).  Distinct from domain types above.

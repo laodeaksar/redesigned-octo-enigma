@@ -15,6 +15,8 @@
 // =============================================================================
 
 import type {
+  HomeBFFResponse,
+  PDPBFFResponse,
   StorefrontCategory,
   StorefrontOrder,
   StorefrontOrderDetail,
@@ -25,6 +27,10 @@ import type {
   StorefrontReview,
   StorefrontUser,
   StorefrontWishlistItem,
+} from "@repo/common/types";
+import {
+  homeBFFResponseSchema,
+  pdpBFFResponseSchema,
 } from "@repo/common/types";
 
 // ── Base URL ──────────────────────────────────────────────────────────────────
@@ -203,6 +209,37 @@ export const apiProxy = {
   delete: <T>(path: string, opts?: ProxyOptions) =>
     proxyFetch<T>(path, { ...opts, method: "DELETE" }),
 };
+
+// ── BFF helpers (SSR-only) ────────────────────────────────────────────────────
+//
+// Call these from Astro frontmatter to reduce N gateway round-trips to 1.
+// Each function fetches the aggregated BFF endpoint, then re-validates the
+// response locally with the shared Zod schema so shape errors surface early.
+
+/**
+ * Fetch homepage data: featured products + top-level categories in one request.
+ * Only call this from Astro frontmatter (SSR context).
+ */
+export async function getHomeBFF(): Promise<HomeBFFResponse> {
+  const res = await apiFetch<{ success: true; data: HomeBFFResponse }>(
+    "/bff/home",
+    { method: "GET" }
+  );
+  return homeBFFResponseSchema.parse(res.data);
+}
+
+/**
+ * Fetch PDP data: product detail + related products in one request.
+ * Only call this from Astro frontmatter (SSR context).
+ * Throws ApiError with status 404 if the product is not found.
+ */
+export async function getPDPBFF(slug: string): Promise<PDPBFFResponse> {
+  const res = await apiFetch<{ success: true; data: PDPBFFResponse }>(
+    `/bff/pdp/${slug}`,
+    { method: "GET" }
+  );
+  return pdpBFFResponseSchema.parse(res.data);
+}
 
 // ── Domain type re-exports ────────────────────────────────────────────────────
 //

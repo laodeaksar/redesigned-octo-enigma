@@ -10,6 +10,7 @@ import { requestIdMiddleware } from "@/middleware/request-id.middleware";
 import { adminRoutes } from "@/modules/admin/admin.routes";
 import { analyticsRoutes } from "@/modules/analytics/analytics.routes";
 import { authRoutes } from "@/modules/auth/auth.routes";
+import { bffRoutes } from "@/modules/bff/bff.routes";
 import { bullBoardRoutes } from "@/modules/bull-board/bull-board.routes";
 import { healthRoutes } from "@/modules/health/health.routes";
 import { ordersRoutes } from "@/modules/orders/orders.routes";
@@ -115,6 +116,7 @@ export function createApp() {
 
   // ── Routes ─────────────────────────────────────────────────────────────────
   app.route("/", healthRoutes);
+  app.route("/", bffRoutes);
   app.route("/", authRoutes);
   app.route("/", adminRoutes);
   app.route("/", productsRoutes);

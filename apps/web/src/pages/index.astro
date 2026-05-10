@@ -2,30 +2,16 @@
 import RecentlyViewed from "@/components/islands/RecentlyViewed";
 import BaseLayout from "@/components/layout/BaseLayout.astro";
 import ProductCard from "@/components/shared/ProductCard.astro";
-import { api, type Category, type Product } from "@/lib/api";
+import { getHomeBFF, type Category, type Product } from "@/lib/api";
 
-// Fetch featured products + categories in parallel
+// Single BFF request replaces 2 serial gateway calls → lower TTFB
 let products: Product[] = [];
 let categories: Category[] = [];
 
 try {
-  const [productsRes, categoriesRes] = await Promise.all([
-    api.get<{ success: true; data: Product[]; meta: { total: number } }>(
-      "/products",
-      {
-        params: {
-          page: 1,
-          limit: 8,
-          status: "active",
-          sortBy: "createdAt",
-          sortOrder: "desc",
-        },
-      }
-    ),
-    api.get<{ success: true; data: Category[] }>("/categories"),
-  ]);
-  products = productsRes.data;
-  categories = categoriesRes.data.filter((c) => !c.parentId).slice(0, 6);
+  const bff = await getHomeBFF();
+  products = bff.featuredProducts as Product[];
+  categories = bff.categories as Category[];
 } catch {
   // Show empty state — don't crash the page
 }

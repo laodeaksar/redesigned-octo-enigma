@@ -42,7 +42,7 @@ const user = await getCurrentUser(Astro.cookies);
   </head>
   <body class="min-h-screen bg-white text-gray-900 antialiased">
     <!-- Always-mounted React islands -->
-    <CartDrawer client:load />
+    <CartDrawer client:load isLoggedIn={!!user} />
     <ProductQuickView client:load />
     <UndoToast client:load />
     <CompareBar client:load />

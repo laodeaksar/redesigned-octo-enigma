@@ -16,6 +16,7 @@ import { ordersRoutes } from "@/modules/orders/orders.routes";
 import { paymentsRoutes } from "@/modules/payments/payments.routes";
 import { productsRoutes } from "@/modules/products/products.routes";
 import { shippingRoutes } from "@/modules/shipping/shipping.routes";
+import { cartRoutes } from "@/modules/cart/cart.routes";
 import { wishlistRoutes } from "@/modules/wishlist/wishlist.routes";
 import { swaggerUI } from "@hono/swagger-ui";
 import { Hono } from "hono";
@@ -124,6 +125,7 @@ export function createApp() {
   app.route("/", analyticsRoutes);
   app.route("/", metricsRoutes);
   app.route("/", wishlistRoutes);
+  app.route("/", cartRoutes);
 
   // ── 404 handler ────────────────────────────────────────────────────────────
   app.notFound(c =>

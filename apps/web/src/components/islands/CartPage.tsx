@@ -8,8 +8,11 @@ import {
   $cartCount,
   $cartTotal,
   clearCart,
+  fetchServerCart,
   hydrateCart,
   requestRemoveFromCart,
+  setLoggedIn,
+  syncCartWithServer,
   updateQuantity,
   type CartItem,
 } from "@/stores/cart.store";
@@ -19,6 +22,10 @@ import { formatIDR } from "@/lib/utils";
 
 const SHIPPING_FREE_THRESHOLD = 100_000;
 const ESTIMATED_SHIPPING = 15_000;
+
+interface Props {
+  isLoggedIn?: boolean;
+}
 
 function CartItemRow({ item }: { item: CartItem }) {
   return (
@@ -162,7 +169,9 @@ function EmptyCart() {
   );
 }
 
-export default function CartPage() {
+export default function CartPage({ isLoggedIn = false }: Props) {
+  setLoggedIn(isLoggedIn);
+
   const cart = useStore($cart);
   const total = useStore($cartTotal);
   const count = useStore($cartCount);
@@ -171,8 +180,14 @@ export default function CartPage() {
 
   useEffect(() => {
     hydrateCart();
-    setHydrated(true);
-  }, []);
+
+    if (isLoggedIn) {
+      // Merge localStorage items into server cart, then show the merged result
+      void syncCartWithServer().finally(() => setHydrated(true));
+    } else {
+      setHydrated(true);
+    }
+  }, [isLoggedIn]);
 
   const isFreeShipping = total >= SHIPPING_FREE_THRESHOLD;
   const shippingCost = isFreeShipping ? 0 : ESTIMATED_SHIPPING;

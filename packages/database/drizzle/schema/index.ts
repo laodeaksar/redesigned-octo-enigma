@@ -72,3 +72,11 @@ export type { NewWebhookEventRow, WebhookEventRow } from "./webhook-events";
 export { webhookEventsTable } from "./webhook-events";
 export type { NewWishlist, Wishlist } from "./wishlist";
 export { wishlistsTable } from "./wishlist";
+// ── Cart tables ───────────────────────────────────────────────────────────────
+export type { CartItemRow, CartRow, NewCartItemRow, NewCartRow } from "./cart";
+export {
+  cartItemsRelations,
+  cartItemsTable,
+  cartsRelations,
+  cartsTable,
+} from "./cart";

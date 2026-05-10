@@ -130,6 +130,7 @@ const sortedImages = [...product.images].sort(
             productName={product.name}
             variants={product.variants}
             primaryImage={primaryImage?.url ?? null}
+            isLoggedIn={!!user}
           />
 
           <div class="flex items-center gap-2">

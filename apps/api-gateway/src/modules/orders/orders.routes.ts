@@ -29,8 +29,6 @@ import {
 } from "@/middleware/rate-limit.middleware";
 import { Hono } from "hono";
 
-import { cartUndoManager } from "@/lib/cart-undo-manager";
-import { logger } from "@/lib/logger";
 import { buildTargetUrl, proxyRequest } from "@/lib/proxy";
 
 const app = new Hono();
@@ -211,74 +209,6 @@ app.patch("/vouchers/:id", ...adminMw, async c =>
 
 app.delete("/vouchers/:id", ...adminMw, async c =>
   proxyRequest(c, { target: buildTargetUrl(orderBase, c), user: c.var.user })
-);
-
-// ── Cart Item Undo Delete Feature ─────────────────────────────────────────────
-
-/**
- * Hapus item keranjang dengan jendela undo 8 detik
- */
-app.delete("/cart/items/:itemId", requireAuth, defaultRateLimit, async c => {
-  const userId = c.var.user.id;
-  const cartItemId = c.req.param("itemId");
-
-  // Ambil detail item sebelum dihapus
-  const productData = {
-    productId: "mock-product-id",
-    quantity: 1,
-    unitPrice: 0,
-  };
-
-  const pendingItem = cartUndoManager.scheduleItemDeletion(
-    userId,
-    cartItemId,
-    productData
-  );
-
-  logger.info("Cart item delete scheduled with undo", {
-    userId,
-    cartItemId,
-    deletionId: pendingItem.id,
-  });
-
-  return c.json({
-    success: true,
-    data: {
-      deletionId: pendingItem.id,
-      undoAvailable: true,
-      undoWindowMs: 8000,
-      message: "Item telah dihapus. Klik batalkan untuk mengembalikan.",
-    },
-  });
-});
-
-/**
- * Batalkan penghapusan item keranjang
- */
-app.post(
-  "/cart/undo-delete/:deletionId",
-  requireAuth,
-  defaultRateLimit,
-  async c => {
-    const userId = c.var.user.id;
-    const deletionId = c.req.param("deletionId");
-
-    const result = await cartUndoManager.undoItemDeletion(deletionId, userId);
-
-    return c.json(
-      {
-        success: result.success,
-        message: result.message,
-        data: result.item
-          ? {
-              item: result.item,
-              remainingTime: result.remainingTime,
-            }
-          : undefined,
-      },
-      result.success ? 200 : 409
-    );
-  }
 );
 
 export { app as ordersRoutes };

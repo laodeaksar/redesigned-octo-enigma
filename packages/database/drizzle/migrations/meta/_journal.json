@@ -36,6 +36,13 @@
       "when": 1778224981499,
       "tag": "0004_exotic_redwing",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1778405737372,
+      "tag": "0006_fine_tiger_shark",
+      "breakpoints": true
     }
   ]
 }

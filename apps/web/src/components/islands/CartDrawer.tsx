@@ -7,13 +7,20 @@ import {
   $cartTotal,
   $isCartOpen,
   requestRemoveFromCart,
+  setLoggedIn,
   updateQuantity,
 } from "@/stores/cart.store";
 import { useStore } from "@nanostores/react";
 
 import { formatIDR } from "@/lib/utils";
 
-export default function CartDrawer() {
+interface Props {
+  isLoggedIn?: boolean;
+}
+
+export default function CartDrawer({ isLoggedIn = false }: Props) {
+  setLoggedIn(isLoggedIn);
+
   const cart = useStore($cart);
   const isOpen = useStore($isCartOpen);
   const total = useStore($cartTotal);

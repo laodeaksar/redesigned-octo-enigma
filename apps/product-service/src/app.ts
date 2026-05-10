@@ -14,6 +14,7 @@ import {
   productsRoutes,
 } from "@/modules/products/products.routes";
 import { reviewsRoutes } from "@/modules/reviews/reviews.routes";
+import { cartRoutes } from "@/modules/cart/cart.routes";
 import { wishlistRoutes } from "@/modules/wishlist/wishlist.routes";
 import { swaggerPlugin } from "@/plugins/swagger.plugin";
 
@@ -55,6 +56,7 @@ export function createApp() {
       .use(productsInternalRoutes)
       .use(productsRoutes)
       .use(wishlistRoutes)
+      .use(cartRoutes)
       .use(reviewsRoutes)
   );
 }

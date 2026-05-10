@@ -1,6 +1,10 @@
 ---
 import CartPage from "@/components/islands/CartPage";
 import BaseLayout from "@/components/layout/BaseLayout.astro";
+import { getCurrentUser } from "@/lib/auth";
+
+const user = await getCurrentUser(Astro.cookies);
+const isLoggedIn = !!user;
 ---
 
 <BaseLayout title="Keranjang Belanja" description="Keranjang belanja kamu">
@@ -10,7 +14,7 @@ import BaseLayout from "@/components/layout/BaseLayout.astro";
       <h1 class="text-2xl font-bold text-gray-900">Keranjang Belanja</h1>
     </div>
 
-    <!-- Cart content (React island — reads from localStorage) -->
-    <CartPage client:load />
+    <!-- Cart content — server-synced for logged-in users -->
+    <CartPage client:load isLoggedIn={isLoggedIn} />
   </div>
 </BaseLayout>

@@ -3,7 +3,7 @@
 // =============================================================================
 
 import { useState } from "react";
-import { addToCart } from "@/stores/cart.store";
+import { addToCart, setLoggedIn } from "@/stores/cart.store";
 
 import { formatIDR } from "@/lib/utils";
 
@@ -18,6 +18,7 @@ interface Variant {
 }
 
 interface Props {
+  isLoggedIn?: boolean;
   primaryImage: string | null;
   productName: string;
   variants: Variant[];
@@ -27,10 +28,13 @@ export default function AddToCartButton({
   productName,
   variants,
   primaryImage,
+  isLoggedIn = false,
 }: Props) {
+  // Tell the store whether to also push to the server
+  setLoggedIn(isLoggedIn);
+
   const activeVariants = variants.filter(v => v.isActive);
 
-  // Group attribute keys for selector UI
   const attrKeys = Object.keys(activeVariants[0]?.attributes ?? {});
 
   const [selected, setSelected] = useState<Record<string, string>>(
@@ -47,7 +51,6 @@ export default function AddToCartButton({
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
 
-  // Find matching variant based on selected attributes
   const matchedVariant = activeVariants.find(v =>
     attrKeys.every(k => v.attributes[k] === selected[k])
   );
@@ -55,7 +58,6 @@ export default function AddToCartButton({
   const isOutOfStock = !matchedVariant || matchedVariant.stock === 0;
   const maxQty = matchedVariant?.stock ?? 0;
 
-  // Get unique values per attribute key for the selector
   const attrValues = (key: string): string[] => [
     ...new Set(
       activeVariants.map(v => v.attributes[key]).filter(Boolean) as string[]

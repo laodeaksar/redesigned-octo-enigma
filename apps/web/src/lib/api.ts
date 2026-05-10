@@ -14,9 +14,26 @@
 // `false` for client bundles, so the unused branch is tree-shaken away.
 // =============================================================================
 
+import type {
+  StorefrontCategory,
+  StorefrontOrder,
+  StorefrontOrderDetail,
+  StorefrontPayment,
+  StorefrontProduct,
+  StorefrontProductDetail,
+  StorefrontRatingSummary,
+  StorefrontReview,
+  StorefrontUser,
+  StorefrontWishlistItem,
+} from "@repo/common/types";
+
+// ── Base URL ──────────────────────────────────────────────────────────────────
+
 const BASE = import.meta.env.SSR
   ? (import.meta.env.INTERNAL_API_URL ?? "http://localhost:3000")
   : (import.meta.env.PUBLIC_API_URL ?? "http://localhost:3000");
+
+// ── Response shapes ───────────────────────────────────────────────────────────
 
 export interface ApiResponse<T> {
   data: T;
@@ -27,15 +44,17 @@ export interface ApiResponse<T> {
 export interface PaginatedResponse<T> {
   data: T[];
   meta: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
     hasNextPage: boolean;
     hasPrevPage: boolean;
+    limit: number;
+    page: number;
+    total: number;
+    totalPages: number;
   };
   success: true;
 }
+
+// ── Error ─────────────────────────────────────────────────────────────────────
 
 export class ApiError extends Error {
   constructor(
@@ -108,170 +127,21 @@ export const api = {
     apiFetch<T>(path, { ...opts, method: "DELETE" }),
 };
 
-// ── Domain helpers ────────────────────────────────────────────────────────────
+// ── Domain type re-exports ────────────────────────────────────────────────────
+//
+// Canonical definitions live in packages/common/types/storefront.ts — the
+// single source of truth for API response shapes across all storefront clients.
+//
+// These aliases keep every .astro page and React island unchanged: they still
+// import `{ Product, Category, ... }` from "@/lib/api" and nothing breaks.
 
-export type Product = {
-  id: string;
-  name: string;
-  slug: string;
-  status: string;
-  primaryImage: string | null;
-  lowestPrice: number;
-  highestPrice: number;
-  totalStock: number;
-  tags: string[];
-  categoryId: string;
-  createdAt: string;
-};
-
-export type ProductDetail = Product & {
-  description: string;
-  shortDescription: string | null;
-  weight: number | null;
-  category: { id: string; name: string; slug: string } | null;
-  variants: Array<{
-    id: string;
-    sku: string;
-    name: string;
-    attributes: Record<string, string>;
-    price: number;
-    compareAtPrice: number | null;
-    stock: number;
-    isActive: boolean;
-  }>;
-  images: Array<{
-    id: string;
-    url: string;
-    altText: string | null;
-    isPrimary: boolean;
-    sortOrder: number;
-  }>;
-};
-
-export type Category = {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  imageUrl: string | null;
-  parentId: string | null;
-};
-
-export type Order = {
-  id: string;
-  orderNumber: string;
-  status: string;
-  itemCount: number;
-  grandTotal: number;
-  createdAt: string;
-};
-
-export type OrderDetail = Order & {
-  userId: string;
-  items: Array<{
-    product: {
-      productId?: string;
-      name: string;
-      variantName: string;
-      sku: string;
-      imageUrl: string | null;
-      price: number;
-    };
-    quantity: number;
-    unitPrice: number;
-    subtotal: number;
-  }>;
-  shipping: {
-    courier: string;
-    service: string;
-    trackingNumber: string | null;
-    estimatedDays?: number;
-    cost: number;
-    address: {
-      recipientName: string;
-      phone: string;
-      street: string;
-      city: string;
-      province: string;
-      postalCode: string;
-    };
-    shippedAt: string | null;
-    deliveredAt: string | null;
-  };
-  pricing: {
-    subtotal: number;
-    shippingCost: number;
-    discountTotal: number;
-    taxTotal: number;
-    grandTotal: number;
-  };
-  discounts?: Array<{
-    code: string;
-    type: string;
-    value: number;
-    amount: number;
-  }>;
-  statusHistory?: Array<{ status: string; timestamp: string; note?: string }>;
-  cancellationReason?: string | null;
-  cancellationNote?: string | null;
-  customerNote?: string | null;
-  paymentId: string | null;
-  expiresAt: string;
-  updatedAt: string;
-};
-
-export type User = {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  avatarUrl: string | null;
-  emailVerified: boolean;
-  status: string;
-  // Admin plugin fields
-  banned: boolean | null;
-  banReason: string | null;
-  banExpires: string | null;
-};
-
-export type Payment = {
-  id: string;
-  orderId: string;
-  status: string;
-  method: string | null;
-  amount: number;
-  snapToken: string | null;
-  snapRedirectUrl: string | null;
-  virtualAccount: { bank: string; vaNumber: string; expiresAt: string } | null;
-  eWallet: {
-    provider: string;
-    qrCodeUrl: string | null;
-    expiresAt: string;
-  } | null;
-  expiresAt: string;
-};
-
-export type WishlistItem = {
-  id: string;
-  product: Product;
-  createdAt: string;
-};
-
-export type Review = {
-  id: string;
-  userId: string;
-  productId: string;
-  orderId: string;
-  rating: number;
-  title: string | null;
-  body: string | null;
-  imageUrls: string[];
-  isVerifiedPurchase: boolean;
-  createdAt: string;
-};
-
-export type RatingSummary = {
-  average: number;
-  count: number;
-  breakdown: Record<string, number>;
-};
+export type Product = StorefrontProduct;
+export type ProductDetail = StorefrontProductDetail;
+export type Category = StorefrontCategory;
+export type Order = StorefrontOrder;
+export type OrderDetail = StorefrontOrderDetail;
+export type User = StorefrontUser;
+export type Payment = StorefrontPayment;
+export type WishlistItem = StorefrontWishlistItem;
+export type Review = StorefrontReview;
+export type RatingSummary = StorefrontRatingSummary;

@@ -111,3 +111,30 @@ export type {
   UserStatus,
   UserSummary,
 } from "./user";
+// ── Storefront API response types ─────────────────────────────────────────────
+// These represent what api-gateway returns to HTTP clients (string dates,
+// computed/denormalized fields).  Distinct from domain types above.
+// Import from: "@repo/common/types"
+export type {
+  StorefrontAppliedDiscount,
+  StorefrontCartItem,
+  StorefrontCategory,
+  StorefrontEWallet,
+  StorefrontOrder,
+  StorefrontOrderDetail,
+  StorefrontOrderItem,
+  StorefrontOrderPricing,
+  StorefrontOrderShipping,
+  StorefrontOrderStatusEvent,
+  StorefrontPayment,
+  StorefrontProduct,
+  StorefrontProductDetail,
+  StorefrontProductImage,
+  StorefrontProductStatus,
+  StorefrontRatingSummary,
+  StorefrontReview,
+  StorefrontUser,
+  StorefrontVariant,
+  StorefrontVirtualAccount,
+  StorefrontWishlistItem,
+} from "./storefront";

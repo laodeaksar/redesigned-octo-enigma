@@ -35,8 +35,12 @@ export const env = createEnv({
     ORDER_SERVICE_URL: z.url(),
     PAYMENT_SERVICE_URL: z.url(),
 
+    // Comma-separated list of allowed origins.
+    // Use "*" to allow any origin (development only — unsafe in production).
+    // Example: https://store.example.com,https://admin.example.com
     CORS_ORIGINS: z
       .string()
+      .default("http://localhost:5000")
       .transform((val) => val.split(",").map((s) => s.trim())),
 
     // ── Payment gateway (gateway-level webhook verification) ──────────────────

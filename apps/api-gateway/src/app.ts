@@ -26,6 +26,7 @@ import { secureHeaders } from "hono/secure-headers";
 
 import { normalizeError } from "@repo/common/errors";
 import { failure } from "@repo/common/schemas";
+import { buildCorsOrigin } from "@/lib/cors";
 
 export function createApp() {
   const app = new Hono();
@@ -40,7 +41,7 @@ export function createApp() {
   app.use(
     "*",
     cors({
-      origin: env.CORS_ORIGINS,
+      origin: buildCorsOrigin(env.CORS_ORIGINS),
       allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
       allowHeaders: ["Content-Type", "Authorization", "x-request-id"],
       exposeHeaders: [

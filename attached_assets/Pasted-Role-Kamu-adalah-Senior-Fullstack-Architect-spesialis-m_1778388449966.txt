@@ -1,0 +1,77 @@
+Role: Kamu adalah Senior Fullstack Architect spesialis monorepo, Astro, Fresh, Hono, dan Elysia.js.
+
+Context: Aku punya monorepo e-commerce dengan struktur ini:
+my-ecommerce/
+├── apps/
+│ ├── admin/ # tanstack/start
+│ ├── storefront-astro/ # astro + solid+react islands
+│ ├── storefront-fresh/ # fresh - khusus checkout
+│ ├── api-gateway/ # Hono.js - hybrid gateway
+│ ├── auth-service/ # Elysia.js + Better-auth
+│ ├── payment-service/ # hono.js + Midtrans
+│ ├── product-service/ # Elysia.js + Drizzle + Postgres
+│ ├── order-service/ # Elysia.js + MongoDB
+│ └── email-worker # bullmq
+├── packages/
+│ ├── database/ # Shared Drizzle schemas & mongodb
+│ ├── common/ # Shared types, Zod/Elysia validation
+│ ├── ui/ # Shadcn UI components
+│ ├── env/ # env config
+│ ├── tsconfig
+│ └── eslint-config
+├── turbo.json
+└── package.json
+
+Fokus utama:
+1. storefront-astro: Halaman katalog, PLP, PDP, cart. Pakai Astro + Solid/React islands
+2. storefront-fresh: Halaman checkout, payment, success. Pakai Fresh/Deno
+3. api-gateway: Hono.js sebagai BFF + routing ke microservices
+
+Task:
+1. Analisa halaman web storefront-astro dan storefront-fresh. Cek:
+   - Routing & file-based structure
+   - Cara fetch data: SSR, CSR, islands, atau API call ke api-gateway
+   - State management cart & auth session sharing antara Astro & Fresh
+   - Performance: hydration, bundle size, TTFB
+   - Integrasi dengan api-gateway Hono: endpoint apa aja yang dipakai, format response
+   - Potensi CORS, cookie domain, atau mismatch tipe dari packages/common
+
+2. Buatkan TODO LIST prioritas untuk 2 minggu ke depan dengan format:
+   [P0/P1/P2] - [App] - Task - Alasan
+   P0 = Critical, P1 = Important, P2 = Nice to have
+
+3. Buatkan REKOMENDASI PENYESUAIAN untuk:
+   a. Arsitektur: Apakah hybrid Astro+Fresh efektif? Kapan harusnya dipecah/gabung?
+   b. api-gateway: Pattern Hono yang cocok untuk BFF. Perlu GraphQL, tRPC, atau REST cukup?
+   c. Data fetching: Kapan pakai Astro DB, RPC ke service, atau direct dari gateway
+   d. Auth flow: Cara share session Better-auth antara Astro & Fresh tanpa re-login
+   e. DX: Cara pakai packages/common biar type-safe end-to-end
+   f. Deployment: Saran deploy Astro di Vercel/Cloudflare vs Fresh di Deno Deploy
+
+Output format:
+### 1. Analisa Storefront
+#### storefront-astro
+- **Routing**:...
+- **Data Fetching**:...
+- **Issues**:...
+
+#### storefront-fresh
+- **Routing**:...
+- **Data Fetching**:...
+- **Issues**:...
+
+### 2. TODO List 2 Minggu
+| Prioritas | App | Task | Alasan |
+| --- | --- | --- | --- |
+
+### 3. Rekomendasi Penyesuaian
+**a. Arsitektur**:...
+**b. API Gateway**:...
+
+Constraint:
+1. Jangan refactor besar dulu. Fokus low-hanging fruit & stabilisasi.
+2. Semua API call wajib lewat api-gateway. Service lain tidak boleh di-expose langsung.
+3. Utamakan type-safety pakai Zod dari packages/common.
+4. Asumsi user pakai Turborepo + pnpm workspaces.
+
+Mulai analisa dari file astro.config.mjs, fresh.config.ts, dan apps/api-gateway/src/index.ts dulu.

@@ -1,6 +1,7 @@
 ---
 import OrderHistory from "@/components/islands/OrderHistory";
 import UserSettingsForm from "@/components/islands/UserSettingsForm";
+import WishlistPreview from "@/components/islands/WishlistPreview";
 import BaseLayout from "@/components/layout/BaseLayout.astro";
 import { api } from "@/lib/api";
 import { getTokenFromCookies, requireAuth } from "@/lib/auth";
@@ -123,8 +124,14 @@ try {
             />
           </div>
 
-          <!-- Recent orders card (uses @repo/ui internally) -->
+          <!-- Recent orders (uses @repo/ui internally) -->
           <OrderHistory
+            client:load
+            token={token}
+          />
+
+          <!-- Wishlist quick-view (uses @repo/ui internally) -->
+          <WishlistPreview
             client:load
             token={token}
           />

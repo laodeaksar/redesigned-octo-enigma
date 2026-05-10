@@ -191,7 +191,7 @@ const sortedImages = [...product.images].sort(
   <!-- Reviews section -->
   <div class="border-t border-gray-100">
     <ProductReviews
-      client:load
+      client:visible
       productId={product.id}
       productName={product.name}
       isLoggedIn={!!user}
@@ -200,7 +200,7 @@ const sortedImages = [...product.images].sort(
 
   <!-- Track this view (fires once on mount, writes to localStorage) -->
   <TrackProductView
-    client:load
+    client:idle
     id={product.id}
     name={product.name}
     slug={product.slug}
@@ -212,7 +212,7 @@ const sortedImages = [...product.images].sort(
   <!-- Recently viewed (excludes current product) -->
   <div class="border-t border-gray-100 bg-gray-50/50">
     <RecentlyViewed
-      client:load
+      client:visible
       currentSlug={slug}
       title="Produk yang Baru Kamu Lihat"
     />

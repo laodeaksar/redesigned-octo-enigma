@@ -1,5 +1,6 @@
 // @ts-check
 
+import node from "@astrojs/node";
 import react from "@astrojs/react";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
@@ -15,6 +16,8 @@ const { PUBLIC_API_URL, INTERNAL_API_URL } = loadEnv(
 export default defineConfig({
   // SSR mode — pages rendered on-demand by Node/Bun
   output: "server",
+
+  adapter: node({ mode: "standalone" }),
 
   integrations: [react()],
 

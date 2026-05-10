@@ -5,7 +5,7 @@
 import { useState } from "react";
 import type React from "react";
 
-import { api } from "@/lib/api";
+import { apiProxy } from "@/lib/api";
 
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
@@ -24,7 +24,6 @@ interface User {
 }
 
 interface Props {
-  token: string;
   user: User;
 }
 
@@ -101,7 +100,7 @@ function ErrorAlert({ message }: { message: string }) {
 
 // ── Profile tab ───────────────────────────────────────────────────────────────
 
-function ProfileTab({ user, token }: { user: User; token: string }) {
+function ProfileTab({ user }: { user: User }) {
   const [name, setName]           = useState(user.name);
   const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl ?? "");
   const [loading, setLoading]     = useState(false);
@@ -121,10 +120,9 @@ function ProfileTab({ user, token }: { user: User; token: string }) {
     setError(null);
 
     try {
-      await api.patch(
+      await apiProxy.patch(
         "/users/me",
-        { name: name.trim() || undefined, avatarUrl: avatarUrl.trim() || null },
-        { token }
+        { name: name.trim() || undefined, avatarUrl: avatarUrl.trim() || null }
       );
       setSuccess("Profil berhasil diperbarui!");
       setTimeout(() => window.location.reload(), 900);
@@ -285,7 +283,7 @@ function SecurityTab({ user }: { user: User }) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-export default function UserSettingsForm({ user, token }: Props) {
+export default function UserSettingsForm({ user }: Props) {
   const [active, setActive] = useState<Tab>("profile");
 
   const TABS: { id: Tab; label: string }[] = [
@@ -313,7 +311,7 @@ export default function UserSettingsForm({ user, token }: Props) {
         ))}
       </div>
 
-      {active === "profile"  && <ProfileTab  token={token} user={user} />}
+      {active === "profile"  && <ProfileTab user={user} />}
       {active === "security" && <SecurityTab user={user} />}
     </div>
   );

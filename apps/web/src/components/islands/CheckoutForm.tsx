@@ -8,7 +8,7 @@ import type React from "react";
 import { $cart, $cartTotal, clearCart } from "@/stores/cart.store";
 import { useStore } from "@nanostores/react";
 
-import { api } from "@/lib/api";
+import { api, apiProxy } from "@/lib/api";
 import { formatIDR } from "@/lib/utils";
 
 interface Address {
@@ -43,13 +43,11 @@ interface SelectedRate {
 
 interface Props {
   addresses: Address[];
-  token: string;
   totalWeightGrams?: number;
 }
 
 export default function CheckoutForm({
   addresses,
-  token,
   totalWeightGrams = 1000,
 }: Props) {
   const cart = useStore($cart);
@@ -84,6 +82,7 @@ export default function CheckoutForm({
       setSelectedRate(null);
       setShippingRates([]);
       try {
+        // Shipping rates are public (no auth) — use the plain api client
         const res = await api.post<{ success: true; data: CourierRates[] }>(
           "/shipping/rates",
           { destinationCityId: cityId, weightGrams: totalWeightGrams }
@@ -111,14 +110,10 @@ export default function CheckoutForm({
     }
     setVoucherError(null);
     try {
-      const res = await api.post<{
+      const res = await apiProxy.post<{
         success: true;
         data: { code: string; discountAmount: number };
-      }>(
-        "/vouchers/validate",
-        { code: voucherCode, orderAmount: total },
-        { token }
-      );
+      }>("/vouchers/validate", { code: voucherCode, orderAmount: total });
       setVoucherResult(res.data);
     } catch (err) {
       setVoucherError(
@@ -149,36 +144,35 @@ export default function CheckoutForm({
     setIsSubmitting(true);
     setError(null);
     try {
-      const orderRes = await api.post<{ success: true; data: { id: string } }>(
-        "/orders",
-        {
-          items: cart.map(i => ({
-            variantId: i.variantId,
-            quantity: i.quantity,
-          })),
-          shippingAddressId: selectedAddress,
-          destinationCityId: currentAddress.cityId,
-          courier: selectedRate.courier,
-          courierService: selectedRate.service,
-          shippingCost: selectedRate.cost,
-          voucherCode: voucherResult?.code,
-          customerNote: note || undefined,
-        },
-        { token }
-      );
+      const orderRes = await apiProxy.post<{
+        success: true;
+        data: { id: string };
+      }>("/orders", {
+        items: cart.map(i => ({
+          variantId: i.variantId,
+          quantity: i.quantity,
+        })),
+        shippingAddressId: selectedAddress,
+        destinationCityId: currentAddress.cityId,
+        courier: selectedRate.courier,
+        courierService: selectedRate.service,
+        shippingCost: selectedRate.cost,
+        voucherCode: voucherResult?.code,
+        customerNote: note || undefined,
+      });
 
       const orderId = orderRes.data.id;
 
-      const paymentRes = await api.post<{
+      const paymentRes = await apiProxy.post<{
         success: true;
         data: { snapToken: string | null; snapRedirectUrl: string | null };
-      }>("/payments", { orderId }, { token });
+      }>("/payments", { orderId });
 
       const { snapToken, snapRedirectUrl } = paymentRes.data;
 
       if (snapToken && typeof window !== "undefined") {
-        // @ts-expect-error
-        window.snap?.pay(snapToken, {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (window as any).snap?.pay(snapToken, {
           onSuccess: () => {
             clearCart();
             window.location.href = `/orders/${orderId}?status=success`;

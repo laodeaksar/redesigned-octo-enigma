@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from "react";
 
-import { api, type Order } from "@/lib/api";
+import { apiProxy, type Order } from "@/lib/api";
 import {
   formatDateTime,
   formatIDR,
@@ -33,10 +33,6 @@ import { Separator } from "@repo/ui/components/separator";
 import { Skeleton } from "@repo/ui/components/skeleton";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-
-interface Props {
-  token: string;
-}
 
 type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
 
@@ -74,22 +70,22 @@ function OrderSkeletons() {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function OrderHistory({ token }: Props) {
+export default function OrderHistory() {
   const [orders, setOrders]   = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
 
   useEffect(() => {
-    api
+    apiProxy
       .get<{
         success: true;
         data: Order[];
         meta: { total: number; totalPages: number };
-      }>("/orders/me", { token, params: { page: 1, limit: 5 } })
+      }>("/orders/me", { params: { page: 1, limit: 5 } })
       .then(res => setOrders(res.data))
       .catch(() => setError("Gagal memuat pesanan."))
       .finally(() => setLoading(false));
-  }, [token]);
+  }, []);
 
   return (
     <Card>

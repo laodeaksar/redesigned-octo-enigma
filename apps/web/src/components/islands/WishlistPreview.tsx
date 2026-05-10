@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from "react";
 
-import { api, type WishlistItem } from "@/lib/api";
+import { apiProxy, type WishlistItem } from "@/lib/api";
 import { formatIDR } from "@/lib/utils";
 
 import { Badge } from "@repo/ui/components/badge";
@@ -28,12 +28,6 @@ import {
 } from "@repo/ui/components/empty";
 import { ScrollArea } from "@repo/ui/components/scroll-area";
 import { Skeleton } from "@repo/ui/components/skeleton";
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-interface Props {
-  token: string;
-}
 
 // ── Skeleton cards ────────────────────────────────────────────────────────────
 
@@ -156,7 +150,7 @@ function ProductCard({
 
 const LIMIT = 8;
 
-export default function WishlistPreview({ token }: Props) {
+export default function WishlistPreview() {
   const [items, setItems]       = useState<WishlistItem[]>([]);
   const [total, setTotal]       = useState(0);
   const [loading, setLoading]   = useState(true);
@@ -164,19 +158,19 @@ export default function WishlistPreview({ token }: Props) {
   const [removing, setRemoving] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    api
+    apiProxy
       .get<{
         success: true;
         data: { items: WishlistItem[] };
         meta: { total: number };
-      }>("/wishlist", { token, params: { page: 1, limit: LIMIT } })
+      }>("/wishlist", { params: { page: 1, limit: LIMIT } })
       .then(res => {
         setItems(res.data.items);
         setTotal(res.meta.total);
       })
       .catch(() => setError("Gagal memuat wishlist."))
       .finally(() => setLoading(false));
-  }, [token]);
+  }, []);
 
   const handleRemove = async (productId: string) => {
     // Optimistic: hide immediately
@@ -185,7 +179,7 @@ export default function WishlistPreview({ token }: Props) {
     setTotal(prev => Math.max(0, prev - 1));
 
     try {
-      await api.delete(`/wishlist/${productId}`, { token });
+      await apiProxy.delete(`/wishlist/${productId}`);
     } catch {
       // silently ignore — user is already looking at updated list
     } finally {

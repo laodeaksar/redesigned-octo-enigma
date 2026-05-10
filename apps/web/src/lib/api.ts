@@ -127,6 +127,83 @@ export const api = {
     apiFetch<T>(path, { ...opts, method: "DELETE" }),
 };
 
+// ── Authenticated proxy client ────────────────────────────────────────────────
+//
+// Use in React islands instead of `api.xxx({ token })`.
+// Calls /api/proxy/<path> on the same Astro origin — the server reads the JWT
+// from the httpOnly cookie and injects it before forwarding to the gateway.
+// The access token never appears in island props or client-side HTML.
+//
+// Example:
+//   const data = await apiProxy.get("/orders/me", { params: { limit: 5 } });
+//   await apiProxy.post("/orders", { items, shippingAddressId });
+//   await apiProxy.delete(`/wishlist/${productId}`);
+
+type ProxyOptions = Omit<FetchOptions, "token">;
+
+async function proxyFetch<T>(
+  path: string,
+  options: ProxyOptions = {}
+): Promise<T> {
+  const { params, ...init } = options;
+
+  // Always same-origin (browser). The SSR branch is a safety guard only —
+  // apiProxy should never be called during server-side rendering.
+  const origin =
+    typeof window !== "undefined"
+      ? window.location.origin
+      : "http://localhost:5000";
+
+  const url = new URL(`${origin}/api/proxy${path}`);
+  if (params) {
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== null && v !== "") {
+        url.searchParams.set(k, String(v));
+      }
+    }
+  }
+
+  const headers = new Headers(init.headers);
+  headers.set("Content-Type", "application/json");
+
+  const res = await fetch(url.toString(), { ...init, headers });
+
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({
+      error: { code: "UNKNOWN", message: res.statusText },
+    }))) as { error?: { code?: string; message?: string } };
+    throw new ApiError(
+      body.error?.code ?? "UNKNOWN",
+      body.error?.message ?? res.statusText,
+      res.status
+    );
+  }
+
+  return res.json() as Promise<T>;
+}
+
+export const apiProxy = {
+  get: <T>(path: string, opts?: ProxyOptions) =>
+    proxyFetch<T>(path, { ...opts, method: "GET" }),
+
+  post: <T>(path: string, body: unknown, opts?: ProxyOptions) =>
+    proxyFetch<T>(path, {
+      ...opts,
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  patch: <T>(path: string, body: unknown, opts?: ProxyOptions) =>
+    proxyFetch<T>(path, {
+      ...opts,
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+
+  delete: <T>(path: string, opts?: ProxyOptions) =>
+    proxyFetch<T>(path, { ...opts, method: "DELETE" }),
+};
+
 // ── Domain type re-exports ────────────────────────────────────────────────────
 //
 // Canonical definitions live in packages/common/types/storefront.ts — the

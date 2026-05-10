@@ -119,7 +119,6 @@ try {
             <h2 class="mb-6 text-lg font-bold text-gray-900">Pengaturan Akun</h2>
             <UserSettingsForm
               client:load
-              token={token}
               user={profile}
             />
           </div>
@@ -127,13 +126,11 @@ try {
           <!-- Recent orders (uses @repo/ui internally) -->
           <OrderHistory
             client:load
-            token={token}
           />
 
           <!-- Wishlist quick-view (uses @repo/ui internally) -->
           <WishlistPreview
             client:load
-            token={token}
           />
 
         </div>

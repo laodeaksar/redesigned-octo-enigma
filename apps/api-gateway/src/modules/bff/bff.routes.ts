@@ -1,5 +1,5 @@
 // =============================================================================
-// BFF (Backend-for-Frontend) aggregation routes
+// BFF (Backend-for-Frontend) aggregation routes — with Redis cache
 //
 // Aggregates multiple upstream calls into a single gateway response so the
 // Astro SSR layer makes one HTTP connection instead of N, cutting TTFB.
@@ -7,22 +7,46 @@
 // GET /bff/home      → Promise.all(featured products, top-level categories)
 // GET /bff/pdp/:slug → Promise.all(product detail, related products)
 //
+// Caching strategy (cache-aside):
+//   1. Check Redis for a cached payload
+//   2. Cache HIT  → return immediately, set X-Cache: HIT
+//   3. Cache MISS → fetch upstream, Zod-validate, write to Redis, return
+//   4. Redis unavailable → always go upstream (graceful degrade, no error)
+//
+// TTLs:
+//   bff:home        60 s — product list + categories change rarely
+//   bff:pdp:{slug}  30 s — product detail, slightly more volatile
+//
 // Rules:
 //   - All upstream fetches use SERVICES.product (internal, no public TLS)
-//   - Every response is Zod-validated before returning to the client
+//   - Every response is Zod-validated before writing to cache or returning
 //   - Partial failures for non-critical data (related products) degrade
 //     gracefully to an empty array — the main product 404 is always hard-fail
+//   - X-Cache: HIT | MISS header on every response for observability
 // =============================================================================
 
 import { failure } from "@repo/common/schemas";
 import { homeBFFResponseSchema, pdpBFFResponseSchema } from "@repo/common/types";
+import type { HomeBFFResponse, PDPBFFResponse } from "@repo/common/types";
 import { Hono } from "hono";
 
-import { SERVICES } from "@/config";
+import { getRedis, SERVICES } from "@/config";
 import { defaultRateLimit } from "@/middleware/rate-limit.middleware";
 
 const app = new Hono();
 const productBase = SERVICES.product;
+
+// ── Cache TTLs ────────────────────────────────────────────────────────────────
+
+const TTL = {
+  home: 60,  // seconds
+  pdp: 30,   // seconds
+} as const;
+
+const CACHE_KEY = {
+  home: "bff:home",
+  pdp: (slug: string) => `bff:pdp:${slug}`,
+} as const;
 
 // ── Internal fetch helper ─────────────────────────────────────────────────────
 
@@ -47,9 +71,47 @@ async function internalFetch<T>(url: string): Promise<InternalResult<T>> {
   }
 }
 
+// ── Redis cache helpers ───────────────────────────────────────────────────────
+
+async function cacheGet<T>(key: string): Promise<T | null> {
+  const redis = getRedis();
+  if (!redis) return null;
+  try {
+    const raw = await redis.get(key);
+    if (!raw) return null;
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
+
+async function cacheSet(key: string, value: unknown, ttlSec: number): Promise<void> {
+  const redis = getRedis();
+  if (!redis) return;
+  try {
+    await redis.set(key, JSON.stringify(value), "EX", ttlSec);
+  } catch {
+    // Cache write failure is non-fatal — caller still returns the live data
+  }
+}
+
 // ── GET /bff/home ─────────────────────────────────────────────────────────────
 
 app.get("/bff/home", defaultRateLimit, async c => {
+  // 1. Cache check
+  const cached = await cacheGet<HomeBFFResponse>(CACHE_KEY.home);
+  if (cached) {
+    return c.json(
+      { success: true, data: cached },
+      200,
+      {
+        "X-Cache": "HIT",
+        "Cache-Control": `public, max-age=${TTL.home}`,
+      }
+    );
+  }
+
+  // 2. Cache miss — fetch upstream in parallel
   const [productsResult, categoriesResult] = await Promise.all([
     internalFetch<unknown[]>(
       `${productBase}/products?page=1&limit=8&status=active&sortBy=createdAt&sortOrder=desc`
@@ -80,6 +142,7 @@ app.get("/bff/home", defaultRateLimit, async c => {
     .filter(cat => cat.parentId === null)
     .slice(0, 6);
 
+  // 3. Validate before caching — never write bad data to Redis
   const parsed = homeBFFResponseSchema.safeParse({
     featuredProducts: productsResult.data ?? [],
     categories: topLevelCategories,
@@ -92,15 +155,39 @@ app.get("/bff/home", defaultRateLimit, async c => {
     );
   }
 
-  return c.json({ success: true, data: parsed.data });
+  // 4. Populate cache (fire-and-forget — don't block the response)
+  void cacheSet(CACHE_KEY.home, parsed.data, TTL.home);
+
+  return c.json(
+    { success: true, data: parsed.data },
+    200,
+    {
+      "X-Cache": "MISS",
+      "Cache-Control": `public, max-age=${TTL.home}`,
+    }
+  );
 });
 
 // ── GET /bff/pdp/:slug ────────────────────────────────────────────────────────
 
 app.get("/bff/pdp/:slug", defaultRateLimit, async c => {
   const slug = c.req.param("slug");
+  const cacheKey = CACHE_KEY.pdp(slug);
 
-  // Fetch product detail and related products in parallel.
+  // 1. Cache check
+  const cached = await cacheGet<PDPBFFResponse>(cacheKey);
+  if (cached) {
+    return c.json(
+      { success: true, data: cached },
+      200,
+      {
+        "X-Cache": "HIT",
+        "Cache-Control": `public, max-age=${TTL.pdp}`,
+      }
+    );
+  }
+
+  // 2. Cache miss — fetch product detail and related products in parallel.
   // Related products endpoint may not exist on older product-service builds —
   // a non-200 response degrades gracefully to an empty relatedProducts array.
   const [productResult, relatedResult] = await Promise.all([
@@ -126,6 +213,7 @@ app.get("/bff/pdp/:slug", defaultRateLimit, async c => {
       ? relatedResult.data
       : [];
 
+  // 3. Validate before caching
   const parsed = pdpBFFResponseSchema.safeParse({
     product: productResult.data,
     relatedProducts,
@@ -138,7 +226,17 @@ app.get("/bff/pdp/:slug", defaultRateLimit, async c => {
     );
   }
 
-  return c.json({ success: true, data: parsed.data });
+  // 4. Populate cache
+  void cacheSet(cacheKey, parsed.data, TTL.pdp);
+
+  return c.json(
+    { success: true, data: parsed.data },
+    200,
+    {
+      "X-Cache": "MISS",
+      "Cache-Control": `public, max-age=${TTL.pdp}`,
+    }
+  );
 });
 
 export { app as bffRoutes };

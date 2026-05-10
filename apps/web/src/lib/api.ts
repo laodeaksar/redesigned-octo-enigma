@@ -1,8 +1,22 @@
 // =============================================================================
 // API client — server-side (Astro pages) + client-side (React islands)
+//
+// URL strategy:
+//   SSR (Astro frontmatter, API routes) → INTERNAL_API_URL
+//     Stays inside the private network, avoids a round-trip through the public
+//     internet and skips any TLS / CDN overhead.  Falls back to localhost:3000
+//     so local dev needs zero config.
+//
+//   CSR (React islands running in the browser) → PUBLIC_API_URL
+//     Must be reachable from the user's browser.
+//
+// import.meta.env.SSR is set to `true` by Vite/Astro for SSR builds and
+// `false` for client bundles, so the unused branch is tree-shaken away.
 // =============================================================================
 
-const BASE = import.meta.env.PUBLIC_API_URL ?? "http://localhost:3000";
+const BASE = import.meta.env.SSR
+  ? (import.meta.env.INTERNAL_API_URL ?? "http://localhost:3000")
+  : (import.meta.env.PUBLIC_API_URL ?? "http://localhost:3000");
 
 export interface ApiResponse<T> {
   data: T;

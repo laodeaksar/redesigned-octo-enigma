@@ -109,9 +109,9 @@ menggunakan Midtrans Snap.js sebagai island React (`CheckoutForm`).
 
 | Prioritas | App | Task | Alasan |
 |-----------|-----|------|--------|
-| **P0** | `apps/web` | Tambah `INTERNAL_API_URL` env — pisahkan dari `PUBLIC_API_URL` untuk SSR fetch di frontmatter | Server-to-server fetch lewat public domain menambah latency dan TTFB. Gunakan `http://localhost:3000` |
+| **P0** ✅ | `apps/web` | Tambah `INTERNAL_API_URL` env — pisahkan dari `PUBLIC_API_URL` untuk SSR fetch di frontmatter | **DONE** — `api.ts` sekarang pakai `import.meta.env.SSR` untuk pilih URL yang tepat; `astro.config.mjs` load + define keduanya; `.env.example` dibuat |
 | **P0** | `apps/web` | Pindahkan tipe `Product`, `Category`, `ProductDetail`, `CartItem` ke `packages/common/src/types/` | Type drift antara web dan services adalah bug yang menunggu waktu |
-| **P0** | `apps/web` | Hapus `web-push`, `postgres`, `drizzle-orm` dari Vite SSR externals | Dependency ini tidak boleh ada di web frontend — cek dari mana kebocorannya |
+| **P0** ✅ | `apps/web` | Hapus `web-push`, `postgres`, `drizzle-orm` dari Vite SSR externals | **DONE** — `ssr.external` dikosongkan; komentar menjelaskan kenapa dependency ini tidak boleh ada di frontend |
 | **P0** | `api-gateway` | Dukung `CORS_ORIGINS` multi-value (comma-separated array) | Akan block Fresh atau subdomain checkout jika ditambahkan |
 | **P1** | `apps/web` | Buat server-side cart API via Astro API route + gateway `/cart` endpoint | Cart di localStorage hilang saat ganti device; prerequisite untuk Fresh handoff |
 | **P1** | `apps/web` | Ganti `window.removeFromCartWithUndo` dengan nanostores event/atom | Anti-pattern, rawan race condition |

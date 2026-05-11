@@ -1,0 +1,27 @@
+---
+/**
+ * /checkout-astro — ADR-001 POC page
+ *
+ * No auth required. Used to measure:
+ *   - TTFB vs /checkout (production, auth-gated)
+ *   - Bundle size: CheckoutFormPOC (@repo/ui only) vs CheckoutForm (custom styles)
+ *
+ * See: docs/ADR-001-fresh-vs-astro-checkout.md
+ */
+import CheckoutFormPOC from "@/components/islands/CheckoutFormPOC";
+import BaseLayout from "@/components/layout/BaseLayout.astro";
+---
+
+<BaseLayout title="Checkout — Astro POC">
+  <div class="container mx-auto px-4 py-10">
+    <div class="mb-6">
+      <span
+        class="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700"
+      >
+        ⚗ ADR-001 POC — Tidak untuk produksi
+      </span>
+    </div>
+    <h1 class="mb-8 text-2xl font-bold text-gray-900">Checkout</h1>
+    <CheckoutFormPOC client:load />
+  </div>
+</BaseLayout>

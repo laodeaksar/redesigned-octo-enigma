@@ -109,9 +109,34 @@ Evaluasi selesai. Keputusan: **tetap di Astro**. Lihat [`docs/ADR-001-fresh-vs-a
 
 ### a. Arsitektur — Hybrid Astro+Fresh: CLOSED
 
-**Keputusan:** NO-GO Fresh. Checkout tetap di Astro (`apps/web`). Lihat [ADR-001](../docs/ADR-001-fresh-vs-astro-checkout.md).
+**Keputusan:** NO-GO Fresh. Checkout tetap di Astro (`apps/web`).
+ADR lengkap: [ADR-001](./docs/ADR-001-fresh-vs-astro-checkout.md) · [ADR-003](./docs/ADR-003-checkout-architecture.md)
 
-Jika suatu saat checkout perlu scaling independen: buat `apps/checkout` sebagai **Hono app di Bun** — satu runtime, shared `@repo/*` packages langsung tanpa JSR.
+#### Verifikasi Kondisi Aktual (11 Mei 2026)
+
+| Item | Status | Bukti |
+|------|--------|-------|
+| `apps/storefront-fresh` | ✅ Tidak pernah ada | `ls apps/storefront-fresh` → NOT_FOUND |
+| `apps/web/src/pages/checkout.astro` | ✅ Live | Auth gate → SSR address fetch → Midtrans Snap.js → `<CheckoutForm client:load>` |
+| Server-side cart API | ✅ Done | `apps/api-gateway/src/modules/cart/cart.routes.ts` + `pages/api/proxy/[...path].ts` |
+| Auth token di island props | ✅ Bersih | Tidak ada `token={` di island props. `data-token={payment.snapToken}` di `orders/[id].astro` adalah Midtrans payment token pada `data-*` HTML attribute ke `<script>` — bukan auth JWT |
+| `window.removeFromCartWithUndo` global | ✅ Dihapus | Diganti `$removeRequested` atom + `requestRemoveFromCart()` di nanostores |
+| `window.*` tersisa | ✅ Diterima | `window.confirm()` = native browser dialog; `window.dispatchEvent(CustomEvent("open-quick-view"))` = cross-island event yang didokumentasikan |
+| `@repo/ui` di CheckoutForm | ✅ Done | 8 komponen diadopsi (Badge, Button, Card family, Input, Label, Separator, Spinner, Textarea); `Section` helper dihapus; className bindings 66→62 |
+
+#### Jalur Jika Checkout Perlu Isolasi
+
+Jika checkout traffic > 50% total ATAU butuh independent deploy:
+- Buat `apps/checkout` sebagai **Hono+Bun** — bukan Fresh/Deno
+- Alasan: 1 runtime, shared `@repo/*` langsung, session + cart API yang sama
+- Lihat ADR-003 untuk prosedur lengkap
+
+#### Guardrails Aktif
+
+Semua constraint runtime dan framework kini terdokumentasi di [`CONTRIBUTING.md#runtime-guardrails`](./CONTRIBUTING.md#runtime-guardrails):
+1. Runtime baru (Deno/Node standalone) butuh ADR + approval
+2. Checkout di `apps/web` kecuali ada trigger scale + ADR
+3. Setiap framework baru wajib compatible dengan `@repo/common` dan `@repo/ui`
 
 ---
 

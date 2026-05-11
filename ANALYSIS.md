@@ -2,15 +2,14 @@
 
 > **Tanggal analisa:** 9 Mei 2026
 > **Analis:** Senior Fullstack Architect Review
-> **Scope:** `apps/web` (Astro SSR), `apps/api-gateway` (Hono.js), rencana `storefront-fresh`
+> **Scope:** `apps/web` (Astro SSR), `apps/api-gateway` (Hono.js)
 
 ---
 
 ## Catatan Penting
 
-`storefront-fresh` **belum ada** di proyek ini. Yang ada adalah `apps/web` (Astro SSR).
-Checkout sudah diimplementasi di Astro menggunakan Midtrans Snap.js sebagai React island (`CheckoutForm`).
-Analisis di bawah mencerminkan kondisi aktual + rekomendasi jika Fresh ingin ditambahkan.
+Checkout diimplementasi di Astro menggunakan Midtrans Snap.js sebagai React island (`CheckoutForm`).
+Evaluasi Fresh/Deno telah selesai — **NO-GO**. Lihat [`docs/ADR-001-fresh-vs-astro-checkout.md`](./docs/ADR-001-fresh-vs-astro-checkout.md).
 
 ---
 
@@ -79,29 +78,9 @@ Islands yang ada:
 
 ---
 
-### storefront-fresh (Tidak Ada — Analisis Proyeksi)
+### storefront-fresh — CLOSED (NO-GO)
 
-**Status saat ini:** Belum diimplementasi. Checkout ada di `apps/web/src/pages/checkout.astro`
-menggunakan Midtrans Snap.js sebagai island React (`CheckoutForm`).
-
-#### Routing (proyeksi jika diimplementasi)
-
-```
-/checkout             → routes/checkout.tsx
-/payment/[orderId]    → routes/payment/[orderId].tsx
-/payment/success      → routes/payment/success.tsx
-/payment/pending      → routes/payment/pending.tsx
-```
-
-#### Issues (jika Fresh ditambahkan)
-
-| # | Issue | Severity |
-|---|-------|----------|
-| 1 | Cookie domain mismatch — Astro di `shop.domain.com`, Fresh di `checkout.domain.com`. Cookie auth perlu `Domain=.domain.com` | CRITICAL |
-| 2 | Cart handoff — nanostores/localStorage adalah domain-bound, Fresh tidak bisa baca langsung | CRITICAL |
-| 3 | `packages/common` tidak kompatibel dengan Deno — Bun workspace tidak dikenali Deno runtime | HIGH |
-| 4 | CORS origins — api-gateway saat ini hanya support satu nilai `CORS_ORIGINS` env | HIGH |
-| 5 | Tidak ada Fresh adapter untuk Hono — komunikasi ke gateway tetap via HTTP fetch | LOW |
+Evaluasi selesai. Keputusan: **tetap di Astro**. Lihat [`docs/ADR-001-fresh-vs-astro-checkout.md`](./docs/ADR-001-fresh-vs-astro-checkout.md) untuk detail lengkap — decision matrix, 5 blocker kritis, dan consequences.
 
 ---
 
@@ -121,36 +100,49 @@ menggunakan Midtrans Snap.js sebagai island React (`CheckoutForm`).
 | **P2** ✅ | `api-gateway` | Tambah BFF aggregation endpoints `/bff/home` dan `/bff/pdp/:slug` | **DONE** — `apps/api-gateway/src/modules/bff/bff.routes.ts` dibuat; `GET /bff/home` → `Promise.all(featured products + categories)`; `GET /bff/pdp/:slug` → `Promise.all(product detail + related)`; semua upstream fetch ke `SERVICES.product` (internal); Zod validation sebelum return; graceful degrade: related products 404 → empty array. `packages/common/types/bff.ts` dibuat dengan `homeBFFResponseSchema`, `pdpBFFResponseSchema`, `HomeBFFResponse`, `PDPBFFResponse` — di-export via `@repo/common/types`. `apps/web/src/lib/api.ts` ditambah `getHomeBFF()` + `getPDPBFF(slug)` dengan Zod parse. `index.astro` + `[slug].astro` diupdate pakai BFF helpers. Build `apps/web` pass clean. Curl: `/bff/home` 200 OK (5 products, 5 categories), `/bff/pdp/:slug` 200 OK (product + 5 variants). Response time tanpa cache: ~1s; dengan Redis cache HIT: **~132ms** ✅ (<200ms target tercapai). Commit basis: `e4c7426`. |
 | **P2** ✅ | `api-gateway` | Cache BFF endpoints di Redis — `bff:home` TTL 60s, `bff:pdp:{slug}` TTL 30s | **DONE** — cache-aside pattern di `bff.routes.ts`: cek Redis → HIT return langsung; MISS → fetch upstream + Zod validate + tulis cache (fire-and-forget) + return. `getRedis()` dari `@/config` dipakai langsung — graceful degrade jika Redis unavailable. Header `X-Cache: HIT\|MISS` + `Cache-Control: public, max-age=N` di setiap response. Benchmark: MISS ~955ms (upstream latency dev), HIT **~132ms** — memenuhi target <200ms. Cache write failure non-fatal: `cacheSet()` catch + silent continue. |
 | **P2** ✅ | `apps/web` | Tambah `<link rel="prefetch">` untuk `/checkout` saat cart tidak kosong | **DONE** — inline `<script>` di `BaseLayout.astro` dengan dua trigger: (1) page load: baca `localStorage.getItem("cart")` langsung sebelum `$cart` di-hydrate — tangkap returning users dan multi-page sessions; (2) first add-to-cart session: `$cart.subscribe()` inject link saat count 0→≥1, lalu `unsub()` (fire-once). `prefetchCheckout()` idempotent — cek `document.querySelector('link[rel="prefetch"]...')` sebelum inject. Skip jika sudah di `/checkout`. `link.as = "document"` untuk prefetch halaman penuh. Build `apps/web` pass clean. Bundle cost: nol — `$cart` sudah di-import oleh modul lain di bundle. |
-| **P2** | `apps/web` | Tambah CDN domain produk ke `image.domains` di `astro.config.mjs` | Astro image optimization tidak aktif untuk domain yang tidak di-whitelist |
-| **P2** | storefront-fresh | Evaluasi apakah Fresh benar-benar diperlukan | Kompleksitas session sharing mungkin tidak sebanding benefit — pertimbangkan tetap di Astro |
+| **P2** ✅ | `apps/web` | Tambah CDN domain produk ke `image.domains` di `astro.config.mjs` | **DONE** — `domains: ["localhost", "placehold.co"]` (seed data). `remotePatterns` ditambah untuk tiga S3-compatible provider: `**.amazonaws.com` (AWS S3), `**.r2.dev` (Cloudflare R2), `**.supabase.co` (Supabase Storage). `S3_PUBLIC_URL` + `S3_ENDPOINT` dibaca via `loadEnv()` di build time — jika ada, hostname-nya di-extract dengan `new URL()` dan di-push ke `remotePatterns` secara dinamis (deduplicated). Graceful: URL malformed di env di-catch dan di-skip. Pattern `**` = zero-or-more subdomain segments (Astro glob). Semua 7 checks verified via `node -e` assertion. |
+| **P2** ✅ | storefront-fresh | Evaluasi apakah Fresh benar-benar diperlukan | **DONE — NO-GO Fresh.** Lihat [`docs/ADR-001-fresh-vs-astro-checkout.md`](./docs/ADR-001-fresh-vs-astro-checkout.md). Checkout sudah live di Astro, TTFB ~5ms warm. 5 blocker kritis: (1) cookie domain mismatch, (2) cart handoff localStorage domain-bound, (3) `packages/common` incompat Deno, (4) `@repo/ui` React-only — 9 komponen harus duplikasi ke Preact, (5) Bun workspace ≠ Deno module resolution. Estimasi migrasi ke Fresh: ~46 jam dengan net ROI negatif. Decision matrix: Astro 115 pts vs Fresh 55 pts. **Refactor `CheckoutForm.tsx` selesai**: 8 `@repo/ui` komponen diadopsi (`Badge`, `Button`+`buttonVariants`, `Card` family, `Input`, `Label`, `Separator`, `Spinner`, `Textarea`), `Section` helper dihapus, manual spinner SVG dihapus, className bindings 66→62, zero TS errors. POC files (`checkout-astro.astro`, `CheckoutFormPOC.tsx`) dapat dihapus kapan saja. |
 
 ---
 
 ## 3. Rekomendasi Penyesuaian
 
-### a. Arsitektur — Apakah Hybrid Astro+Fresh Efektif?
+### a. Arsitektur — Hybrid Astro+Fresh: CLOSED
 
-Berdasarkan kodebase aktual: **checkout sudah berfungsi di Astro dan tidak ada alasan
-teknis kuat untuk memindahkannya ke Fresh saat ini.**
+**Keputusan:** NO-GO Fresh. Checkout tetap di Astro (`apps/web`).
+ADR lengkap: [ADR-001](./docs/ADR-001-fresh-vs-astro-checkout.md) · [ADR-003](./docs/ADR-003-checkout-architecture.md)
 
-Hybrid Astro+Fresh masuk akal jika:
-- Checkout butuh runtime Deno-spesifik (Deno KV, Deno Deploy edge)
-- Tim punya Deno expertise yang kuat
-- Checkout perlu scaling independen dari storefront
+#### Verifikasi Kondisi Aktual (11 Mei 2026)
 
-Masalah nyata hybrid ini:
-- Cart handoff butuh server-side cart API dulu
-- Cookie domain harus diatur di level DNS (shared parent domain)
-- `packages/common` harus publish ke JSR atau di-copy manual — Bun workspace tidak compatible dengan Deno
+| Item | Status | Bukti |
+|------|--------|-------|
+| `apps/storefront-fresh` | ✅ Tidak pernah ada | `ls apps/storefront-fresh` → NOT_FOUND |
+| `apps/web/src/pages/checkout.astro` | ✅ Live | Auth gate → SSR address fetch → Midtrans Snap.js → `<CheckoutForm client:load>` |
+| Server-side cart API | ✅ Done | `apps/api-gateway/src/modules/cart/cart.routes.ts` + `pages/api/proxy/[...path].ts` |
+| Auth token di island props | ✅ Bersih | Tidak ada `token={` di island props. `data-token={payment.snapToken}` di `orders/[id].astro` adalah Midtrans payment token pada `data-*` HTML attribute ke `<script>` — bukan auth JWT |
+| `window.removeFromCartWithUndo` global | ✅ Dihapus | Diganti `$removeRequested` atom + `requestRemoveFromCart()` di nanostores |
+| `window.*` tersisa | ✅ Diterima | `window.confirm()` = native browser dialog; `window.dispatchEvent(CustomEvent("open-quick-view"))` = cross-island event yang didokumentasikan |
+| `@repo/ui` di CheckoutForm | ✅ Done | 8 komponen diadopsi (Badge, Button, Card family, Input, Label, Separator, Spinner, Textarea); `Section` helper dihapus; className bindings 66→62 |
 
-**Rekomendasi pragmatis:** Stabilkan Astro dulu (selesaikan P0/P1 di atas). Jika checkout
-butuh Deno-specific feature, buat `apps/checkout` sebagai **Hono app di Bun** (bukan Fresh)
-— tetap satu runtime, shared packages langsung, session via shared cookie domain.
+#### Jalur Jika Checkout Perlu Isolasi
 
-```
-Jangan:  Astro (Bun) + Fresh (Deno) = 2 runtime, 2 package manager
-Lakukan: Astro (Bun) + Hono checkout (Bun) = 1 runtime, shared @repo/* packages
-```
+`apps/checkout` **sudah ada sebagai scaffold** (port 3004, tidak aktif). Untuk mengaktifkan:
+1. Tambah workflow `Checkout Service` → `cd apps/checkout && PORT=3004 bun run dev`
+2. Set `API_GATEWAY_URL=http://localhost:3000` dan `JWT_SECRET` di env
+3. Update `apps/web` agar checkout calls menuju port 3004, bukan langsung ke gateway
+
+Scaffold mencakup: Hono app factory, env Zod, JWT verify, gateway fetch helper,
+auth middleware, health routes, semua checkout endpoints (cart/addresses/shipping/vouchers/orders/payments).
+Semua `@repo/common` dan `@repo/ui` imports terverifikasi bekerja langsung via Bun workspace.
+
+Lihat ADR-003 untuk trigger dan prosedur lengkap.
+
+#### Guardrails Aktif
+
+Semua constraint runtime dan framework kini terdokumentasi di [`CONTRIBUTING.md#runtime-guardrails`](./CONTRIBUTING.md#runtime-guardrails):
+1. Runtime baru (Deno/Node standalone) butuh ADR + approval
+2. Checkout di `apps/web` kecuali ada trigger scale + ADR
+3. Setiap framework baru wajib compatible dengan `@repo/common` dan `@repo/ui`
 
 ---
 

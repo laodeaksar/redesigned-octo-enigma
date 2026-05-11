@@ -35,6 +35,7 @@ apps/
   product-service/  ← Elysia.js (port 3002)
   order-service/    ← Elysia.js (port 3003)
   payment-service/  ← Elysia.js (port 8000)
+  checkout/         ← Hono+Bun SCAFFOLD (port 3004, NOT active — see ADR-003)
 packages/
   database/         ← Drizzle schema + migrations
   common/           ← Shared Zod schemas, types, errors
@@ -236,6 +237,61 @@ Sebelum membuka PR, pastikan:
 - [ ] `client:` directive sesuai posisi komponen (above/below fold)
 - [ ] Jika ada perubahan schema database → ada migration baru, bukan edit yang lama
 - [ ] Jika menambah dependency baru → ada justifikasi di PR description
+- [ ] Tidak menambah runtime baru (Deno/Node) tanpa ADR (lihat [Runtime Guardrails](#runtime-guardrails))
+- [ ] Framework baru sudah diverifikasi compatible dengan `@repo/common` dan `@repo/ui`
+
+---
+
+## Runtime Guardrails
+
+Aturan ini berlaku untuk **semua kontributor dan semua PR** yang menyentuh arsitektur:
+
+### Guardrail 1 — Satu Runtime: Bun
+
+**Dilarang menambah runtime baru (Deno, Node.js standalone, dll) tanpa ADR dan approval.**
+
+Default seluruh monorepo adalah **Bun 1.3.x**. Ini bukan preferensi — ini constraint keras
+agar `@repo/common` dan `@repo/ui` bisa di-import langsung oleh semua apps tanpa JSR,
+copy-paste, atau bridging.
+
+```
+✅ Boleh:  apps/* dengan Bun runtime
+❌ Dilarang: apps/anything dengan Deno runtime tanpa ADR
+❌ Dilarang: apps/anything dengan standalone Node.js runtime (bukan lewat Bun compat)
+```
+
+Untuk menambah runtime baru:
+1. Buat `docs/ADR-NNN-<nama>.md` dengan justifikasi teknis
+2. Buktikan `@repo/common` dan `@repo/ui` tetap bisa di-import
+3. Mendapat approval dari Principal Architect sebelum merge
+
+### Guardrail 2 — Checkout di `apps/web`
+
+**Checkout harus tetap di `apps/web` kecuali ada argumen scaling yang kuat + ADR.**
+
+Trigger yang membenarkan isolasi checkout:
+- Traffic checkout **> 50% dari total traffic storefront** secara konsisten
+- Kebutuhan independent deployment cadence (tim terpisah, sprint terpisah)
+- Kebutuhan scaling horizontal yang berbeda dari halaman lain
+
+Jika trigger terpenuhi, buat `apps/checkout` sebagai **Hono+Bun** — bukan Deno/Fresh.
+Alasan: satu runtime, shared `@repo/*` langsung, session + cart API yang sama.
+
+Lihat [ADR-003](docs/ADR-003-checkout-architecture.md) untuk decision matrix lengkap.
+
+### Guardrail 3 — Framework Wajib Compatible dengan `@repo/common` dan `@repo/ui`
+
+Sebelum mengusulkan framework baru (island framework, SSR framework, dll):
+
+```
+Cek wajib:
+1. Apakah bisa `import { Button } from "@repo/ui/components/button"` langsung? (React required)
+2. Apakah bisa `import { createOrderSchema } from "@repo/common/schemas/order.schema"`?
+3. Apakah runtime-nya Bun-compatible?
+```
+
+Jika jawaban salah satu adalah "tidak" → **tolak framework tersebut**. Tidak ada
+pengecualian tanpa ADR yang membuktikan migration path yang konkret.
 
 ---
 
@@ -245,5 +301,6 @@ Keputusan arsitektur besar didokumentasikan di `docs/ADR-*.md`:
 
 | ADR | Judul | Status |
 |-----|-------|--------|
-| [ADR-001](docs/ADR-001-monorepo-structure.md) | Monorepo Structure & Service Boundaries | — |
+| [ADR-001](docs/ADR-001-fresh-vs-astro-checkout.md) | Fresh vs Astro untuk Checkout | Accepted (NO-GO Fresh) |
 | [ADR-002](docs/ADR-002-react-vs-solid-islands.md) | React vs SolidJS untuk Astro Islands | Accepted |
+| [ADR-003](docs/ADR-003-checkout-architecture.md) | Checkout Architecture: Tolak Fresh, Pilih Astro + Fallback Hono+Bun | Accepted |

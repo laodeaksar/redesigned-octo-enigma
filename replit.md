@@ -38,6 +38,7 @@ Required env vars (set in `.replit` `[userenv.shared]`):
 - `apps/product-service` — Elysia.js product/category/review service (port 3002)
 - `apps/order-service` — Elysia.js order/voucher service (port 3003)
 - `apps/payment-service` — Elysia.js Midtrans payment service (port 8000)
+- `apps/checkout` — **Scaffold only** Hono+Bun isolated checkout service (port 3004) — NOT active; activate when checkout traffic > 50% or independent deploy needed. See `docs/ADR-003-checkout-architecture.md`.
 - `apps/email-worker` — BullMQ email background worker
 - `packages/database` — Drizzle schema + migrations + Mongoose models → `drizzle/schema/index.ts`
 - `packages/config/env` — Zod-validated env configs per service

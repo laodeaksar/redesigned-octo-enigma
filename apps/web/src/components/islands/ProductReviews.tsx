@@ -1,13 +1,12 @@
 // =============================================================================
 // ProductReviews — React island, client:load
-// Shows rating summary + paginated review list + write-review form.
+// Shows rating summary + infinite-scroll review list + write-review form.
 // =============================================================================
 
 import { useEffect, useState } from "react";
 import type React from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 
-import { api } from "@/lib/api";
 import { queryClient } from "@/lib/query-client";
 import { useProductSummary } from "@/hooks/queries/useProductSummary";
 import { useProductReviews, type Review } from "@/hooks/queries/useProductReviews";
@@ -182,10 +181,6 @@ function ReviewCard({ review }: { review: Review }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 function ProductReviewsInner({ productId, productName, isLoggedIn }: Props) {
-  const [page, setPage] = useState(1);
-  const [extraReviews, setExtraReviews] = useState<Review[]>([]);
-  const [loadingMore, setLoadingMore] = useState(false);
-
   // Write form state
   const [showForm, setShowForm] = useState(false);
   const [rating, setRating] = useState(0);
@@ -193,13 +188,18 @@ function ProductReviewsInner({ productId, productName, isLoggedIn }: Props) {
   const [body, setBody] = useState("");
   const [orderId, setOrderId] = useState("");
 
-  // ── Queries (using reusable hooks) ──────────────────────────────────────────
+  // ── Queries ──────────────────────────────────────────────────────────────────
 
   const { data: summary, isPending: summaryLoading } =
     useProductSummary(productId);
 
-  const { data: reviewsPage, isPending: reviewsLoading } =
-    useProductReviews(productId, 1);
+  const {
+    data: reviewPages,
+    isPending: reviewsLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useProductReviews(productId);
 
   const { data: ordersData, isPending: ordersLoading } = useOrders({
     enabled: showForm && isLoggedIn,
@@ -208,7 +208,7 @@ function ProductReviewsInner({ productId, productName, isLoggedIn }: Props) {
 
   const orders = ordersData?.items ?? [];
 
-  // ── Mutation (using reusable hook) ──────────────────────────────────────────
+  // ── Mutation ─────────────────────────────────────────────────────────────────
 
   const submitMutation = useSubmitReview(productId);
 
@@ -220,28 +220,8 @@ function ProductReviewsInner({ productId, productName, isLoggedIn }: Props) {
   }, [orders, orderId]);
 
   const loading = summaryLoading || reviewsLoading;
-  const initialReviews = reviewsPage?.data ?? [];
-  const reviews = page === 1 ? initialReviews : [...initialReviews, ...extraReviews];
-  const hasMore = reviewsPage?.meta?.hasNextPage ?? false;
-
-  // ── Load more (manual pagination — useInfiniteQuery upgrade deferred) ────────
-
-  const loadMore = async () => {
-    setLoadingMore(true);
-    const next = page + 1;
-    try {
-      const res = await api.get<{ data: Review[]; meta: { hasNextPage: boolean }; success: true }>(
-        `/products/${productId}/reviews`,
-        { params: { page: next, limit: 10 } }
-      );
-      setExtraReviews(prev => [...prev, ...(res.data ?? [])]);
-      setPage(next);
-    } catch {
-      notify.error("Gagal memuat ulasan tambahan");
-    } finally {
-      setLoadingMore(false);
-    }
-  };
+  // Flatten all infinite-query pages into a single list
+  const reviews = reviewPages?.pages.flatMap(p => p.data) ?? [];
 
   // ── Submit ───────────────────────────────────────────────────────────────────
 
@@ -269,8 +249,6 @@ function ProductReviewsInner({ productId, productName, isLoggedIn }: Props) {
           setTitle("");
           setBody("");
           setOrderId("");
-          setExtraReviews([]);
-          setPage(1);
         },
       }
     );
@@ -480,13 +458,13 @@ function ProductReviewsInner({ productId, productName, isLoggedIn }: Props) {
                 </div>
               )}
 
-              {(hasMore || (page > 1 && loadingMore)) && (
+              {hasNextPage && (
                 <button
                   className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50"
-                  disabled={loadingMore}
-                  onClick={() => void loadMore()}
+                  disabled={isFetchingNextPage}
+                  onClick={() => void fetchNextPage()}
                 >
-                  {loadingMore ? (
+                  {isFetchingNextPage ? (
                     <>
                       <div className="border-t-brand-500 h-4 w-4 animate-spin rounded-full border-2 border-gray-300" />
                       Memuat…

@@ -121,6 +121,8 @@ export type { HomeBFFResponse, PDPBFFResponse } from "./bff";
 // computed/denormalized fields).  Distinct from domain types above.
 // Import from: "@repo/common/types"
 export type {
+  AuthTokens,
+  StorefrontAddress,
   StorefrontAppliedDiscount,
   StorefrontCartItem,
   StorefrontCategory,

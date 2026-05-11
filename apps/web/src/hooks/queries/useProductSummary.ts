@@ -12,20 +12,13 @@
 // =============================================================================
 
 import { useQuery } from "@tanstack/react-query";
-import { z } from "zod";
+import type { StorefrontRatingSummary } from "@repo/common/types";
+import { storefrontRatingSummarySchema } from "@repo/common/schemas";
 
 import { api } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
 
-// ── Schema ────────────────────────────────────────────────────────────────────
-
-export const ratingSummarySchema = z.object({
-  average: z.number(),
-  breakdown: z.record(z.string(), z.number()),
-  count: z.number(),
-});
-
-export type RatingSummary = z.infer<typeof ratingSummarySchema>;
+export type RatingSummary = StorefrontRatingSummary;
 
 // ── Hook ─────────────────────────────────────────────────────────────────────
 
@@ -37,7 +30,7 @@ export function useProductSummary(productId: string) {
         `/products/${productId}/summary`
       );
       if (!res.data) return null;
-      return ratingSummarySchema.parse(res.data);
+      return storefrontRatingSummarySchema.parse(res.data);
     },
     staleTime: 60 * 1000,
   });

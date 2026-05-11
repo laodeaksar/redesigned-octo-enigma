@@ -1,7 +1,7 @@
 // =============================================================================
 // useUpdateAddress — mutation for editing an existing shipping address
 //
-// Requires authentication. Returns the updated Address object in `res.data`.
+// Requires authentication. Returns the updated StorefrontAddress in `res.data`.
 //
 // Usage:
 //   const updateAddress = useUpdateAddress();
@@ -15,17 +15,18 @@
 // =============================================================================
 
 import { useMutation } from "@tanstack/react-query";
+import type { StorefrontAddress } from "@repo/common/types";
+import type { CreateAddressInput } from "@repo/common/schemas";
 
 import { apiProxy } from "@/lib/api";
-import type { Address, AddressPayload } from "./useCreateAddress";
 
 interface UpdateAddressVars {
   id: string;
-  payload: AddressPayload;
+  payload: CreateAddressInput;
 }
 
 interface UpdateAddressResponse {
-  data: Address;
+  data: StorefrontAddress;
   success: true;
 }
 

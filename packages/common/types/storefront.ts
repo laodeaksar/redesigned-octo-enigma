@@ -231,6 +231,35 @@ export interface StorefrontRatingSummary {
   count: number;
 }
 
+// ── Address ───────────────────────────────────────────────────────────────────
+
+/** Shipping address as returned by the api-gateway to the storefront (string dates + cityId) */
+export interface StorefrontAddress {
+  city: string;
+  cityId: string | null;
+  country: string;
+  createdAt: string;
+  id: string;
+  isDefault: boolean;
+  label: string;
+  phone: string;
+  postalCode: string;
+  province: string;
+  recipientName: string;
+  street: string;
+  updatedAt: string;
+  userId: string;
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+
+/** Tokens returned by /auth/login and /auth/register */
+export interface AuthTokens {
+  accessToken: string;
+  expiresIn: number;
+  refreshToken: string;
+}
+
 // ── Cart (client-side only, localStorage-backed) ──────────────────────────────
 
 export interface StorefrontCartItem {

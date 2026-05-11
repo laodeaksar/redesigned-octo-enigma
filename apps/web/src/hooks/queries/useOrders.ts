@@ -11,43 +11,21 @@
 // =============================================================================
 
 import { useQuery } from "@tanstack/react-query";
-import { z } from "zod";
+import type { StorefrontOrder } from "@repo/common/types";
+import { ordersPageSchema, type OrdersPage } from "@repo/common/schemas";
 
 import { apiProxy } from "@/lib/api";
 import { queryKeys, type OrderListParams } from "@/lib/query-keys";
 
-// ── Schema ────────────────────────────────────────────────────────────────────
-
-export const orderItemSchema = z.object({
-  createdAt: z.string(),
-  id: z.string(),
-  orderNumber: z.string(),
-  status: z.string(),
-  total: z.number().optional(),
-  updatedAt: z.string().optional(),
-});
-
-export const ordersResponseSchema = z.object({
-  data: z.array(orderItemSchema),
-  meta: z.object({
-    hasNextPage: z.boolean(),
-    hasPrevPage: z.boolean(),
-    limit: z.number(),
-    page: z.number(),
-    total: z.number(),
-    totalPages: z.number(),
-  }),
-  success: z.literal(true),
-});
-
-export type OrderItem = z.infer<typeof orderItemSchema>;
-export type OrdersResponse = z.infer<typeof ordersResponseSchema>;
+// Re-export shared type so callers don't need a second import
+export type OrderItem = StorefrontOrder;
+export type { OrdersPage };
 
 // ── Shaped return ─────────────────────────────────────────────────────────────
 
 export interface OrdersResult {
-  items: OrderItem[];
-  meta: OrdersResponse["meta"];
+  items: StorefrontOrder[];
+  meta: OrdersPage["meta"];
 }
 
 // ── Hook ─────────────────────────────────────────────────────────────────────
@@ -70,7 +48,7 @@ export function useOrders(options: UseOrdersOptions = {}) {
           status: params?.status || undefined,
         },
       });
-      const parsed = ordersResponseSchema.parse(res);
+      const parsed = ordersPageSchema.parse(res);
       return { items: parsed.data, meta: parsed.meta };
     },
     enabled,

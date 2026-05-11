@@ -1,64 +1,45 @@
 // =============================================================================
-// useProductReviews — query hook for a product's paginated review list
+// useProductReviews — infinite query hook for a product's paginated review list
 //
 // Fetches from the public gateway endpoint (no auth required).
-// For infinite scroll / load-more, call loadMore() which appends the next page
-// to extraReviews — useInfiniteQuery upgrade can be done in a later phase.
+// Uses useInfiniteQuery so each "load more" appends the next page to the cache
+// without replacing existing pages — no manual state management needed.
 //
 // Usage:
-//   const { data, isPending } = useProductReviews(productId, 1);
-//   const reviews = data?.data ?? [];
-//   const hasMore = data?.meta.hasNextPage ?? false;
+//   const { data, isPending, fetchNextPage, hasNextPage, isFetchingNextPage }
+//     = useProductReviews(productId);
+//
+//   const reviews = data?.pages.flatMap(p => p.data) ?? [];
+//   const hasMore = hasNextPage ?? false;
 // =============================================================================
 
-import { useQuery } from "@tanstack/react-query";
-import { z } from "zod";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import type { StorefrontReview } from "@repo/common/types";
+import { reviewsPageSchema, type ReviewsPage } from "@repo/common/schemas";
 
 import { api } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
 
-// ── Schema ────────────────────────────────────────────────────────────────────
-
-export const reviewSchema = z.object({
-  body: z.string().nullable(),
-  createdAt: z.string(),
-  id: z.string(),
-  imageUrls: z.array(z.string()),
-  isVerifiedPurchase: z.boolean(),
-  rating: z.number(),
-  title: z.string().nullable(),
-  userId: z.string(),
-});
-
-export const reviewsPageSchema = z.object({
-  data: z.array(reviewSchema),
-  meta: z.object({
-    hasNextPage: z.boolean(),
-    hasPrevPage: z.boolean().optional(),
-    limit: z.number().optional(),
-    page: z.number().optional(),
-    total: z.number().optional(),
-    totalPages: z.number().optional(),
-  }),
-  success: z.literal(true),
-});
-
-export type Review = z.infer<typeof reviewSchema>;
-export type ReviewsPage = z.infer<typeof reviewsPageSchema>;
+// Re-export shared type so callers don't need a second import
+export type Review = StorefrontReview;
+export type { ReviewsPage };
 
 // ── Hook ─────────────────────────────────────────────────────────────────────
 
 const REVIEWS_PER_PAGE = 10;
 
-export function useProductReviews(productId: string, page = 1) {
-  return useQuery<ReviewsPage>({
-    queryKey: queryKeys.reviews.list(productId, page),
-    queryFn: async () => {
+export function useProductReviews(productId: string) {
+  return useInfiniteQuery<ReviewsPage>({
+    queryKey: queryKeys.reviews.infinite(productId),
+    queryFn: async ({ pageParam }) => {
       const res = await api.get<unknown>(`/products/${productId}/reviews`, {
-        params: { page, limit: REVIEWS_PER_PAGE },
+        params: { page: pageParam as number, limit: REVIEWS_PER_PAGE },
       });
       return reviewsPageSchema.parse(res);
     },
+    getNextPageParam: (lastPage) =>
+      lastPage.meta.hasNextPage ? lastPage.meta.page + 1 : undefined,
+    initialPageParam: 1,
     staleTime: 60 * 1000,
   });
 }

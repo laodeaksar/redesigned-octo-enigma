@@ -78,9 +78,12 @@ export const queryKeys = {
     // Rating summary (average + breakdown)
     summary: (productId: string) =>
                     [STOREFRONT, "reviews", productId, "summary"]  as const,
-    // Paginated review list
+    // Paginated review list (used by individual page queries)
     list: (productId: string, page = 1) =>
                     [STOREFRONT, "reviews", productId, "list", page] as const,
+    // Infinite scroll query (useInfiniteQuery — all pages under one key)
+    infinite: (productId: string) =>
+                    [STOREFRONT, "reviews", productId, "infinite"]   as const,
   },
 
   // ── Addresses ────────────────────────────────────────────────────────────────

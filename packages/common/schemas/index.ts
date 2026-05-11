@@ -145,6 +145,23 @@ export {
   updateVariantSchema,
 } from "./product.schema";
 export type {
+  OrdersPage,
+  ReviewsPage,
+  StorefrontPaginationMeta,
+} from "./storefront.schema";
+// ── Storefront Response Schemas ───────────────────────────────────────────────
+export {
+  authTokensSchema,
+  ordersPageSchema,
+  paginatedResponseSchema,
+  paginationMetaSchema,
+  reviewsPageSchema,
+  storefrontAddressSchema,
+  storefrontOrderSchema,
+  storefrontRatingSummarySchema,
+  storefrontReviewSchema,
+} from "./storefront.schema";
+export type {
   AdminUpdateUserInput,
   ChangePasswordInput,
   CreateAddressInput,

@@ -1,7 +1,7 @@
 // =============================================================================
 // useCreateAddress — mutation for adding a new shipping address
 //
-// Requires authentication. Returns the created Address object in `res.data`.
+// Requires authentication. Returns the created StorefrontAddress in `res.data`.
 //
 // Usage:
 //   const createAddress = useCreateAddress();
@@ -15,37 +15,18 @@
 // =============================================================================
 
 import { useMutation } from "@tanstack/react-query";
+import type { StorefrontAddress } from "@repo/common/types";
+import type { CreateAddressInput } from "@repo/common/schemas";
 
 import { apiProxy } from "@/lib/api";
 
-export interface AddressPayload {
-  city: string;
-  cityId?: string;
-  isDefault: boolean;
-  label: string;
-  phone: string;
-  postalCode: string;
-  province: string;
-  recipientName: string;
-  street: string;
-}
-
-export interface Address {
-  city: string;
-  cityId: string | null;
-  country: string;
-  id: string;
-  isDefault: boolean;
-  label: string;
-  phone: string;
-  postalCode: string;
-  province: string;
-  recipientName: string;
-  street: string;
-}
+// Re-export shared types so callers (e.g. useUpdateAddress, AddressManager)
+// don't need a separate import from @repo/common.
+export type Address = StorefrontAddress;
+export type AddressPayload = CreateAddressInput;
 
 interface CreateAddressResponse {
-  data: Address;
+  data: StorefrontAddress;
   success: true;
 }
 

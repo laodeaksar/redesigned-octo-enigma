@@ -2,15 +2,14 @@
 
 > **Tanggal analisa:** 9 Mei 2026
 > **Analis:** Senior Fullstack Architect Review
-> **Scope:** `apps/web` (Astro SSR), `apps/api-gateway` (Hono.js), rencana `storefront-fresh`
+> **Scope:** `apps/web` (Astro SSR), `apps/api-gateway` (Hono.js)
 
 ---
 
 ## Catatan Penting
 
-`storefront-fresh` **belum ada** di proyek ini. Yang ada adalah `apps/web` (Astro SSR).
-Checkout sudah diimplementasi di Astro menggunakan Midtrans Snap.js sebagai React island (`CheckoutForm`).
-Analisis di bawah mencerminkan kondisi aktual + rekomendasi jika Fresh ingin ditambahkan.
+Checkout diimplementasi di Astro menggunakan Midtrans Snap.js sebagai React island (`CheckoutForm`).
+Evaluasi Fresh/Deno telah selesai — **NO-GO**. Lihat [`docs/ADR-001-fresh-vs-astro-checkout.md`](./docs/ADR-001-fresh-vs-astro-checkout.md).
 
 ---
 
@@ -79,29 +78,9 @@ Islands yang ada:
 
 ---
 
-### storefront-fresh (Tidak Ada — Analisis Proyeksi)
+### storefront-fresh — CLOSED (NO-GO)
 
-**Status saat ini:** Belum diimplementasi. Checkout ada di `apps/web/src/pages/checkout.astro`
-menggunakan Midtrans Snap.js sebagai island React (`CheckoutForm`).
-
-#### Routing (proyeksi jika diimplementasi)
-
-```
-/checkout             → routes/checkout.tsx
-/payment/[orderId]    → routes/payment/[orderId].tsx
-/payment/success      → routes/payment/success.tsx
-/payment/pending      → routes/payment/pending.tsx
-```
-
-#### Issues (jika Fresh ditambahkan)
-
-| # | Issue | Severity |
-|---|-------|----------|
-| 1 | Cookie domain mismatch — Astro di `shop.domain.com`, Fresh di `checkout.domain.com`. Cookie auth perlu `Domain=.domain.com` | CRITICAL |
-| 2 | Cart handoff — nanostores/localStorage adalah domain-bound, Fresh tidak bisa baca langsung | CRITICAL |
-| 3 | `packages/common` tidak kompatibel dengan Deno — Bun workspace tidak dikenali Deno runtime | HIGH |
-| 4 | CORS origins — api-gateway saat ini hanya support satu nilai `CORS_ORIGINS` env | HIGH |
-| 5 | Tidak ada Fresh adapter untuk Hono — komunikasi ke gateway tetap via HTTP fetch | LOW |
+Evaluasi selesai. Keputusan: **tetap di Astro**. Lihat [`docs/ADR-001-fresh-vs-astro-checkout.md`](./docs/ADR-001-fresh-vs-astro-checkout.md) untuk detail lengkap — decision matrix, 5 blocker kritis, dan consequences.
 
 ---
 
@@ -128,29 +107,11 @@ menggunakan Midtrans Snap.js sebagai island React (`CheckoutForm`).
 
 ## 3. Rekomendasi Penyesuaian
 
-### a. Arsitektur — Apakah Hybrid Astro+Fresh Efektif?
+### a. Arsitektur — Hybrid Astro+Fresh: CLOSED
 
-Berdasarkan kodebase aktual: **checkout sudah berfungsi di Astro dan tidak ada alasan
-teknis kuat untuk memindahkannya ke Fresh saat ini.**
+**Keputusan:** NO-GO Fresh. Checkout tetap di Astro (`apps/web`). Lihat [ADR-001](../docs/ADR-001-fresh-vs-astro-checkout.md).
 
-Hybrid Astro+Fresh masuk akal jika:
-- Checkout butuh runtime Deno-spesifik (Deno KV, Deno Deploy edge)
-- Tim punya Deno expertise yang kuat
-- Checkout perlu scaling independen dari storefront
-
-Masalah nyata hybrid ini:
-- Cart handoff butuh server-side cart API dulu
-- Cookie domain harus diatur di level DNS (shared parent domain)
-- `packages/common` harus publish ke JSR atau di-copy manual — Bun workspace tidak compatible dengan Deno
-
-**Rekomendasi pragmatis:** Stabilkan Astro dulu (selesaikan P0/P1 di atas). Jika checkout
-butuh Deno-specific feature, buat `apps/checkout` sebagai **Hono app di Bun** (bukan Fresh)
-— tetap satu runtime, shared packages langsung, session via shared cookie domain.
-
-```
-Jangan:  Astro (Bun) + Fresh (Deno) = 2 runtime, 2 package manager
-Lakukan: Astro (Bun) + Hono checkout (Bun) = 1 runtime, shared @repo/* packages
-```
+Jika suatu saat checkout perlu scaling independen: buat `apps/checkout` sebagai **Hono app di Bun** — satu runtime, shared `@repo/*` packages langsung tanpa JSR.
 
 ---
 

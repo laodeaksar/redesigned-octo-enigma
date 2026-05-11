@@ -101,6 +101,30 @@ export const resetPasswordSchema = z
 
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 
+// ── Set Password (OAuth accounts — no existing password) ─────────────────────
+
+export const setPasswordSchema = z
+  .object({
+    newPassword: z
+      .string()
+      .min(8, { message: "Password must be at least 8 characters" })
+      .max(72)
+      .regex(/[A-Z]/, {
+        message: "Password must contain at least one uppercase letter",
+      })
+      .regex(/[a-z]/, {
+        message: "Password must contain at least one lowercase letter",
+      })
+      .regex(/[0-9]/, { message: "Password must contain at least one number" }),
+    confirmNewPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmNewPassword, {
+    message: "Passwords do not match",
+    path: ["confirmNewPassword"],
+  });
+
+export type SetPasswordInput = z.infer<typeof setPasswordSchema>;
+
 // ── Change Password ───────────────────────────────────────────────────────────
 
 export const changePasswordSchema = z

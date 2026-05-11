@@ -5,6 +5,7 @@
 import type { DB } from "@/config";
 
 import {
+  ConflictError,
   InvalidCredentialsError,
   NotFoundError,
   UserNotFoundError,
@@ -12,6 +13,7 @@ import {
 import type {
   ChangePasswordInput,
   CreateAddressInput,
+  SetPasswordInput,
   UpdateAddressInput,
   UpdateProfileInput,
 } from "@repo/common/schemas";
@@ -51,6 +53,31 @@ export async function updateProfile(
 }
 
 // ── Password ──────────────────────────────────────────────────────────────────
+
+export async function setPassword(
+  db: DB,
+  userId: string,
+  input: SetPasswordInput
+) {
+  const user = await repo.findUserById(db, userId);
+  if (!user) {
+    throw new UserNotFoundError();
+  }
+
+  if (user.passwordHash) {
+    throw new ConflictError(
+      "Account already has a password. Use PATCH /users/me/password to change it."
+    );
+  }
+
+  const passwordHash = await Bun.password.hash(input.newPassword, {
+    algorithm: "argon2id",
+  });
+
+  await repo.updateUser(db, userId, { passwordHash });
+
+  return { message: "Password set successfully" };
+}
 
 export async function changePassword(
   db: DB,

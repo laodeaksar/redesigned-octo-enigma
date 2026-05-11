@@ -46,6 +46,22 @@ export const usersRoutes = new Elysia({ prefix: "/users" })
   )
 
   // ── Password ─────────────────────────────────────────────────────────────
+  .post(
+    "/me/password",
+    ({ db, user, body }) => controller.handleSetPassword(db, user.id, body),
+    {
+      body: t.Object({
+        newPassword: t.String({ minLength: 8, maxLength: 72 }),
+        confirmNewPassword: t.String({ minLength: 1 }),
+      }),
+      detail: {
+        tags: ["Users"],
+        summary: "Set a password for an OAuth-only account",
+        security: [{ bearerAuth: [] }],
+      },
+    }
+  )
+
   .patch(
     "/me/password",
     ({ db, user, body }) =>

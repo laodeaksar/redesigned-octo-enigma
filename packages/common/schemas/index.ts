@@ -171,6 +171,7 @@ export type {
   RefreshTokenInput,
   RegisterInput,
   ResetPasswordInput,
+  SetPasswordInput,
   UpdateAddressInput,
   UpdateProfileInput,
   VerifyEmailInput,
@@ -179,6 +180,7 @@ export type {
 export {
   adminUpdateUserSchema,
   changePasswordSchema,
+  setPasswordSchema,
   createAddressSchema,
   forgotPasswordSchema,
   listUsersQuerySchema,

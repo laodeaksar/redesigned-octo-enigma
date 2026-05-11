@@ -8,6 +8,7 @@ import { safeParse } from "@repo/common/errors";
 import {
   changePasswordSchema,
   createAddressSchema,
+  setPasswordSchema,
   success,
   updateAddressSchema,
   updateProfileSchema,
@@ -28,6 +29,16 @@ export async function handleUpdateProfile(
   const input = safeParse(updateProfileSchema, body);
   const profile = await usersService.updateProfile(db, userId, input);
   return success(profile, "Profile updated successfully");
+}
+
+export async function handleSetPassword(
+  db: DB,
+  userId: string,
+  body: unknown
+) {
+  const input = safeParse(setPasswordSchema, body);
+  const result = await usersService.setPassword(db, userId, input);
+  return success(result, "Password set successfully");
 }
 
 export async function handleChangePassword(

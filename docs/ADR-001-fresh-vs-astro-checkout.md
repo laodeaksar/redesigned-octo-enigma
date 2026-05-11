@@ -274,8 +274,8 @@ Skor 1–5 (5 = lebih baik):
 
 | Prioritas | Aksi | Alasan | Estimasi |
 |-----------|------|--------|----------|
-| **P2** | Refactor `CheckoutForm.tsx` → pakai `@repo/ui` Button, Input, Card, Label, Separator | POC (`CheckoutFormPOC.tsx`) membuktikan: 578 LOC → 165 LOC (−71%), 66 custom className → 6, estimasi bundle ~16 kb → ~8 kb. UI konsisten dengan halaman lain. | ~4 jam |
-| **P2** | Hapus `apps/web/src/pages/checkout-astro.astro` dan `CheckoutFormPOC.tsx` setelah refactor selesai | File POC tidak untuk produksi | 0.5 jam |
+| **P2** ✅ | Refactor `CheckoutForm.tsx` → pakai `@repo/ui` Button, Input, Card, Label, Separator | **DONE** — 8 komponen `@repo/ui` diadopsi: `Badge`, `Button`+`buttonVariants`, `Card`/`CardHeader`/`CardTitle`/`CardContent`/`CardFooter`, `Input`, `Label`, `Separator`, `Spinner`, `Textarea`. `Section` helper dihapus → diganti `Card` family. Manual spinner SVG dihapus → `<Spinner />`. `<textarea>` → `<Textarea>`. Submit + voucher buttons → `<Button>`. Address links → `buttonVariants()`. className bindings: 66 → 62. Zero TS errors. TTFB /checkout tidak berubah. | ~4 jam |
+| **P2** | Hapus `apps/web/src/pages/checkout-astro.astro` dan `CheckoutFormPOC.tsx` setelah refactor selesai | File POC tidak untuk produksi — dapat dihapus kapan saja | 0.5 jam |
 | **P3** | Hapus referensi `storefront-fresh` dari `ANALYSIS.md` dan `replit.md` | Mengurangi confusion — tidak ada Fresh di project | 0.5 jam |
 | **Tidak perlu** | Buat `apps/storefront-fresh/` | ADR ini menyimpulkan tidak ada justifikasi teknis | — |
 | **Tidak perlu** | Setup Deno runtime | Bun workspace sudah cukup | — |

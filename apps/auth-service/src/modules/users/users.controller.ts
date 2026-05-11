@@ -6,6 +6,7 @@ import type { DB } from "@/config";
 
 import { safeParse } from "@repo/common/errors";
 import {
+  changePasswordSchema,
   createAddressSchema,
   success,
   updateAddressSchema,
@@ -27,6 +28,16 @@ export async function handleUpdateProfile(
   const input = safeParse(updateProfileSchema, body);
   const profile = await usersService.updateProfile(db, userId, input);
   return success(profile, "Profile updated successfully");
+}
+
+export async function handleChangePassword(
+  db: DB,
+  userId: string,
+  body: unknown
+) {
+  const input = safeParse(changePasswordSchema, body);
+  const result = await usersService.changePassword(db, userId, input);
+  return success(result, "Password changed successfully");
 }
 
 export async function handleListAddresses(db: DB, userId: string) {

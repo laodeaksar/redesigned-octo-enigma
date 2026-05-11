@@ -3,6 +3,7 @@
 //
 //  GET    /users/me
 //  PATCH  /users/me
+//  PATCH  /users/me/password
 //  GET    /users/me/addresses
 //  POST   /users/me/addresses
 //  PATCH  /users/me/addresses/:id
@@ -39,6 +40,25 @@ export const usersRoutes = new Elysia({ prefix: "/users" })
       detail: {
         tags: ["Users"],
         summary: "Update my profile",
+        security: [{ bearerAuth: [] }],
+      },
+    }
+  )
+
+  // ── Password ─────────────────────────────────────────────────────────────
+  .patch(
+    "/me/password",
+    ({ db, user, body }) =>
+      controller.handleChangePassword(db, user.id, body),
+    {
+      body: t.Object({
+        currentPassword: t.String({ minLength: 1 }),
+        newPassword: t.String({ minLength: 8, maxLength: 72 }),
+        confirmNewPassword: t.String({ minLength: 1 }),
+      }),
+      detail: {
+        tags: ["Users"],
+        summary: "Change my password",
         security: [{ bearerAuth: [] }],
       },
     }

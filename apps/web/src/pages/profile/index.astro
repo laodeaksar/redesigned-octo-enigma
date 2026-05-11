@@ -88,10 +88,11 @@ try {
               Akun Saya
             </p>
             {[
-              { href: "/profile",           label: "Pengaturan",        active: true  },
-              { href: "/profile/addresses", label: "Alamat Pengiriman", active: false },
-              { href: "/orders",            label: "Pesanan Saya",      active: false },
-              { href: "/wishlist",          label: "Wishlist",          active: false },
+              { href: "/profile",                   label: "Pengaturan",        active: true  },
+              { href: "/profile/addresses",         label: "Alamat Pengiriman", active: false },
+              { href: "/profile/change-password",   label: "Ubah Password",     active: false },
+              { href: "/orders",                    label: "Pesanan Saya",      active: false },
+              { href: "/wishlist",                  label: "Wishlist",          active: false },
             ].map(item => (
               <a
                 class:list={[

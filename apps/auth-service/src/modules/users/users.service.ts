@@ -4,8 +4,13 @@
 
 import type { DB } from "@/config";
 
-import { NotFoundError, UserNotFoundError } from "@repo/common/errors";
+import {
+  InvalidCredentialsError,
+  NotFoundError,
+  UserNotFoundError,
+} from "@repo/common/errors";
 import type {
+  ChangePasswordInput,
   CreateAddressInput,
   UpdateAddressInput,
   UpdateProfileInput,
@@ -43,6 +48,41 @@ export async function updateProfile(
   const { passwordHash, emailVerificationToken, passwordResetToken, ...safe } =
     user;
   return safe;
+}
+
+// ── Password ──────────────────────────────────────────────────────────────────
+
+export async function changePassword(
+  db: DB,
+  userId: string,
+  input: ChangePasswordInput
+) {
+  const user = await repo.findUserById(db, userId);
+  if (!user) {
+    throw new UserNotFoundError();
+  }
+
+  if (!user.passwordHash) {
+    throw new InvalidCredentialsError(
+      "Account does not use password authentication"
+    );
+  }
+
+  const isValid = await Bun.password.verify(
+    input.currentPassword,
+    user.passwordHash
+  );
+  if (!isValid) {
+    throw new InvalidCredentialsError("Current password is incorrect");
+  }
+
+  const passwordHash = await Bun.password.hash(input.newPassword, {
+    algorithm: "argon2id",
+  });
+
+  await repo.updateUser(db, userId, { passwordHash });
+
+  return { message: "Password changed successfully" };
 }
 
 // ── Addresses ─────────────────────────────────────────────────────────────────

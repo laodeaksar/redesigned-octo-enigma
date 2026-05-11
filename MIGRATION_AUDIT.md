@@ -54,8 +54,7 @@ To:
 | `AddressManager.tsx` | Custom toast `div` + `showToast` state + `alert()` | `notify.success` on create/update/delete success; `notify.error` on delete failure; custom toast state + div removed |
 | `OrderHistory.tsx` | `fetch` in `useEffect` + `useState` | `useQuery({ queryKey: ["orders", "me", ...] })`, wrapped in `QueryClientProvider` |
 | `UserSettingsForm.tsx` | Custom `SuccessAlert` component shown after save | Toast emitted by `useUpdateUser` hook (`notify.success/error`) — component no longer manages success state |
-
----
+| `CheckoutForm.tsx` | `useEffect` + `useState` for rates/loading/error + manual `isSubmitting` | Shipping rates → `useQuery` (caches per cityId, `staleTime: 5m`, inline retry via `refetch`). Voucher → `useMutation` with `notify.error`. Order+payment → `useMutation` (sequential `/orders` → `/payments`); Midtrans Snap callbacks in `onSuccess`; validation errors via `notify.error`. Wrapped with `QueryClientProvider`. |
 
 ## Islands NOT Migrated (intentional)
 
@@ -63,7 +62,6 @@ To:
 |------|--------|
 | `AuthForm.tsx` | On success → redirect; error shown inline. No toast needed. |
 | `CartPage.tsx` | `window.confirm()` for clear-cart kept (native confirm is appropriate). Cart mutations already use optimistic update + `UndoToast`. |
-| `CheckoutForm.tsx` | Complex multi-step payment flow with Midtrans redirect. Migration deferred. |
 | `SearchBar.tsx` | Debounced fetch with AbortController for search suggestions. No toast needed (results shown inline). |
 | `PushNotificationManager.tsx` | Service-worker subscription flow. No user-visible toast needed. |
 | `useUpdateCartQty.ts` | `UndoToast` component already handles all UX feedback for remove-on-zero. |

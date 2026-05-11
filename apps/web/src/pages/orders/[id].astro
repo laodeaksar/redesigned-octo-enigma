@@ -441,7 +441,11 @@ const PAYMENT_STATUS_COLORS: Record<string, string> = {
           window.location.href = `/orders/${orderId}?status=pending`;
         },
         onError: () => {
-          alert("Pembayaran gagal. Silakan coba lagi.");
+          if (window.__notify?.error) {
+            window.__notify.error("Pembayaran gagal. Silakan coba lagi.");
+          } else {
+            alert("Pembayaran gagal. Silakan coba lagi.");
+          }
         },
         onClose: () => {},
       });

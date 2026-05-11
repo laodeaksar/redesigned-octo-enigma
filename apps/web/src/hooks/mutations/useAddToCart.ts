@@ -4,13 +4,14 @@
 // Flow:
 //   onMutate   → snapshot cache + nanostore, apply optimistic update to both
 //   mutationFn → push to server (if logged in), update local state
-//   onError    → rollback cache + nanostore to snapshot
+//   onError    → rollback cache + nanostore to snapshot + notify error
 //   onSettled  → invalidate cart query to refetch from server
 // =============================================================================
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { apiProxy } from "@/lib/api";
+import { notify } from "@/lib/toast";
 import {
   $cart,
   $isCartOpen,
@@ -100,6 +101,7 @@ export function useAddToCart() {
       if (ctx?.previousCache !== undefined) {
         qc.setQueryData(queryKeys.cart(), ctx.previousCache);
       }
+      notify.error("Gagal menambahkan ke keranjang", "Silakan coba lagi.");
     },
 
     onSettled: () => {

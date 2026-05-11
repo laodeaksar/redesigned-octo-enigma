@@ -9,6 +9,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { apiProxy } from "@/lib/api";
+import { notify } from "@/lib/toast";
 import {
   $cart,
   $removeRequested,
@@ -74,6 +75,7 @@ export function useRemoveFromCart() {
       if (ctx?.previousCache !== undefined) {
         qc.setQueryData(queryKeys.cart(), ctx.previousCache);
       }
+      notify.error("Gagal menghapus item", "Silakan coba lagi.");
     },
 
     onSettled: () => {

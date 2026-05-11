@@ -5,6 +5,7 @@
 // (all-string fields so TanStack Form type inference works). Mapped to
 // UpdateProfileInput in onSubmit. Errors shown per field.
 // SecurityTab is unchanged (read-only except logout form).
+// Toasts via notify from @/lib/toast (useUpdateUser emits them).
 // =============================================================================
 
 import { useForm } from "@tanstack/react-form";
@@ -19,8 +20,6 @@ import { Button } from "@repo/ui/components/button";
 import { Separator } from "@repo/ui/components/separator";
 
 // ── Form schema ───────────────────────────────────────────────────────────────
-// All fields are `string` to match TanStack Form's defaultValues type inference.
-// The mapping to UpdateProfileInput (with optional/nullable) happens in onSubmit.
 
 const profileFormSchema = z.object({
   name: z.string().min(2, "Nama minimal 2 karakter").max(100, "Nama terlalu panjang"),
@@ -81,29 +80,6 @@ function Avatar({ avatarUrl, name }: { avatarUrl: string | null; name: string })
   );
 }
 
-// ── Alert helpers ─────────────────────────────────────────────────────────────
-
-function SuccessAlert({ message }: { message: string }) {
-  return (
-    <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-      <svg
-        className="h-4 w-4 shrink-0 text-green-500"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2.5}
-        viewBox="0 0 24 24"
-      >
-        <path
-          d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-      {message}
-    </div>
-  );
-}
-
 function FieldError({ errors }: { errors: unknown[] }) {
   if (errors.length === 0) return null;
   return <p className="mt-1 text-xs text-red-600">{String(errors[0])}</p>;
@@ -112,8 +88,7 @@ function FieldError({ errors }: { errors: unknown[] }) {
 // ── Profile tab (TanStack Form) ───────────────────────────────────────────────
 
 function ProfileTab({ user }: { user: User }) {
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const { mutateAsync: updateUser, isPending, error: mutationError } = useUpdateUser();
+  const { mutateAsync: updateUser, isPending } = useUpdateUser();
 
   const form = useForm({
     defaultValues: {
@@ -123,12 +98,10 @@ function ProfileTab({ user }: { user: User }) {
     onSubmit: async ({ value }) => {
       const parsed = profileFormSchema.safeParse(value);
       if (!parsed.success) return;
-      setSuccessMsg(null);
       await updateUser({
         name: parsed.data.name.trim() || undefined,
         avatarUrl: parsed.data.avatarUrl.trim() || null,
       });
-      setSuccessMsg("Profil berhasil diperbarui!");
     },
   });
 
@@ -140,13 +113,6 @@ function ProfileTab({ user }: { user: User }) {
         void form.handleSubmit();
       }}
     >
-      {successMsg && <SuccessAlert message={successMsg} />}
-      {mutationError && (
-        <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          {mutationError instanceof Error ? mutationError.message : "Gagal memperbarui profil."}
-        </div>
-      )}
-
       {/* Avatar preview */}
       <form.Subscribe selector={state => state.values.avatarUrl}>
         {avatarUrl => (

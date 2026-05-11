@@ -3,8 +3,10 @@
 // Shows last 5 orders with status badge, totals, and links.
 // =============================================================================
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 
+import { queryClient } from "@/lib/query-client";
 import { apiProxy, type Order } from "@/lib/api";
 import {
   formatDateTime,
@@ -70,22 +72,19 @@ function OrderSkeletons() {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function OrderHistory() {
-  const [orders, setOrders]   = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState<string | null>(null);
-
-  useEffect(() => {
-    apiProxy
-      .get<{
-        success: true;
-        data: Order[];
-        meta: { total: number; totalPages: number };
-      }>("/orders/me", { params: { page: 1, limit: 5 } })
-      .then(res => setOrders(res.data))
-      .catch(() => setError("Gagal memuat pesanan."))
-      .finally(() => setLoading(false));
-  }, []);
+function OrderHistoryInner() {
+  const { data: orders = [], isPending, isError } = useQuery({
+    queryKey: ["orders", "me", { page: 1, limit: 5 }],
+    queryFn: () =>
+      apiProxy
+        .get<{
+          success: true;
+          data: Order[];
+          meta: { total: number; totalPages: number };
+        }>("/orders/me", { params: { page: 1, limit: 5 } })
+        .then(res => res.data),
+    staleTime: 30 * 1000,
+  });
 
   return (
     <Card>
@@ -96,17 +95,17 @@ export default function OrderHistory() {
 
       <CardContent>
         {/* Loading */}
-        {loading && <OrderSkeletons />}
+        {isPending && <OrderSkeletons />}
 
         {/* Error */}
-        {!loading && error && (
+        {!isPending && isError && (
           <p className="py-6 text-center text-sm text-muted-foreground">
-            {error}
+            Gagal memuat pesanan.
           </p>
         )}
 
         {/* Empty */}
-        {!loading && !error && orders.length === 0 && (
+        {!isPending && !isError && orders.length === 0 && (
           <Empty className="border border-dashed py-10">
             <EmptyHeader>
               <EmptyMedia>
@@ -141,7 +140,7 @@ export default function OrderHistory() {
         )}
 
         {/* Order list */}
-        {!loading && !error && orders.length > 0 && (
+        {!isPending && !isError && orders.length > 0 && (
           <ul className="-mx-1">
             {orders.map((order, i) => (
               <li key={order.id}>
@@ -196,7 +195,7 @@ export default function OrderHistory() {
       </CardContent>
 
       {/* Footer — only when there are orders */}
-      {!loading && orders.length > 0 && (
+      {!isPending && orders.length > 0 && (
         <CardFooter className="justify-between">
           <p className="text-xs text-muted-foreground">
             Menampilkan {orders.length} pesanan terbaru
@@ -210,5 +209,13 @@ export default function OrderHistory() {
         </CardFooter>
       )}
     </Card>
+  );
+}
+
+export default function OrderHistory() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <OrderHistoryInner />
+    </QueryClientProvider>
   );
 }

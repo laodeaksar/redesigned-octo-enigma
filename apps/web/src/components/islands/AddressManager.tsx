@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type React from "react";
 
 import { api, apiProxy } from "@/lib/api";
+import { notify } from "@/lib/toast";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -442,12 +443,6 @@ export default function AddressManager({ initialAddresses }: Props) {
         const [submitting, setSubmitting] = useState(false);
         const [formError, setFormError] = useState<string | null>(null);
         const [deletingId, setDeletingId] = useState<string | null>(null);
-        const [toast, setToast] = useState<string | null>(null);
-
-        function showToast(msg: string) {
-                setToast(msg);
-                setTimeout(() => setToast(null), 3000);
-        }
 
         // ── Create ──────────────────────────────────────────────────────────────────
 
@@ -477,7 +472,7 @@ export default function AddressManager({ initialAddresses }: Props) {
                                 return [res.data, ...updated];
                         });
                         setMode("list");
-                        showToast("Alamat berhasil ditambahkan");
+                        notify.success("Alamat berhasil ditambahkan");
                 } catch (err) {
                         setFormError(
                                 err instanceof Error ? err.message : "Gagal menambah alamat",
@@ -490,9 +485,7 @@ export default function AddressManager({ initialAddresses }: Props) {
         // ── Update ──────────────────────────────────────────────────────────────────
 
         async function handleUpdate(data: FormState) {
-                if (!editTarget) {
-                        return;
-                }
+                if (!editTarget) return;
                 setSubmitting(true);
                 setFormError(null);
                 try {
@@ -521,7 +514,7 @@ export default function AddressManager({ initialAddresses }: Props) {
                         });
                         setMode("list");
                         setEditTarget(null);
-                        showToast("Alamat berhasil diperbarui");
+                        notify.success("Alamat berhasil diperbarui");
                 } catch (err) {
                         setFormError(
                                 err instanceof Error ? err.message : "Gagal memperbarui alamat",
@@ -534,16 +527,16 @@ export default function AddressManager({ initialAddresses }: Props) {
         // ── Delete ──────────────────────────────────────────────────────────────────
 
         async function handleDelete(id: string) {
-                if (!confirm("Hapus alamat ini?")) {
-                        return;
-                }
+                if (!confirm("Hapus alamat ini?")) return;
                 setDeletingId(id);
                 try {
                         await apiProxy.delete(`/users/me/addresses/${id}`);
                         setAddresses((prev) => prev.filter((a) => a.id !== id));
-                        showToast("Alamat berhasil dihapus");
+                        notify.success("Alamat berhasil dihapus");
                 } catch (err) {
-                        alert(err instanceof Error ? err.message : "Gagal menghapus alamat");
+                        notify.error(
+                                err instanceof Error ? err.message : "Gagal menghapus alamat"
+                        );
                 } finally {
                         setDeletingId(null);
                 }
@@ -570,9 +563,7 @@ export default function AddressManager({ initialAddresses }: Props) {
         }
 
         function buildInitialForm(address: Address | null): FormState {
-                if (!address) {
-                        return EMPTY_FORM;
-                }
+                if (!address) return EMPTY_FORM;
                 return {
                         label: address.label,
                         recipientName: address.recipientName,
@@ -590,13 +581,6 @@ export default function AddressManager({ initialAddresses }: Props) {
 
         return (
                 <div className="space-y-4">
-                        {/* Toast */}
-                        {toast && (
-                                <div className="animate-fade-in fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-gray-900 px-5 py-2.5 text-sm font-medium text-white shadow-lg">
-                                        ✓ {toast}
-                                </div>
-                        )}
-
                         {/* ── List view ── */}
                         {mode === "list" && (
                                 <>
@@ -674,18 +658,6 @@ export default function AddressManager({ initialAddresses }: Props) {
                                                 onCancel={cancelForm}
                                                 onSubmit={(data) => void handleUpdate(data)}
                                         />
-                                </div>
-                        )}
-
-                        {/* Link back to checkout */}
-                        {mode === "list" && addresses.length > 0 && (
-                                <div className="pt-2 text-center">
-                                        <a
-                                                className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 hover:underline"
-                                                href="/checkout"
-                                        >
-                                                Lanjut ke Checkout →
-                                        </a>
                                 </div>
                         )}
                 </div>

@@ -5,20 +5,26 @@
 // =============================================================================
 
 import { useCallback, useEffect, useState } from "react";
+import { useQuery, QueryClientProvider } from "@tanstack/react-query";
 import { addToCart } from "@/stores/cart.store";
 
+import { queryClient } from "@/lib/query-client";
 import type { ProductDetail } from "@/lib/api";
 import { formatIDR } from "@/lib/utils";
 
 const BASE = import.meta.env.PUBLIC_API_URL ?? "http://localhost:3000";
 
-export default function ProductQuickView() {
+async function fetchProductDetail(slug: string): Promise<ProductDetail> {
+  const r = await fetch(`${BASE}/products/slug/${slug}`);
+  if (!r.ok) throw new Error("Gagal memuat produk.");
+  const body = (await r.json()) as { data: ProductDetail };
+  return body.data;
+}
+
+function ProductQuickViewInner() {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [slug, setSlug] = useState<string | null>(null);
-  const [product, setProduct] = useState<ProductDetail | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [imageIdx, setImageIdx] = useState(0);
   const [selected, setSelected] = useState<Record<string, string>>({});
   const [qty, setQty] = useState(1);
@@ -29,8 +35,6 @@ export default function ProductQuickView() {
     const handler = (e: Event) => {
       const { slug: s } = (e as CustomEvent<{ slug: string }>).detail;
       setSlug(s);
-      setProduct(null);
-      setError(null);
       setImageIdx(0);
       setQty(1);
       setAdded(false);
@@ -42,29 +46,22 @@ export default function ProductQuickView() {
     return () => window.removeEventListener("open-quick-view", handler);
   }, []);
 
-  // ── Fetch product detail when slug is set ────────────────────────────────────
+  // ── Fetch product detail via TanStack Query ──────────────────────────────────
+  const { data: product, isPending: loading, isError } = useQuery({
+    queryKey: ["product-detail", slug],
+    queryFn: () => fetchProductDetail(slug!),
+    enabled: !!slug,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Reset selected variant + image when product loads
   useEffect(() => {
-    if (!slug) {
-      return;
-    }
-    setLoading(true);
-    fetch(`${BASE}/products/slug/${slug}`)
-      .then(r => r.json())
-      .then((body: { data: ProductDetail }) => {
-        const p = body.data;
-        setProduct(p);
-        // Pre-select first active variant's attributes
-        const first = p.variants.find(v => v.isActive);
-        if (first) {
-          setSelected({ ...first.attributes });
-        }
-        // Find primary image index
-        const primaryIdx = p.images.findIndex(i => i.isPrimary);
-        setImageIdx(primaryIdx >= 0 ? primaryIdx : 0);
-      })
-      .catch(() => setError("Gagal memuat produk."))
-      .finally(() => setLoading(false));
-  }, [slug]);
+    if (!product) return;
+    const first = product.variants.find(v => v.isActive);
+    if (first) setSelected({ ...first.attributes });
+    const primaryIdx = product.images.findIndex(i => i.isPrimary);
+    setImageIdx(primaryIdx >= 0 ? primaryIdx : 0);
+  }, [product]);
 
   // ── Close helpers ────────────────────────────────────────────────────────────
   const close = useCallback(() => {
@@ -77,15 +74,11 @@ export default function ProductQuickView() {
 
   // Lock body scroll + Escape key while open
   useEffect(() => {
-    if (!open) {
-      return;
-    }
+    if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        close();
-      }
+      if (e.key === "Escape") close();
     };
     window.addEventListener("keydown", onKey);
     return () => {
@@ -112,9 +105,7 @@ export default function ProductQuickView() {
   const maxQty = matchedVariant?.stock ?? 1;
 
   const handleAdd = () => {
-    if (!matchedVariant || isOutOfStock || !product) {
-      return;
-    }
+    if (!matchedVariant || isOutOfStock || !product) return;
     const coverImage =
       product.images.find(i => i.isPrimary)?.url ??
       product.images[0]?.url ??
@@ -132,9 +123,7 @@ export default function ProductQuickView() {
     setTimeout(() => setAdded(false), 2000);
   };
 
-  if (!mounted) {
-    return null;
-  }
+  if (!mounted) return null;
 
   const discountPct =
     matchedVariant?.compareAtPrice &&
@@ -143,6 +132,8 @@ export default function ProductQuickView() {
           (1 - matchedVariant.price / matchedVariant.compareAtPrice) * 100
         )
       : 0;
+
+  const error = isError ? "Gagal memuat produk." : null;
 
   return (
     <>
@@ -401,5 +392,13 @@ export default function ProductQuickView() {
         </div>
       </div>
     </>
+  );
+}
+
+export default function ProductQuickView() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ProductQuickViewInner />
+    </QueryClientProvider>
   );
 }

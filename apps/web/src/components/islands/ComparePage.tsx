@@ -3,7 +3,7 @@
 // Fetches full product details, renders side-by-side comparison table.
 // =============================================================================
 
-import { useEffect, useState } from "react";
+import { useQueries, QueryClientProvider } from "@tanstack/react-query";
 import type React from "react";
 import {
   $compareList,
@@ -13,7 +13,9 @@ import {
   removeFromCompare,
 } from "@/stores/compare.store";
 import { useStore } from "@nanostores/react";
+import { useEffect } from "react";
 
+import { queryClient } from "@/lib/query-client";
 import type { ProductDetail } from "@/lib/api";
 import { formatIDR } from "@/lib/utils";
 
@@ -78,30 +80,25 @@ function EmptySlot() {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function ComparePage() {
+function ComparePageInner() {
   const products = useStore($compareList);
-  const [details, setDetails] = useState<(ProductDetail | null)[]>([]);
-  const [loading, setLoading] = useState(true);
 
   // Hydrate store once on mount
   useEffect(() => {
     hydrateCompare();
   }, []);
 
-  // Re-fetch whenever product list changes
-  const slugKey = products.map(p => p.slug).join(",");
-  useEffect(() => {
-    if (products.length === 0) {
-      setDetails([]);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    Promise.all(products.map(p => fetchDetail(p.slug))).then(results => {
-      setDetails(results);
-      setLoading(false);
-    });
-  }, [slugKey]);
+  const detailQueries = useQueries({
+    queries: products.map(p => ({
+      queryKey: ["product-detail", p.slug],
+      queryFn: () => fetchDetail(p.slug),
+      staleTime: 5 * 60 * 1000,
+    })),
+  });
+
+  const details = detailQueries.map(q => q.data ?? null);
+  const loading =
+    products.length > 0 && detailQueries.some(q => q.isPending);
 
   // ── Empty / loading states ─────────────────────────────────────────────────
 
@@ -489,5 +486,13 @@ export default function ComparePage() {
         Geser ke kanan untuk melihat semua produk →
       </p>
     </div>
+  );
+}
+
+export default function ComparePage() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ComparePageInner />
+    </QueryClientProvider>
   );
 }

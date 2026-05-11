@@ -3,6 +3,7 @@ import CartDrawer from "@/components/islands/CartDrawer";
 import CompareBar from "@/components/islands/CompareBar";
 import ProductQuickView from "@/components/islands/ProductQuickView";
 import { UndoToast } from "@/components/islands/UndoToast";
+import { ToastProvider } from "@/components/providers/ToastProvider";
 import ScrollToTop from "@/components/shared/ScrollToTop.astro";
 import { getCurrentUser } from "@/lib/auth";
 import BottomNav from "./BottomNav.astro";
@@ -42,6 +43,7 @@ const user = await getCurrentUser(Astro.cookies);
   </head>
   <body class="min-h-screen bg-white text-gray-900 antialiased">
     <!-- Always-mounted React islands -->
+    <ToastProvider client:only="react" />
     <CartDrawer client:load isLoggedIn={!!user} />
     <ProductQuickView client:idle />
     <UndoToast client:idle />

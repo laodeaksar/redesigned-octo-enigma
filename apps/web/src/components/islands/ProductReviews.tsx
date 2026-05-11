@@ -3,9 +3,17 @@
 // Shows rating summary + paginated review list + write-review form.
 // =============================================================================
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type React from "react";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 
+import { queryClient } from "@/lib/query-client";
+import { notify } from "@/lib/toast";
 import { formatRelativeTime } from "@/lib/utils";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -38,6 +46,18 @@ interface Props {
   isLoggedIn: boolean;
   productId: string;
   productName: string;
+}
+
+interface ReviewsPage {
+  data: Review[];
+  meta: { hasNextPage: boolean };
+}
+
+interface SubmitReviewVars {
+  orderId: string;
+  rating: number;
+  title: string | null;
+  body: string | null;
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -206,16 +226,14 @@ function ReviewCard({ review }: { review: Review }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function ProductReviews({
+function ProductReviewsInner({
   productId,
   productName,
   isLoggedIn,
 }: Props) {
-  const [summary, setSummary] = useState<RatingSummary | null>(null);
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const qc = useQueryClient();
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [extraReviews, setExtraReviews] = useState<Review[]>([]);
   const [loadingMore, setLoadingMore] = useState(false);
 
   // Write form state
@@ -224,53 +242,49 @@ export default function ProductReviews({
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [orderId, setOrderId] = useState("");
-  const [orders, setOrders] = useState<UserOrder[]>([]);
-  const [ordersLoading, setOrdersLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
 
-  // ── Fetch summary + first page ──────────────────────────────────────────────
+  // ── Queries ─────────────────────────────────────────────────────────────────
 
-  useEffect(() => {
-    Promise.all([
-      fetch(`/api/products/${productId}/summary`).then(r => r.json()),
+  const { data: summary, isPending: summaryLoading } = useQuery<RatingSummary | null>({
+    queryKey: ["product-summary", productId],
+    queryFn: () =>
+      fetch(`/api/products/${productId}/summary`)
+        .then(r => r.json())
+        .then(d => (d?.data as RatingSummary) ?? null),
+    staleTime: 60 * 1000,
+  });
+
+  const { data: reviewsPage, isPending: reviewsLoading } = useQuery<ReviewsPage>({
+    queryKey: ["product-reviews", productId, 1],
+    queryFn: () =>
       fetch(`/api/products/${productId}/reviews?page=1&limit=10`).then(r =>
         r.json()
       ),
-    ])
-      .then(([s, r]) => {
-        if (s?.data) {
-          setSummary(s.data as RatingSummary);
-        }
-        setReviews((r?.data as Review[]) ?? []);
-        setHasMore(r?.meta?.hasNextPage ?? false);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [productId]);
+    staleTime: 60 * 1000,
+  });
 
-  // ── Fetch user's orders when form opens ────────────────────────────────────
+  const { data: orders = [], isPending: ordersLoading } = useQuery<UserOrder[]>({
+    queryKey: ["orders", "me", "for-review"],
+    queryFn: () =>
+      fetch("/api/orders?limit=30")
+        .then(r => r.json())
+        .then(d => {
+          const list = (d?.data as UserOrder[]) ?? [];
+          if (list.length > 0 && !orderId) setOrderId(list[0].id);
+          return list;
+        }),
+    enabled: showForm && isLoggedIn,
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    if (!(showForm && isLoggedIn) || orders.length > 0) {
-      return;
-    }
-    setOrdersLoading(true);
-    fetch("/api/orders?limit=30")
-      .then(r => r.json())
-      .then(d => {
-        const list = (d?.data as UserOrder[]) ?? [];
-        setOrders(list);
-        if (list.length > 0) {
-          setOrderId(list[0].id);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setOrdersLoading(false));
-  }, [showForm, isLoggedIn]);
+  const loading = summaryLoading || reviewsLoading;
+  const initialReviews = (reviewsPage?.data as Review[]) ?? [];
+  const reviews = page === 1 ? initialReviews : [...initialReviews, ...extraReviews];
+  const hasMore = page === 1
+    ? (reviewsPage?.meta?.hasNextPage ?? false)
+    : false; // simplified — if more pages, loadMore appends
 
-  // ── Load more reviews ───────────────────────────────────────────────────────
+  // ── Load more ───────────────────────────────────────────────────────────────
 
   const loadMore = async () => {
     setLoadingMore(true);
@@ -280,81 +294,70 @@ export default function ProductReviews({
         `/api/products/${productId}/reviews?page=${next}&limit=10`
       );
       const d = await r.json();
-      setReviews(prev => [...prev, ...((d?.data as Review[]) ?? [])]);
-      setHasMore(d?.meta?.hasNextPage ?? false);
+      setExtraReviews(prev => [...prev, ...((d?.data as Review[]) ?? [])]);
       setPage(next);
     } catch {
-      // silently ignore
+      notify.error("Gagal memuat ulasan tambahan");
     } finally {
       setLoadingMore(false);
     }
   };
 
-  // ── Submit review ───────────────────────────────────────────────────────────
+  // ── Submit review mutation ───────────────────────────────────────────────────
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (rating === 0) {
-      setSubmitError("Pilih rating bintang terlebih dahulu.");
-      return;
-    }
-    if (!orderId.trim()) {
-      setSubmitError("Pilih atau masukkan ID pesanan.");
-      return;
-    }
-
-    setSubmitting(true);
-    setSubmitError(null);
-
-    try {
+  const submitMutation = useMutation({
+    mutationFn: async (vars: SubmitReviewVars) => {
       const res = await fetch(`/api/products/${productId}/reviews`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          orderId: orderId.trim(),
-          rating,
-          title: title.trim() || null,
-          body: body.trim() || null,
-        }),
+        body: JSON.stringify(vars),
       });
-
       const data = (await res.json()) as {
         success?: boolean;
         error?: { message?: string };
       };
-
-      if (res.ok && data.success) {
-        setSubmitSuccess(true);
-        setShowForm(false);
-        setRating(0);
-        setTitle("");
-        setBody("");
-        setOrderId("");
-
-        // Refresh list + summary
-        const [s, r] = await Promise.all([
-          fetch(`/api/products/${productId}/summary`).then(x => x.json()),
-          fetch(`/api/products/${productId}/reviews?page=1&limit=10`).then(x =>
-            x.json()
-          ),
-        ]);
-        if (s?.data) {
-          setSummary(s.data as RatingSummary);
-        }
-        setReviews((r?.data as Review[]) ?? []);
-        setHasMore(r?.meta?.hasNextPage ?? false);
-        setPage(1);
-      } else {
-        setSubmitError(
+      if (!res.ok || !data.success) {
+        throw new Error(
           data.error?.message ??
             "Gagal mengirim ulasan. Pastikan kamu sudah membeli produk ini."
         );
       }
-    } catch {
-      setSubmitError("Terjadi kesalahan jaringan. Silakan coba lagi.");
-    } finally {
-      setSubmitting(false);
+      return data;
+    },
+    onSuccess: () => {
+      notify.success("Ulasan berhasil dikirim. Terima kasih!");
+      setShowForm(false);
+      setRating(0);
+      setTitle("");
+      setBody("");
+      setOrderId("");
+      setExtraReviews([]);
+      setPage(1);
+      // Refetch summary + reviews
+      void qc.invalidateQueries({ queryKey: ["product-summary", productId] });
+      void qc.invalidateQueries({ queryKey: ["product-reviews", productId, 1] });
+    },
+    onError: (err: Error) => {
+      notify.error(err.message);
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (rating === 0) {
+      notify.error("Pilih rating bintang terlebih dahulu.");
+      return;
     }
+    if (!orderId.trim()) {
+      notify.error("Pilih atau masukkan ID pesanan.");
+      return;
+    }
+    submitMutation.mutate({
+      orderId: orderId.trim(),
+      rating,
+      title: title.trim() || null,
+      body: body.trim() || null,
+    });
   };
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -402,7 +405,7 @@ export default function ProductReviews({
                     ))}
                   </div>
                 </div>
-              ) : !loading && summary?.count === 0 ? (
+              ) : summary?.count === 0 ? (
                 <div className="rounded-2xl border border-dashed border-gray-200 p-6 text-center">
                   <p className="text-3xl">⭐</p>
                   <p className="mt-2 text-sm font-medium text-gray-700">
@@ -417,7 +420,7 @@ export default function ProductReviews({
               {/* Write review button */}
               <div className="mt-4">
                 {isLoggedIn ? (
-                  submitSuccess ? (
+                  submitMutation.isSuccess ? (
                     <div className="rounded-xl bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
                       ✓ Ulasanmu berhasil dikirim. Terima kasih!
                     </div>
@@ -447,7 +450,7 @@ export default function ProductReviews({
               {showForm && isLoggedIn && (
                 <form
                   className="mt-4 space-y-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm"
-                  onSubmit={e => void handleSubmit(e)}
+                  onSubmit={handleSubmit}
                 >
                   <h3 className="text-sm font-semibold text-gray-900">
                     Beri Ulasanmu
@@ -531,24 +534,26 @@ export default function ProductReviews({
                     </p>
                   </div>
 
-                  {/* Error */}
-                  {submitError && (
+                  {/* Mutation error shown inline */}
+                  {submitMutation.isError && (
                     <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
-                      {submitError}
+                      {submitMutation.error instanceof Error
+                        ? submitMutation.error.message
+                        : "Gagal mengirim ulasan."}
                     </div>
                   )}
 
                   {/* Submit */}
                   <button
                     className={`w-full rounded-lg py-2.5 text-sm font-semibold transition-all ${
-                      rating === 0 || submitting
+                      rating === 0 || submitMutation.isPending
                         ? "cursor-not-allowed bg-gray-100 text-gray-400"
                         : "bg-accent text-white hover:opacity-90 active:scale-[0.98]"
                     }`}
-                    disabled={submitting || rating === 0}
+                    disabled={submitMutation.isPending || rating === 0}
                     type="submit"
                   >
-                    {submitting ? "Mengirim…" : "Kirim Ulasan"}
+                    {submitMutation.isPending ? "Mengirim…" : "Kirim Ulasan"}
                   </button>
                 </form>
               )}
@@ -570,7 +575,7 @@ export default function ProductReviews({
               )}
 
               {/* Load more */}
-              {hasMore && (
+              {(reviewsPage?.meta?.hasNextPage || (page > 1 && loadingMore)) && (
                 <button
                   className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50"
                   disabled={loadingMore}
@@ -591,5 +596,13 @@ export default function ProductReviews({
         )}
       </div>
     </section>
+  );
+}
+
+export default function ProductReviews(props: Props) {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ProductReviewsInner {...props} />
+    </QueryClientProvider>
   );
 }

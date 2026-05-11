@@ -8,6 +8,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { fetcherPatch } from "@/lib/fetcher";
+import { notify } from "@/lib/toast";
 import { queryKeys } from "@/lib/query-keys";
 import { userSchema, type UserProfile } from "@/hooks/queries/useUser";
 import type { UpdateProfileInput } from "@repo/common/schemas";
@@ -37,14 +38,19 @@ export function useUpdateUser() {
       return { previousUser };
     },
 
-    onError: (_, __, ctx) => {
+    onError: (err, __, ctx) => {
       if (ctx?.previousUser !== undefined) {
         qc.setQueryData(queryKeys.user(), ctx.previousUser);
       }
+      notify.error(
+        "Gagal memperbarui profil",
+        err instanceof Error ? err.message : undefined
+      );
     },
 
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.user() });
+      notify.success("Profil berhasil diperbarui!");
     },
   });
 }

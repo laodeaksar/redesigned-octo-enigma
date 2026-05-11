@@ -1,7 +1,9 @@
 // =============================================================================
 // AuthForm — React island for login and register (client:load)
 // Uses: TanStack Form v1, shadcn Input/Label/Button, sonner toasts
-// Validation: Zod safeParse from @repo/common/schemas (no adapter needed)
+// Validation: dynamic validators — onBlur (first touch) + onChange (after
+//             touch) + onSubmit — errors surface only after user interaction.
+//             Zod safeParse from @repo/common/schemas (adapter not needed v1).
 // =============================================================================
 
 import { useState } from "react";
@@ -25,9 +27,16 @@ interface Props {
   redirectTo?: string;
 }
 
-// ── Shared field error message ────────────────────────────────────────────────
+// ── Shared field error — only surfaces after user touches the field ────────────
 
-function FieldError({ errors }: { errors: (string | undefined)[] }) {
+function FieldError({
+  errors,
+  touched,
+}: {
+  errors: (string | undefined)[];
+  touched: boolean;
+}) {
+  if (!touched) return null;
   const message = errors.find(Boolean);
   if (!message) return null;
   return <p className="mt-1 text-xs text-red-500">{message}</p>;
@@ -67,10 +76,16 @@ function LoginForm({ redirectTo }: { redirectTo: string }) {
         form.handleSubmit();
       }}
     >
-      {/* Email */}
+      {/* Email — validates onBlur first, then onChange once touched */}
       <form.Field
         name="email"
         validators={{
+          onBlur: ({ value }) => {
+            const result = loginSchema.shape.email.safeParse(value);
+            return result.success
+              ? undefined
+              : (result.error.issues[0]?.message ?? "Email tidak valid");
+          },
           onChange: ({ value }) => {
             const result = loginSchema.shape.email.safeParse(value);
             return result.success
@@ -91,17 +106,29 @@ function LoginForm({ redirectTo }: { redirectTo: string }) {
               placeholder="email@kamu.com"
               type="email"
               value={field.state.value}
-              aria-invalid={field.state.meta.errors.length > 0}
+              aria-invalid={
+                field.state.meta.isTouched &&
+                field.state.meta.errors.length > 0
+              }
             />
-            <FieldError errors={field.state.meta.errors as string[]} />
+            <FieldError
+              errors={field.state.meta.errors as string[]}
+              touched={field.state.meta.isTouched}
+            />
           </div>
         )}
       </form.Field>
 
-      {/* Password */}
+      {/* Password — validates onBlur first, then onChange once touched */}
       <form.Field
         name="password"
         validators={{
+          onBlur: ({ value }) => {
+            const result = loginSchema.shape.password.safeParse(value);
+            return result.success
+              ? undefined
+              : (result.error.issues[0]?.message ?? "Password diperlukan");
+          },
           onChange: ({ value }) => {
             const result = loginSchema.shape.password.safeParse(value);
             return result.success
@@ -122,14 +149,19 @@ function LoginForm({ redirectTo }: { redirectTo: string }) {
                 placeholder="Password kamu"
                 type={showPassword ? "text" : "password"}
                 value={field.state.value}
-                aria-invalid={field.state.meta.errors.length > 0}
+                aria-invalid={
+                  field.state.meta.isTouched &&
+                  field.state.meta.errors.length > 0
+                }
                 className="pr-10"
               />
               <button
                 className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 onClick={() => setShowPassword((s) => !s)}
                 type="button"
-                aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+                aria-label={
+                  showPassword ? "Sembunyikan password" : "Tampilkan password"
+                }
               >
                 {showPassword ? (
                   <EyeOff className="size-4" />
@@ -138,7 +170,10 @@ function LoginForm({ redirectTo }: { redirectTo: string }) {
                 )}
               </button>
             </div>
-            <FieldError errors={field.state.meta.errors as string[]} />
+            <FieldError
+              errors={field.state.meta.errors as string[]}
+              touched={field.state.meta.isTouched}
+            />
           </div>
         )}
       </form.Field>
@@ -166,7 +201,10 @@ function LoginForm({ redirectTo }: { redirectTo: string }) {
 
       <p className="text-center text-sm text-gray-500">
         Belum punya akun?{" "}
-        <a className="text-accent font-medium hover:underline" href="/auth/register">
+        <a
+          className="text-accent font-medium hover:underline"
+          href="/auth/register"
+        >
           Daftar
         </a>
       </p>
@@ -190,13 +228,12 @@ function RegisterForm({ redirectTo }: { redirectTo: string }) {
     onSubmit: async ({ value }) => {
       const result = registerSchema.safeParse(value);
       if (!result.success) {
-        const firstIssue = result.error.issues[0];
         toast.error("Data tidak valid", {
-          description: firstIssue?.message ?? "Periksa kembali isian kamu.",
+          description:
+            result.error.issues[0]?.message ?? "Periksa kembali isian kamu.",
         });
         return;
       }
-
       await new Promise<void>((resolve, reject) => {
         registerMutation.mutate(result.data, {
           onSuccess: () => {
@@ -226,6 +263,12 @@ function RegisterForm({ redirectTo }: { redirectTo: string }) {
       <form.Field
         name="name"
         validators={{
+          onBlur: ({ value }) => {
+            const result = registerSchema.shape.name.safeParse(value);
+            return result.success
+              ? undefined
+              : (result.error.issues[0]?.message ?? "Nama tidak valid");
+          },
           onChange: ({ value }) => {
             const result = registerSchema.shape.name.safeParse(value);
             return result.success
@@ -246,9 +289,15 @@ function RegisterForm({ redirectTo }: { redirectTo: string }) {
               placeholder="Nama kamu"
               type="text"
               value={field.state.value}
-              aria-invalid={field.state.meta.errors.length > 0}
+              aria-invalid={
+                field.state.meta.isTouched &&
+                field.state.meta.errors.length > 0
+              }
             />
-            <FieldError errors={field.state.meta.errors as string[]} />
+            <FieldError
+              errors={field.state.meta.errors as string[]}
+              touched={field.state.meta.isTouched}
+            />
           </div>
         )}
       </form.Field>
@@ -257,6 +306,12 @@ function RegisterForm({ redirectTo }: { redirectTo: string }) {
       <form.Field
         name="email"
         validators={{
+          onBlur: ({ value }) => {
+            const result = registerSchema.shape.email.safeParse(value);
+            return result.success
+              ? undefined
+              : (result.error.issues[0]?.message ?? "Email tidak valid");
+          },
           onChange: ({ value }) => {
             const result = registerSchema.shape.email.safeParse(value);
             return result.success
@@ -277,9 +332,15 @@ function RegisterForm({ redirectTo }: { redirectTo: string }) {
               placeholder="email@kamu.com"
               type="email"
               value={field.state.value}
-              aria-invalid={field.state.meta.errors.length > 0}
+              aria-invalid={
+                field.state.meta.isTouched &&
+                field.state.meta.errors.length > 0
+              }
             />
-            <FieldError errors={field.state.meta.errors as string[]} />
+            <FieldError
+              errors={field.state.meta.errors as string[]}
+              touched={field.state.meta.isTouched}
+            />
           </div>
         )}
       </form.Field>
@@ -288,6 +349,12 @@ function RegisterForm({ redirectTo }: { redirectTo: string }) {
       <form.Field
         name="password"
         validators={{
+          onBlur: ({ value }) => {
+            const result = registerSchema.shape.password.safeParse(value);
+            return result.success
+              ? undefined
+              : (result.error.issues[0]?.message ?? "Password tidak valid");
+          },
           onChange: ({ value }) => {
             const result = registerSchema.shape.password.safeParse(value);
             return result.success
@@ -308,14 +375,19 @@ function RegisterForm({ redirectTo }: { redirectTo: string }) {
                 placeholder="Min. 8 karakter"
                 type={showPassword ? "text" : "password"}
                 value={field.state.value}
-                aria-invalid={field.state.meta.errors.length > 0}
+                aria-invalid={
+                  field.state.meta.isTouched &&
+                  field.state.meta.errors.length > 0
+                }
                 className="pr-10"
               />
               <button
                 className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 onClick={() => setShowPassword((s) => !s)}
                 type="button"
-                aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+                aria-label={
+                  showPassword ? "Sembunyikan password" : "Tampilkan password"
+                }
               >
                 {showPassword ? (
                   <EyeOff className="size-4" />
@@ -324,16 +396,25 @@ function RegisterForm({ redirectTo }: { redirectTo: string }) {
                 )}
               </button>
             </div>
-            <FieldError errors={field.state.meta.errors as string[]} />
+            <FieldError
+              errors={field.state.meta.errors as string[]}
+              touched={field.state.meta.isTouched}
+            />
           </div>
         )}
       </form.Field>
 
-      {/* Konfirmasi Password */}
+      {/* Konfirmasi Password — dynamic: listens to password field changes */}
       <form.Field
         name="confirmPassword"
         validators={{
           onChangeListenTo: ["password"],
+          onBlur: ({ value, fieldApi }) => {
+            const password = fieldApi.form.getFieldValue("password");
+            if (!value) return "Konfirmasi password diperlukan";
+            if (value !== password) return "Password tidak cocok";
+            return undefined;
+          },
           onChange: ({ value, fieldApi }) => {
             const password = fieldApi.form.getFieldValue("password");
             if (!value) return "Konfirmasi password diperlukan";
@@ -344,7 +425,9 @@ function RegisterForm({ redirectTo }: { redirectTo: string }) {
       >
         {(field) => (
           <div>
-            <Label htmlFor="register-confirm-password">Konfirmasi Password</Label>
+            <Label htmlFor="register-confirm-password">
+              Konfirmasi Password
+            </Label>
             <Input
               autoComplete="new-password"
               className="mt-1.5"
@@ -354,9 +437,15 @@ function RegisterForm({ redirectTo }: { redirectTo: string }) {
               placeholder="Ulangi password"
               type="password"
               value={field.state.value}
-              aria-invalid={field.state.meta.errors.length > 0}
+              aria-invalid={
+                field.state.meta.isTouched &&
+                field.state.meta.errors.length > 0
+              }
             />
-            <FieldError errors={field.state.meta.errors as string[]} />
+            <FieldError
+              errors={field.state.meta.errors as string[]}
+              touched={field.state.meta.isTouched}
+            />
           </div>
         )}
       </form.Field>
@@ -377,7 +466,10 @@ function RegisterForm({ redirectTo }: { redirectTo: string }) {
 
       <p className="text-center text-sm text-gray-500">
         Sudah punya akun?{" "}
-        <a className="text-accent font-medium hover:underline" href="/auth/login">
+        <a
+          className="text-accent font-medium hover:underline"
+          href="/auth/login"
+        >
           Masuk
         </a>
       </p>
@@ -385,7 +477,7 @@ function RegisterForm({ redirectTo }: { redirectTo: string }) {
   );
 }
 
-// ── Inner component (needs QueryClientProvider context) ───────────────────────
+// ── Inner component ───────────────────────────────────────────────────────────
 
 function AuthFormInner({ mode, redirectTo = "/" }: Props) {
   return mode === "login" ? (

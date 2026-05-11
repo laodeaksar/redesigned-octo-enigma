@@ -4,106 +4,102 @@
 
 import { useState } from "react";
 import type React from "react";
+import { useMutation, QueryClientProvider } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
+import { queryClient } from "@/lib/query-client";
+import { notify } from "@/lib/toast";
 
 interface Props {
   mode: "login" | "register";
   redirectTo?: string;
 }
 
-export default function AuthForm({ mode, redirectTo = "/" }: Props) {
+interface TokenResponse {
+  data: {
+    accessToken: string;
+    expiresIn: number;
+    refreshToken: string;
+  };
+  success: true;
+}
+
+// Sets httpOnly cookies via the Astro SSR endpoint — must stay as raw fetch
+// because this is a same-origin call to an Astro API route (not the gateway).
+async function setSession(tokens: TokenResponse["data"]): Promise<void> {
+  await fetch("/api/auth/session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      expiresIn: tokens.expiresIn,
+    }),
+  });
+}
+
+// ── Inner component (needs QueryClientProvider context) ───────────────────────
+
+function AuthFormInner({ mode, redirectTo = "/" }: Props) {
   const [form, setForm] = useState({
     name: "",
     email: "",
     password: "",
     confirmPassword: "",
   });
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
   const isLogin = mode === "login";
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const authMutation = useMutation({
+    mutationFn: async (values: typeof form) => {
+      if (isLogin) {
+        const res = await api.post<TokenResponse>("/auth/login", {
+          email: values.email,
+          password: values.password,
+        });
+        await setSession(res.data);
+      } else {
+        await api.post("/auth/register", {
+          name: values.name,
+          email: values.email,
+          password: values.password,
+          confirmPassword: values.confirmPassword,
+        });
+        // Auto-login after registration
+        const res = await api.post<TokenResponse>("/auth/login", {
+          email: values.email,
+          password: values.password,
+        });
+        await setSession(res.data);
+      }
+    },
+    onSuccess: () => {
+      window.location.href = redirectTo;
+    },
+    onError: (err: Error) => {
+      notify.error(
+        isLogin ? "Gagal masuk" : "Gagal mendaftar",
+        err.message ?? "Terjadi kesalahan. Coba lagi."
+      );
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
 
     if (!isLogin && form.password !== form.confirmPassword) {
-      setError("Password tidak cocok");
+      notify.error("Password tidak cocok", "Pastikan kedua password sama.");
       return;
     }
 
-    setIsLoading(true);
-
-    try {
-      if (isLogin) {
-        const res = await api.post<{
-          success: true;
-          data: {
-            accessToken: string;
-            refreshToken: string;
-            expiresIn: number;
-          };
-        }>("/auth/login", { email: form.email, password: form.password });
-
-        // Post tokens to SSR endpoint to set httpOnly cookies
-        await fetch("/api/auth/session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            accessToken: res.data.accessToken,
-            refreshToken: res.data.refreshToken,
-            expiresIn: res.data.expiresIn,
-          }),
-        });
-      } else {
-        await api.post("/auth/register", {
-          name: form.name,
-          email: form.email,
-          password: form.password,
-          confirmPassword: form.confirmPassword,
-        });
-
-        // Auto-login after registration
-        const res = await api.post<{
-          success: true;
-          data: {
-            accessToken: string;
-            refreshToken: string;
-            expiresIn: number;
-          };
-        }>("/auth/login", { email: form.email, password: form.password });
-
-        await fetch("/api/auth/session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            accessToken: res.data.accessToken,
-            refreshToken: res.data.refreshToken,
-            expiresIn: res.data.expiresIn,
-          }),
-        });
-      }
-
-      window.location.href = redirectTo;
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Terjadi kesalahan. Coba lagi."
-      );
-    } finally {
-      setIsLoading(false);
-    }
+    authMutation.mutate(form);
   };
 
-  return (
-    <form className="space-y-4" onSubmit={e => void handleSubmit(e)}>
-      {error && (
-        <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+  const isPending = authMutation.isPending;
 
+  return (
+    <form className="space-y-4" onSubmit={handleSubmit}>
       {!isLogin && (
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700">
@@ -193,10 +189,10 @@ export default function AuthForm({ mode, redirectTo = "/" }: Props) {
 
       <button
         className="bg-accent w-full rounded-lg py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-        disabled={isLoading}
+        disabled={isPending}
         type="submit"
       >
-        {isLoading
+        {isPending
           ? isLogin
             ? "Masuk…"
             : "Mendaftar…"
@@ -229,5 +225,15 @@ export default function AuthForm({ mode, redirectTo = "/" }: Props) {
         )}
       </p>
     </form>
+  );
+}
+
+// ── Exported island (wraps with QueryClientProvider) ─────────────────────────
+
+export default function AuthForm(props: Props) {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthFormInner {...props} />
+    </QueryClientProvider>
   );
 }

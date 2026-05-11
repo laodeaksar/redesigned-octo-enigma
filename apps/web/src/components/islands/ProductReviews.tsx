@@ -3,7 +3,7 @@
 // Shows rating summary + paginated review list + write-review form.
 // =============================================================================
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type React from "react";
 import {
   useQuery,
@@ -12,7 +12,9 @@ import {
   QueryClientProvider,
 } from "@tanstack/react-query";
 
+import { api, apiProxy } from "@/lib/api";
 import { queryClient } from "@/lib/query-client";
+import { queryKeys } from "@/lib/query-keys";
 import { notify } from "@/lib/toast";
 import { formatRelativeTime } from "@/lib/utils";
 
@@ -48,16 +50,17 @@ interface Props {
   productName: string;
 }
 
-interface ReviewsPage {
+interface ReviewsEnvelope {
   data: Review[];
   meta: { hasNextPage: boolean };
+  success: true;
 }
 
 interface SubmitReviewVars {
+  body: string | null;
   orderId: string;
   rating: number;
   title: string | null;
-  body: string | null;
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -246,43 +249,49 @@ function ProductReviewsInner({
   // ── Queries ─────────────────────────────────────────────────────────────────
 
   const { data: summary, isPending: summaryLoading } = useQuery<RatingSummary | null>({
-    queryKey: ["product-summary", productId],
-    queryFn: () =>
-      fetch(`/api/products/${productId}/summary`)
-        .then(r => r.json())
-        .then(d => (d?.data as RatingSummary) ?? null),
+    queryKey: queryKeys.reviews.summary(productId),
+    queryFn: async () => {
+      const res = await api.get<{ success: true; data: RatingSummary | null }>(
+        `/products/${productId}/summary`
+      );
+      return res.data ?? null;
+    },
     staleTime: 60 * 1000,
   });
 
-  const { data: reviewsPage, isPending: reviewsLoading } = useQuery<ReviewsPage>({
-    queryKey: ["product-reviews", productId, 1],
+  const { data: reviewsPage, isPending: reviewsLoading } = useQuery<ReviewsEnvelope>({
+    queryKey: queryKeys.reviews.list(productId, 1),
     queryFn: () =>
-      fetch(`/api/products/${productId}/reviews?page=1&limit=10`).then(r =>
-        r.json()
-      ),
+      api.get<ReviewsEnvelope>(`/products/${productId}/reviews`, {
+        params: { page: 1, limit: 10 },
+      }),
     staleTime: 60 * 1000,
   });
 
   const { data: orders = [], isPending: ordersLoading } = useQuery<UserOrder[]>({
-    queryKey: ["orders", "me", "for-review"],
-    queryFn: () =>
-      fetch("/api/orders?limit=30")
-        .then(r => r.json())
-        .then(d => {
-          const list = (d?.data as UserOrder[]) ?? [];
-          if (list.length > 0 && !orderId) setOrderId(list[0].id);
-          return list;
-        }),
+    queryKey: queryKeys.orders.list({ limit: 30 }),
+    queryFn: async () => {
+      const res = await apiProxy.get<{ success: true; data: UserOrder[] }>(
+        "/orders/me",
+        { params: { limit: 30 } }
+      );
+      return res.data ?? [];
+    },
     enabled: showForm && isLoggedIn,
     staleTime: 5 * 60 * 1000,
   });
 
+  // Auto-select first order when list loads
+  useEffect(() => {
+    if (orders.length > 0 && !orderId) {
+      setOrderId(orders[0].id);
+    }
+  }, [orders, orderId]);
+
   const loading = summaryLoading || reviewsLoading;
-  const initialReviews = (reviewsPage?.data as Review[]) ?? [];
+  const initialReviews = reviewsPage?.data ?? [];
   const reviews = page === 1 ? initialReviews : [...initialReviews, ...extraReviews];
-  const hasMore = page === 1
-    ? (reviewsPage?.meta?.hasNextPage ?? false)
-    : false; // simplified — if more pages, loadMore appends
+  const hasMore = reviewsPage?.meta?.hasNextPage ?? false;
 
   // ── Load more ───────────────────────────────────────────────────────────────
 
@@ -290,11 +299,11 @@ function ProductReviewsInner({
     setLoadingMore(true);
     const next = page + 1;
     try {
-      const r = await fetch(
-        `/api/products/${productId}/reviews?page=${next}&limit=10`
+      const res = await api.get<ReviewsEnvelope>(
+        `/products/${productId}/reviews`,
+        { params: { page: next, limit: 10 } }
       );
-      const d = await r.json();
-      setExtraReviews(prev => [...prev, ...((d?.data as Review[]) ?? [])]);
+      setExtraReviews(prev => [...prev, ...(res.data ?? [])]);
       setPage(next);
     } catch {
       notify.error("Gagal memuat ulasan tambahan");
@@ -306,24 +315,8 @@ function ProductReviewsInner({
   // ── Submit review mutation ───────────────────────────────────────────────────
 
   const submitMutation = useMutation({
-    mutationFn: async (vars: SubmitReviewVars) => {
-      const res = await fetch(`/api/products/${productId}/reviews`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(vars),
-      });
-      const data = (await res.json()) as {
-        success?: boolean;
-        error?: { message?: string };
-      };
-      if (!res.ok || !data.success) {
-        throw new Error(
-          data.error?.message ??
-            "Gagal mengirim ulasan. Pastikan kamu sudah membeli produk ini."
-        );
-      }
-      return data;
-    },
+    mutationFn: (vars: SubmitReviewVars) =>
+      apiProxy.post(`/products/${productId}/reviews`, vars),
     onSuccess: () => {
       notify.success("Ulasan berhasil dikirim. Terima kasih!");
       setShowForm(false);
@@ -333,9 +326,8 @@ function ProductReviewsInner({
       setOrderId("");
       setExtraReviews([]);
       setPage(1);
-      // Refetch summary + reviews
-      void qc.invalidateQueries({ queryKey: ["product-summary", productId] });
-      void qc.invalidateQueries({ queryKey: ["product-reviews", productId, 1] });
+      // Invalidate parent key — purges both summary and list
+      void qc.invalidateQueries({ queryKey: queryKeys.reviews.forProduct(productId) });
     },
     onError: (err: Error) => {
       notify.error(err.message);
@@ -534,7 +526,7 @@ function ProductReviewsInner({
                     </p>
                   </div>
 
-                  {/* Mutation error shown inline */}
+                  {/* Mutation error shown inline (below form, above submit) */}
                   {submitMutation.isError && (
                     <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
                       {submitMutation.error instanceof Error
@@ -575,7 +567,7 @@ function ProductReviewsInner({
               )}
 
               {/* Load more */}
-              {(reviewsPage?.meta?.hasNextPage || (page > 1 && loadingMore)) && (
+              {(hasMore || (page > 1 && loadingMore)) && (
                 <button
                   className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50"
                   disabled={loadingMore}

@@ -71,8 +71,27 @@ export const queryKeys = {
 
   // ── Reviews ──────────────────────────────────────────────────────────────────
   reviews: {
-    all: ()                   => [STOREFRONT, "reviews"]           as const,
+    all: ()                       => [STOREFRONT, "reviews"]           as const,
+    // Parent key — invalidating this purges both summary and list for a product
     forProduct: (productId: string) =>
                     [STOREFRONT, "reviews", productId]             as const,
+    // Rating summary (average + breakdown)
+    summary: (productId: string) =>
+                    [STOREFRONT, "reviews", productId, "summary"]  as const,
+    // Paginated review list
+    list: (productId: string, page = 1) =>
+                    [STOREFRONT, "reviews", productId, "list", page] as const,
+  },
+
+  // ── Addresses ────────────────────────────────────────────────────────────────
+  addresses: {
+    all:  ()      => [STOREFRONT, "addresses"]                     as const,
+    list: ()      => [STOREFRONT, "addresses", "list"]             as const,
+  },
+
+  // ── Shipping ─────────────────────────────────────────────────────────────────
+  shipping: {
+    rates: (cityId: string | undefined, weightGrams: number) =>
+                    [STOREFRONT, "shipping", "rates", cityId ?? "", weightGrams] as const,
   },
 } as const;

@@ -35,6 +35,7 @@ apps/
   product-service/  ← Elysia.js (port 3002)
   order-service/    ← Elysia.js (port 3003)
   payment-service/  ← Elysia.js (port 8000)
+  checkout/         ← Hono+Bun SCAFFOLD (port 3004, NOT active — see ADR-003)
 packages/
   database/         ← Drizzle schema + migrations
   common/           ← Shared Zod schemas, types, errors

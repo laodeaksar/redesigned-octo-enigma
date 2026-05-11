@@ -126,10 +126,16 @@ ADR lengkap: [ADR-001](./docs/ADR-001-fresh-vs-astro-checkout.md) · [ADR-003](.
 
 #### Jalur Jika Checkout Perlu Isolasi
 
-Jika checkout traffic > 50% total ATAU butuh independent deploy:
-- Buat `apps/checkout` sebagai **Hono+Bun** — bukan Fresh/Deno
-- Alasan: 1 runtime, shared `@repo/*` langsung, session + cart API yang sama
-- Lihat ADR-003 untuk prosedur lengkap
+`apps/checkout` **sudah ada sebagai scaffold** (port 3004, tidak aktif). Untuk mengaktifkan:
+1. Tambah workflow `Checkout Service` → `cd apps/checkout && PORT=3004 bun run dev`
+2. Set `API_GATEWAY_URL=http://localhost:3000` dan `JWT_SECRET` di env
+3. Update `apps/web` agar checkout calls menuju port 3004, bukan langsung ke gateway
+
+Scaffold mencakup: Hono app factory, env Zod, JWT verify, gateway fetch helper,
+auth middleware, health routes, semua checkout endpoints (cart/addresses/shipping/vouchers/orders/payments).
+Semua `@repo/common` dan `@repo/ui` imports terverifikasi bekerja langsung via Bun workspace.
+
+Lihat ADR-003 untuk trigger dan prosedur lengkap.
 
 #### Guardrails Aktif
 

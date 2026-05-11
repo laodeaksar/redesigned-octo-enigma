@@ -34,10 +34,9 @@ export class AppError extends Error {
   readonly details?: ErrorDetail[] | undefined;
   readonly meta?: Record<string, unknown> | undefined;
   readonly isOperational: boolean;
-  readonly cause?: unknown;
+  override readonly cause?: unknown;
   constructor(options: AppErrorOptions) {
     // Pass cause to Error so Node/V8 can chain stacks properly
-    //@ts-expect-error
     super(options.message, { cause: options.cause });
 
     this.name = this.constructor.name;

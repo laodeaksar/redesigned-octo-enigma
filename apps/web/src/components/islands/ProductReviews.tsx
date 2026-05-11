@@ -5,62 +5,23 @@
 
 import { useEffect, useState } from "react";
 import type React from "react";
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-  QueryClientProvider,
-} from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 
-import { api, apiProxy } from "@/lib/api";
+import { api } from "@/lib/api";
 import { queryClient } from "@/lib/query-client";
-import { queryKeys } from "@/lib/query-keys";
+import { useProductSummary } from "@/hooks/queries/useProductSummary";
+import { useProductReviews, type Review } from "@/hooks/queries/useProductReviews";
+import { useOrders } from "@/hooks/queries/useOrders";
+import { useSubmitReview } from "@/hooks/mutations/useSubmitReview";
 import { notify } from "@/lib/toast";
 import { formatRelativeTime } from "@/lib/utils";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-interface Review {
-  body: string | null;
-  createdAt: string;
-  id: string;
-  imageUrls: string[];
-  isVerifiedPurchase: boolean;
-  rating: number;
-  title: string | null;
-  userId: string;
-}
-
-interface RatingSummary {
-  average: number;
-  breakdown: Record<string, number>;
-  count: number;
-}
-
-interface UserOrder {
-  createdAt: string;
-  id: string;
-  orderNumber: string;
-  status: string;
-}
-
 interface Props {
   isLoggedIn: boolean;
   productId: string;
   productName: string;
-}
-
-interface ReviewsEnvelope {
-  data: Review[];
-  meta: { hasNextPage: boolean };
-  success: true;
-}
-
-interface SubmitReviewVars {
-  body: string | null;
-  orderId: string;
-  rating: number;
-  title: string | null;
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -164,22 +125,16 @@ function ReviewCard({ review }: { review: Review }) {
   const initials = review.userId.slice(0, 2).toUpperCase();
   return (
     <div className="flex gap-3 py-5 first:pt-0">
-      {/* Avatar */}
       <div className="bg-brand-100 text-brand-600 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold">
         {initials}
       </div>
 
       <div className="min-w-0 flex-1">
-        {/* Header row */}
         <div className="flex flex-wrap items-center gap-2">
           <StarDisplay rating={review.rating} size="sm" />
           {review.isVerifiedPurchase && (
             <span className="inline-flex items-center gap-0.5 rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-600">
-              <svg
-                className="h-2.5 w-2.5"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
+              <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20">
                 <path
                   clipRule="evenodd"
                   d="M16.403 12.652a3 3 0 0 0 0-5.304 3 3 0 0 0-3.75-3.751 3 3 0 0 0-5.305 0 3 3 0 0 0-3.751 3.75 3 3 0 0 0 0 5.305 3 3 0 0 0 3.75 3.751 3 3 0 0 0 5.305 0 3 3 0 0 0 3.751-3.75Zm-2.546-4.46a.75.75 0 0 0-1.214-.883l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z"
@@ -194,21 +149,18 @@ function ReviewCard({ review }: { review: Review }) {
           </span>
         </div>
 
-        {/* Title */}
         {review.title && (
           <p className="mt-1.5 text-sm font-semibold text-gray-900">
             {review.title}
           </p>
         )}
 
-        {/* Body */}
         {review.body && (
           <p className="mt-1 text-sm leading-relaxed text-gray-600">
             {review.body}
           </p>
         )}
 
-        {/* Images */}
         {review.imageUrls.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-2">
             {review.imageUrls.map((url, i) => (
@@ -229,12 +181,7 @@ function ReviewCard({ review }: { review: Review }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-function ProductReviewsInner({
-  productId,
-  productName,
-  isLoggedIn,
-}: Props) {
-  const qc = useQueryClient();
+function ProductReviewsInner({ productId, productName, isLoggedIn }: Props) {
   const [page, setPage] = useState(1);
   const [extraReviews, setExtraReviews] = useState<Review[]>([]);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -246,40 +193,24 @@ function ProductReviewsInner({
   const [body, setBody] = useState("");
   const [orderId, setOrderId] = useState("");
 
-  // ── Queries ─────────────────────────────────────────────────────────────────
+  // ── Queries (using reusable hooks) ──────────────────────────────────────────
 
-  const { data: summary, isPending: summaryLoading } = useQuery<RatingSummary | null>({
-    queryKey: queryKeys.reviews.summary(productId),
-    queryFn: async () => {
-      const res = await api.get<{ success: true; data: RatingSummary | null }>(
-        `/products/${productId}/summary`
-      );
-      return res.data ?? null;
-    },
-    staleTime: 60 * 1000,
-  });
+  const { data: summary, isPending: summaryLoading } =
+    useProductSummary(productId);
 
-  const { data: reviewsPage, isPending: reviewsLoading } = useQuery<ReviewsEnvelope>({
-    queryKey: queryKeys.reviews.list(productId, 1),
-    queryFn: () =>
-      api.get<ReviewsEnvelope>(`/products/${productId}/reviews`, {
-        params: { page: 1, limit: 10 },
-      }),
-    staleTime: 60 * 1000,
-  });
+  const { data: reviewsPage, isPending: reviewsLoading } =
+    useProductReviews(productId, 1);
 
-  const { data: orders = [], isPending: ordersLoading } = useQuery<UserOrder[]>({
-    queryKey: queryKeys.orders.list({ limit: 30 }),
-    queryFn: async () => {
-      const res = await apiProxy.get<{ success: true; data: UserOrder[] }>(
-        "/orders/me",
-        { params: { limit: 30 } }
-      );
-      return res.data ?? [];
-    },
+  const { data: ordersData, isPending: ordersLoading } = useOrders({
     enabled: showForm && isLoggedIn,
-    staleTime: 5 * 60 * 1000,
+    params: { limit: 30 },
   });
+
+  const orders = ordersData?.items ?? [];
+
+  // ── Mutation (using reusable hook) ──────────────────────────────────────────
+
+  const submitMutation = useSubmitReview(productId);
 
   // Auto-select first order when list loads
   useEffect(() => {
@@ -293,13 +224,13 @@ function ProductReviewsInner({
   const reviews = page === 1 ? initialReviews : [...initialReviews, ...extraReviews];
   const hasMore = reviewsPage?.meta?.hasNextPage ?? false;
 
-  // ── Load more ───────────────────────────────────────────────────────────────
+  // ── Load more (manual pagination — useInfiniteQuery upgrade deferred) ────────
 
   const loadMore = async () => {
     setLoadingMore(true);
     const next = page + 1;
     try {
-      const res = await api.get<ReviewsEnvelope>(
+      const res = await api.get<{ data: Review[]; meta: { hasNextPage: boolean }; success: true }>(
         `/products/${productId}/reviews`,
         { params: { page: next, limit: 10 } }
       );
@@ -312,27 +243,7 @@ function ProductReviewsInner({
     }
   };
 
-  // ── Submit review mutation ───────────────────────────────────────────────────
-
-  const submitMutation = useMutation({
-    mutationFn: (vars: SubmitReviewVars) =>
-      apiProxy.post(`/products/${productId}/reviews`, vars),
-    onSuccess: () => {
-      notify.success("Ulasan berhasil dikirim. Terima kasih!");
-      setShowForm(false);
-      setRating(0);
-      setTitle("");
-      setBody("");
-      setOrderId("");
-      setExtraReviews([]);
-      setPage(1);
-      // Invalidate parent key — purges both summary and list
-      void qc.invalidateQueries({ queryKey: queryKeys.reviews.forProduct(productId) });
-    },
-    onError: (err: Error) => {
-      notify.error(err.message);
-    },
-  });
+  // ── Submit ───────────────────────────────────────────────────────────────────
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -344,12 +255,25 @@ function ProductReviewsInner({
       notify.error("Pilih atau masukkan ID pesanan.");
       return;
     }
-    submitMutation.mutate({
-      orderId: orderId.trim(),
-      rating,
-      title: title.trim() || null,
-      body: body.trim() || null,
-    });
+    submitMutation.mutate(
+      {
+        orderId: orderId.trim(),
+        rating,
+        title: title.trim() || null,
+        body: body.trim() || null,
+      },
+      {
+        onSuccess: () => {
+          setShowForm(false);
+          setRating(0);
+          setTitle("");
+          setBody("");
+          setOrderId("");
+          setExtraReviews([]);
+          setPage(1);
+        },
+      }
+    );
   };
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -359,7 +283,6 @@ function ProductReviewsInner({
       <div className="container mx-auto px-4">
         <h2 className="mb-8 text-xl font-bold text-gray-900">Ulasan Pembeli</h2>
 
-        {/* ── Loading ──────────────────────────────────────────────────────── */}
         {loading && (
           <div className="flex h-32 items-center justify-center">
             <div className="border-brand-500 h-7 w-7 animate-spin rounded-full border-4 border-t-transparent" />
@@ -372,7 +295,6 @@ function ProductReviewsInner({
             <div className="lg:col-span-1">
               {summary && summary.count > 0 ? (
                 <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-                  {/* Average */}
                   <div className="mb-4 flex items-end gap-3">
                     <span className="text-5xl leading-none font-extrabold text-gray-900">
                       {summary.average.toFixed(1)}
@@ -384,12 +306,10 @@ function ProductReviewsInner({
                       </p>
                     </div>
                   </div>
-
-                  {/* Breakdown bars */}
                   <div className="space-y-1.5">
                     {[5, 4, 3, 2, 1].map(star => (
                       <RatingBar
-                        count={summary.breakdown[star] ?? 0}
+                        count={summary.breakdown[String(star)] ?? 0}
                         key={star}
                         star={star}
                         total={summary.count}
@@ -438,7 +358,7 @@ function ProductReviewsInner({
                 )}
               </div>
 
-              {/* ── Write-review form ──────────────────────────────────── */}
+              {/* Write-review form */}
               {showForm && isLoggedIn && (
                 <form
                   className="mt-4 space-y-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm"
@@ -448,7 +368,6 @@ function ProductReviewsInner({
                     Beri Ulasanmu
                   </h3>
 
-                  {/* Star picker */}
                   <div>
                     <label className="mb-1.5 block text-xs font-medium text-gray-700">
                       Rating <span className="text-red-500">*</span>
@@ -456,7 +375,6 @@ function ProductReviewsInner({
                     <StarPicker onChange={setRating} value={rating} />
                   </div>
 
-                  {/* Order selector */}
                   <div>
                     <label className="mb-1.5 block text-xs font-medium text-gray-700">
                       Pesanan <span className="text-red-500">*</span>
@@ -493,7 +411,6 @@ function ProductReviewsInner({
                     </p>
                   </div>
 
-                  {/* Title */}
                   <div>
                     <label className="mb-1.5 block text-xs font-medium text-gray-700">
                       Judul <span className="text-gray-400">(opsional)</span>
@@ -508,7 +425,6 @@ function ProductReviewsInner({
                     />
                   </div>
 
-                  {/* Body */}
                   <div>
                     <label className="mb-1.5 block text-xs font-medium text-gray-700">
                       Ulasan <span className="text-gray-400">(opsional)</span>
@@ -526,7 +442,6 @@ function ProductReviewsInner({
                     </p>
                   </div>
 
-                  {/* Mutation error shown inline (below form, above submit) */}
                   {submitMutation.isError && (
                     <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
                       {submitMutation.error instanceof Error
@@ -535,7 +450,6 @@ function ProductReviewsInner({
                     </div>
                   )}
 
-                  {/* Submit */}
                   <button
                     className={`w-full rounded-lg py-2.5 text-sm font-semibold transition-all ${
                       rating === 0 || submitMutation.isPending
@@ -553,7 +467,7 @@ function ProductReviewsInner({
 
             {/* ── Right: reviews list ──────────────────────────────────── */}
             <div className="lg:col-span-2">
-              {reviews.length === 0 && !loading ? (
+              {reviews.length === 0 ? (
                 <div className="flex h-40 flex-col items-center justify-center gap-2 text-gray-400">
                   <span className="text-4xl">💬</span>
                   <p className="text-sm">Belum ada ulasan untuk produk ini.</p>
@@ -566,7 +480,6 @@ function ProductReviewsInner({
                 </div>
               )}
 
-              {/* Load more */}
               {(hasMore || (page > 1 && loadingMore)) && (
                 <button
                   className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50"

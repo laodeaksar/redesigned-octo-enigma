@@ -4,38 +4,16 @@
 
 import { useState } from "react";
 import type React from "react";
-import { useMutation, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 
-import { api } from "@/lib/api";
 import { queryClient } from "@/lib/query-client";
+import { useLogin } from "@/hooks/mutations/useLogin";
+import { useRegister } from "@/hooks/mutations/useRegister";
 import { notify } from "@/lib/toast";
 
 interface Props {
   mode: "login" | "register";
   redirectTo?: string;
-}
-
-interface TokenResponse {
-  data: {
-    accessToken: string;
-    expiresIn: number;
-    refreshToken: string;
-  };
-  success: true;
-}
-
-// Sets httpOnly cookies via the Astro SSR endpoint — must stay as raw fetch
-// because this is a same-origin call to an Astro API route (not the gateway).
-async function setSession(tokens: TokenResponse["data"]): Promise<void> {
-  await fetch("/api/auth/session", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-      expiresIn: tokens.expiresIn,
-    }),
-  });
 }
 
 // ── Inner component (needs QueryClientProvider context) ───────────────────────
@@ -51,39 +29,10 @@ function AuthFormInner({ mode, redirectTo = "/" }: Props) {
 
   const isLogin = mode === "login";
 
-  const authMutation = useMutation({
-    mutationFn: async (values: typeof form) => {
-      if (isLogin) {
-        const res = await api.post<TokenResponse>("/auth/login", {
-          email: values.email,
-          password: values.password,
-        });
-        await setSession(res.data);
-      } else {
-        await api.post("/auth/register", {
-          name: values.name,
-          email: values.email,
-          password: values.password,
-          confirmPassword: values.confirmPassword,
-        });
-        // Auto-login after registration
-        const res = await api.post<TokenResponse>("/auth/login", {
-          email: values.email,
-          password: values.password,
-        });
-        await setSession(res.data);
-      }
-    },
-    onSuccess: () => {
-      window.location.href = redirectTo;
-    },
-    onError: (err: Error) => {
-      notify.error(
-        isLogin ? "Gagal masuk" : "Gagal mendaftar",
-        err.message ?? "Terjadi kesalahan. Coba lagi."
-      );
-    },
-  });
+  const loginMutation = useLogin();
+  const registerMutation = useRegister();
+
+  const isPending = loginMutation.isPending || registerMutation.isPending;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,10 +42,33 @@ function AuthFormInner({ mode, redirectTo = "/" }: Props) {
       return;
     }
 
-    authMutation.mutate(form);
-  };
+    const onSuccess = () => {
+      window.location.href = redirectTo;
+    };
+    const onError = (err: Error) => {
+      notify.error(
+        isLogin ? "Gagal masuk" : "Gagal mendaftar",
+        err.message ?? "Terjadi kesalahan. Coba lagi."
+      );
+    };
 
-  const isPending = authMutation.isPending;
+    if (isLogin) {
+      loginMutation.mutate(
+        { email: form.email, password: form.password },
+        { onSuccess, onError }
+      );
+    } else {
+      registerMutation.mutate(
+        {
+          name: form.name,
+          email: form.email,
+          password: form.password,
+          confirmPassword: form.confirmPassword,
+        },
+        { onSuccess, onError }
+      );
+    }
+  };
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>

@@ -5,27 +5,16 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type React from "react";
-import { useMutation, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 
-import { api, apiProxy } from "@/lib/api";
+import { api } from "@/lib/api";
 import { queryClient } from "@/lib/query-client";
+import { useCreateAddress, type Address, type AddressPayload } from "@/hooks/mutations/useCreateAddress";
+import { useUpdateAddress } from "@/hooks/mutations/useUpdateAddress";
+import { useDeleteAddress } from "@/hooks/mutations/useDeleteAddress";
 import { notify } from "@/lib/toast";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-
-interface Address {
-	city: string;
-	cityId: string | null;
-	country: string;
-	id: string;
-	isDefault: boolean;
-	label: string;
-	phone: string;
-	postalCode: string;
-	province: string;
-	recipientName: string;
-	street: string;
-}
 
 interface City {
 	id: string;
@@ -63,6 +52,20 @@ const EMPTY_FORM: FormState = {
 	isDefault: false,
 };
 
+function formToPayload(form: FormState): AddressPayload {
+	return {
+		label: form.label,
+		recipientName: form.recipientName,
+		phone: form.phone,
+		street: form.street,
+		city: form.city,
+		province: form.province,
+		postalCode: form.postalCode,
+		cityId: form.cityId || undefined,
+		isDefault: form.isDefault,
+	};
+}
+
 // ── City search autocomplete ──────────────────────────────────────────────────
 
 function CitySearch({
@@ -81,7 +84,6 @@ function CitySearch({
 	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
 
-	// close on outside click
 	useEffect(() => {
 		function handleClick(e: MouseEvent) {
 			if (
@@ -103,7 +105,6 @@ function CitySearch({
 		}
 		setLoading(true);
 		try {
-			// City search is public (no auth needed)
 			const res = await api.get<{ success: true; data: City[] }>(
 				"/shipping/cities",
 				{ params: { q } },
@@ -121,9 +122,7 @@ function CitySearch({
 		const q = e.target.value;
 		setQuery(q);
 		onChange(q);
-		if (timerRef.current) {
-			clearTimeout(timerRef.current);
-		}
+		if (timerRef.current) clearTimeout(timerRef.current);
 		timerRef.current = setTimeout(() => void search(q), 320);
 	}
 
@@ -238,7 +237,6 @@ function AddressForm({
 				</div>
 			)}
 
-			{/* Row: label + recipientName */}
 			<div className="grid grid-cols-2 gap-3">
 				<div>
 					<label className="mb-1 block text-xs font-medium text-gray-600">
@@ -270,7 +268,6 @@ function AddressForm({
 				</div>
 			</div>
 
-			{/* Phone */}
 			<div>
 				<label className="mb-1 block text-xs font-medium text-gray-600">
 					No. HP <span className="text-red-500">*</span>
@@ -285,7 +282,6 @@ function AddressForm({
 				/>
 			</div>
 
-			{/* Street */}
 			<div>
 				<label className="mb-1 block text-xs font-medium text-gray-600">
 					Alamat Lengkap <span className="text-red-500">*</span>
@@ -300,7 +296,6 @@ function AddressForm({
 				/>
 			</div>
 
-			{/* City search */}
 			<div>
 				<label className="mb-1 block text-xs font-medium text-gray-600">
 					Kota / Kabupaten <span className="text-red-500">*</span>
@@ -317,7 +312,6 @@ function AddressForm({
 				)}
 			</div>
 
-			{/* Province + Postal Code (auto-filled, still editable) */}
 			<div className="grid grid-cols-2 gap-3">
 				<div>
 					<label className="mb-1 block text-xs font-medium text-gray-600">
@@ -349,7 +343,6 @@ function AddressForm({
 				</div>
 			</div>
 
-			{/* Default checkbox */}
 			<label className="flex cursor-pointer items-center gap-2 text-sm">
 				<input
 					checked={form.isDefault}
@@ -360,7 +353,6 @@ function AddressForm({
 				<span className="text-gray-700">Jadikan alamat utama</span>
 			</label>
 
-			{/* Actions */}
 			<div className="flex gap-2 pt-2">
 				<button
 					className="flex-1 rounded-lg bg-gray-900 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
@@ -445,125 +437,89 @@ function AddressManagerInner({ initialAddresses }: Props) {
 	const [formError, setFormError] = useState<string | null>(null);
 	const [deletingId, setDeletingId] = useState<string | null>(null);
 
-	// ── Create ──────────────────────────────────────────────────────────────────
+	const createAddress = useCreateAddress();
+	const updateAddress = useUpdateAddress();
+	const deleteAddress = useDeleteAddress();
 
-	const createMutation = useMutation({
-		mutationFn: (data: FormState) =>
-			apiProxy.post<{ success: true; data: Address }>("/users/me/addresses", {
-				label: data.label,
-				recipientName: data.recipientName,
-				phone: data.phone,
-				street: data.street,
-				city: data.city,
-				province: data.province,
-				postalCode: data.postalCode,
-				cityId: data.cityId || undefined,
-				isDefault: data.isDefault,
-			}),
-		onSuccess: (res, data) => {
-			setAddresses((prev) => {
-				const updated = data.isDefault
-					? prev.map((a) => ({ ...a, isDefault: false }))
-					: prev;
-				return [res.data, ...updated];
-			});
-			setMode("list");
-			setFormError(null);
-			notify.success("Alamat berhasil ditambahkan");
-		},
-		onError: (err: Error) => {
-			setFormError(err.message || "Gagal menambah alamat");
-		},
-	});
-
-	// ── Update ──────────────────────────────────────────────────────────────────
-
-	const updateMutation = useMutation({
-		mutationFn: ({ id, data }: { id: string; data: FormState }) =>
-			apiProxy.patch<{ success: true; data: Address }>(
-				`/users/me/addresses/${id}`,
-				{
-					label: data.label,
-					recipientName: data.recipientName,
-					phone: data.phone,
-					street: data.street,
-					city: data.city,
-					province: data.province,
-					postalCode: data.postalCode,
-					cityId: data.cityId || undefined,
-					isDefault: data.isDefault,
-				},
-			),
-		onSuccess: (res, { id, data }) => {
-			setAddresses((prev) => {
-				const updated = data.isDefault
-					? prev.map((a) => ({ ...a, isDefault: a.id === id ? true : false }))
-					: prev;
-				return updated.map((a) => (a.id === id ? res.data : a));
-			});
-			setMode("list");
-			setEditTarget(null);
-			setFormError(null);
-			notify.success("Alamat berhasil diperbarui");
-		},
-		onError: (err: Error) => {
-			setFormError(err.message || "Gagal memperbarui alamat");
-		},
-	});
-
-	// ── Delete ──────────────────────────────────────────────────────────────────
-
-	const deleteMutation = useMutation({
-		mutationFn: (id: string) => apiProxy.delete(`/users/me/addresses/${id}`),
-		onMutate: (id) => {
-			setDeletingId(id);
-		},
-		onSuccess: (_, id) => {
-			setAddresses((prev) => prev.filter((a) => a.id !== id));
-			notify.success("Alamat berhasil dihapus");
-		},
-		onError: (err: Error) => {
-			notify.error(err.message || "Gagal menghapus alamat");
-		},
-		onSettled: () => {
-			setDeletingId(null);
-		},
-	});
-
-	// ── Derived loading state ────────────────────────────────────────────────────
-
-	const isFormSubmitting =
-		createMutation.isPending || updateMutation.isPending;
+	const isFormSubmitting = createAddress.isPending || updateAddress.isPending;
 
 	// ── Handlers ────────────────────────────────────────────────────────────────
 
-	function handleCreate(data: FormState) {
-		createMutation.mutate(data);
+	function handleCreate(form: FormState) {
+		createAddress.mutate(formToPayload(form), {
+			onSuccess: (res) => {
+				setAddresses((prev) => {
+					const updated = form.isDefault
+						? prev.map((a) => ({ ...a, isDefault: false }))
+						: prev;
+					return [res.data, ...updated];
+				});
+				setMode("list");
+				setFormError(null);
+				notify.success("Alamat berhasil ditambahkan");
+			},
+			onError: (err: Error) => {
+				setFormError(err.message || "Gagal menambah alamat");
+			},
+		});
 	}
 
-	function handleUpdate(data: FormState) {
+	function handleUpdate(form: FormState) {
 		if (!editTarget) return;
-		updateMutation.mutate({ id: editTarget.id, data });
+		updateAddress.mutate(
+			{ id: editTarget.id, payload: formToPayload(form) },
+			{
+				onSuccess: (res) => {
+					setAddresses((prev) => {
+						const withDefault = form.isDefault
+							? prev.map((a) => ({ ...a, isDefault: a.id === editTarget.id }))
+							: prev;
+						return withDefault.map((a) =>
+							a.id === editTarget.id ? res.data : a
+						);
+					});
+					setMode("list");
+					setEditTarget(null);
+					setFormError(null);
+					notify.success("Alamat berhasil diperbarui");
+				},
+				onError: (err: Error) => {
+					setFormError(err.message || "Gagal memperbarui alamat");
+				},
+			}
+		);
 	}
 
 	function handleDelete(id: string) {
 		if (!window.confirm("Hapus alamat ini?")) return;
-		deleteMutation.mutate(id);
+		setDeletingId(id);
+		deleteAddress.mutate(id, {
+			onSuccess: () => {
+				setAddresses((prev) => prev.filter((a) => a.id !== id));
+				notify.success("Alamat berhasil dihapus");
+			},
+			onError: (err: Error) => {
+				notify.error(err.message || "Gagal menghapus alamat");
+			},
+			onSettled: () => {
+				setDeletingId(null);
+			},
+		});
 	}
 
 	function startEdit(address: Address) {
 		setEditTarget(address);
 		setFormError(null);
-		createMutation.reset();
-		updateMutation.reset();
+		createAddress.reset();
+		updateAddress.reset();
 		setMode("edit");
 	}
 
 	function startAdd() {
 		setEditTarget(null);
 		setFormError(null);
-		createMutation.reset();
-		updateMutation.reset();
+		createAddress.reset();
+		updateAddress.reset();
 		setMode("add");
 	}
 

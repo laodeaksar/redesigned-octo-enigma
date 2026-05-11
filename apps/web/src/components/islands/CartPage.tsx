@@ -1,33 +1,50 @@
 // =============================================================================
 // CartPage — React island, full cart page (client:load)
+//
+// Migration: replaced cart.store legacy functions (syncCartWithServer,
+// fetchServerCart, updateQuantity) with TanStack Query hooks:
+//   - useCart(isLoggedIn)       → items/total/count + server sync when logged in
+//   - useUpdateCartQty()        → optimistic quantity update (cache + nanostore)
+//   - requestRemoveFromCart     → triggers UndoToast countdown (unchanged)
+//   - clearCart                 → clears local store (unchanged, local-only)
+//   - hydrateCart               → seeds nanostore from localStorage (guest only)
 // =============================================================================
 
 import { useEffect, useState } from "react";
+import { QueryClientProvider } from "@tanstack/react-query";
+
+import { queryClient } from "@/lib/query-client";
+import { useCart } from "@/hooks/queries/useCart";
+import { useUpdateCartQty } from "@/hooks/mutations/useUpdateCartQty";
 import {
-  $cart,
-  $cartCount,
-  $cartTotal,
   clearCart,
-  fetchServerCart,
   hydrateCart,
   requestRemoveFromCart,
   setLoggedIn,
-  syncCartWithServer,
-  updateQuantity,
   type CartItem,
 } from "@/stores/cart.store";
-import { useStore } from "@nanostores/react";
-
 import { formatIDR } from "@/lib/utils";
+
+// ── Constants ─────────────────────────────────────────────────────────────────
 
 const SHIPPING_FREE_THRESHOLD = 100_000;
 const ESTIMATED_SHIPPING = 15_000;
+
+// ── Props ─────────────────────────────────────────────────────────────────────
 
 interface Props {
   isLoggedIn?: boolean;
 }
 
-function CartItemRow({ item }: { item: CartItem }) {
+// ── CartItemRow ───────────────────────────────────────────────────────────────
+
+function CartItemRow({
+  item,
+  onUpdateQty,
+}: {
+  item: CartItem;
+  onUpdateQty: (variantId: string, quantity: number) => void;
+}) {
   return (
     <li className="flex gap-4 border-b border-gray-100 py-5 last:border-b-0">
       {/* Image */}
@@ -63,7 +80,7 @@ function CartItemRow({ item }: { item: CartItem }) {
             <button
               aria-label="Kurangi"
               className="flex h-9 w-9 items-center justify-center rounded-l-lg text-gray-500 transition-colors hover:bg-gray-50"
-              onClick={() => updateQuantity(item.variantId, item.quantity - 1)}
+              onClick={() => onUpdateQty(item.variantId, item.quantity - 1)}
             >
               <svg
                 className="h-4 w-4"
@@ -85,7 +102,7 @@ function CartItemRow({ item }: { item: CartItem }) {
             <button
               aria-label="Tambah"
               className="flex h-9 w-9 items-center justify-center rounded-r-lg text-gray-500 transition-colors hover:bg-gray-50"
-              onClick={() => updateQuantity(item.variantId, item.quantity + 1)}
+              onClick={() => onUpdateQty(item.variantId, item.quantity + 1)}
             >
               <svg
                 className="h-4 w-4"
@@ -134,6 +151,8 @@ function CartItemRow({ item }: { item: CartItem }) {
   );
 }
 
+// ── EmptyCart ─────────────────────────────────────────────────────────────────
+
 function EmptyCart() {
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center">
@@ -169,23 +188,21 @@ function EmptyCart() {
   );
 }
 
-export default function CartPage({ isLoggedIn = false }: Props) {
+// ── CartPageInner ─────────────────────────────────────────────────────────────
+
+function CartPageInner({ isLoggedIn = false }: Props) {
   setLoggedIn(isLoggedIn);
 
-  const cart = useStore($cart);
-  const total = useStore($cartTotal);
-  const count = useStore($cartCount);
-  const [hydrated, setHydrated] = useState(false);
+  const { items, total, count, isLoading } = useCart(isLoggedIn);
+  const { mutate: updateQty } = useUpdateCartQty();
   const [clearing, setClearing] = useState(false);
 
+  // For guest users: seed nanostore from localStorage on mount.
+  // useCart(false) reads $cart nanostore directly — it won't trigger a fetch,
+  // so we hydrate manually here. For logged-in users useCart does its own fetch.
   useEffect(() => {
-    hydrateCart();
-
-    if (isLoggedIn) {
-      // Merge localStorage items into server cart, then show the merged result
-      void syncCartWithServer().finally(() => setHydrated(true));
-    } else {
-      setHydrated(true);
+    if (!isLoggedIn) {
+      hydrateCart();
     }
   }, [isLoggedIn]);
 
@@ -194,7 +211,8 @@ export default function CartPage({ isLoggedIn = false }: Props) {
   const grandTotal = total + shippingCost;
   const remainingForFreeShipping = SHIPPING_FREE_THRESHOLD - total;
 
-  if (!hydrated) {
+  // Show spinner while fetching server cart for logged-in users
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
         <div className="border-accent h-8 w-8 animate-spin rounded-full border-4 border-t-transparent" />
@@ -202,7 +220,7 @@ export default function CartPage({ isLoggedIn = false }: Props) {
     );
   }
 
-  if (cart.length === 0) {
+  if (items.length === 0) {
     return <EmptyCart />;
   }
 
@@ -215,6 +233,10 @@ export default function CartPage({ isLoggedIn = false }: Props) {
       clearCart();
       setClearing(false);
     }, 200);
+  };
+
+  const handleUpdateQty = (variantId: string, quantity: number) => {
+    updateQty({ variantId, quantity, isLoggedIn });
   };
 
   return (
@@ -269,8 +291,12 @@ export default function CartPage({ isLoggedIn = false }: Props) {
         {/* Items list */}
         <div className="rounded-xl border border-gray-100 bg-white px-5 shadow-sm">
           <ul>
-            {cart.map(item => (
-              <CartItemRow item={item} key={item.variantId} />
+            {items.map(item => (
+              <CartItemRow
+                item={item}
+                key={item.variantId}
+                onUpdateQty={handleUpdateQty}
+              />
             ))}
           </ul>
         </div>
@@ -411,5 +437,15 @@ export default function CartPage({ isLoggedIn = false }: Props) {
         </div>
       </div>
     </div>
+  );
+}
+
+// ── Exported island (wraps with QueryClientProvider) ─────────────────────────
+
+export default function CartPage(props: Props) {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <CartPageInner {...props} />
+    </QueryClientProvider>
   );
 }

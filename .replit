@@ -86,7 +86,7 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd apps/web && node node_modules/.bin/astro dev --host 0.0.0.0 --port 5000"
+args = "cd apps/web && bun run dev --host 0.0.0.0 --port 5000"
 waitForPort = 5000
 
 [[workflows.workflow]]
@@ -178,8 +178,8 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 8000
-externalPort = 8000
+localPort = 5001
+externalPort = 4200
 
 [[ports]]
 localPort = 9876

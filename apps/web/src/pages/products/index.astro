@@ -1,8 +1,9 @@
 ---
 import BaseLayout from "@/components/layout/BaseLayout.astro";
 import Pagination from "@/components/shared/Pagination.astro";
-import ProductCard from "@/components/shared/ProductCard.astro";
+import ProductGrid from "@/components/islands/ProductGrid";
 import { api, type Category, type Product } from "@/lib/api";
+import type { ProductListResponse } from "@/hooks/queries/useProducts";
 
 const { searchParams } = Astro.url;
 const page = Number.parseInt(searchParams.get("page") ?? "1", 10);
@@ -11,7 +12,7 @@ const categoryId = searchParams.get("categoryId") ?? "";
 const sortBy = searchParams.get("sortBy") ?? "createdAt";
 const sortOrder = searchParams.get("sortOrder") ?? "desc";
 
-let products: Product[] = [];
+let initialProducts: ProductListResponse | undefined;
 let totalPages = 1;
 let total = 0;
 let categories: Category[] = [];
@@ -21,7 +22,14 @@ try {
     api.get<{
       success: true;
       data: Product[];
-      meta: { total: number; page: number; limit: number; totalPages: number };
+      meta: {
+        hasNextPage: boolean;
+        hasPrevPage: boolean;
+        limit: number;
+        page: number;
+        total: number;
+        totalPages: number;
+      };
     }>("/products", {
       params: {
         page,
@@ -36,12 +44,16 @@ try {
     api.get<{ success: true; data: Category[] }>("/categories"),
   ]);
 
-  products = productsRes.data;
+  initialProducts = {
+    success: true,
+    data: productsRes.data,
+    meta: productsRes.meta,
+  };
   totalPages = productsRes.meta.totalPages;
   total = productsRes.meta.total;
   categories = categoriesRes.data.filter((c) => !c.parentId);
 } catch {
-  // show empty state
+  // show empty state — ProductGrid handles the empty/error case
 }
 
 const baseUrl = "/products";
@@ -155,29 +167,12 @@ const sortOptions = [
           </form>
         </div>
 
-        <!-- Products grid -->
-        {products.length === 0 ? (
-          <div class="flex flex-col items-center gap-3 py-24 text-gray-400">
-            <span class="text-6xl">🔍</span>
-            <p class="font-medium">Produk tidak ditemukan</p>
-            <a href="/products" class="text-sm text-accent hover:underline">Lihat semua produk</a>
-          </div>
-        ) : (
-          <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
-            {products.map((p) => (
-              <ProductCard
-                id={p.id}
-                name={p.name}
-                slug={p.slug}
-                primaryImage={p.primaryImage}
-                lowestPrice={p.lowestPrice}
-                highestPrice={p.highestPrice}
-                totalStock={p.totalStock}
-                tags={p.tags}
-              />
-            ))}
-          </div>
-        )}
+        <!-- Products grid — React island with SSR initialData (no loading flash) -->
+        <ProductGrid
+          client:load
+          initialProducts={initialProducts}
+          params={{ page, search, categoryId, sortBy, sortOrder }}
+        />
 
         <Pagination page={page} totalPages={totalPages} baseUrl={baseUrl} />
       </div>

@@ -29,6 +29,38 @@ export default tseslint.config(
     rules: {
       // nanostores action — void return pattern
       "@typescript-eslint/no-misused-promises": "off",
+
+      // ── TanStack Query guardrails ──────────────────────────────────────────
+      // Enforce @tanstack/react-query (v5) — forbid the old 'react-query' package
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "react-query",
+              message: "Use '@tanstack/react-query' instead of the deprecated 'react-query' package.",
+            },
+          ],
+          patterns: [
+            {
+              group: ["react-query/*"],
+              message: "Use '@tanstack/react-query' instead.",
+            },
+          ],
+        },
+      ],
+
+      // Forbid raw fetch() calls outside of src/lib/ — use fetcher.ts or apiProxy
+      "no-restricted-syntax": [
+        "warn",
+        {
+          selector:
+            "CallExpression[callee.name='fetch']:not([callee.object.name])",
+          message:
+            "Direct fetch() calls are discouraged outside src/lib/. " +
+            "Use fetcher(), fetcherPost(), or apiProxy from @/lib/fetcher or @/lib/api.",
+        },
+      ],
     },
   }
 );

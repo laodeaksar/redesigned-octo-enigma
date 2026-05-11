@@ -1,15 +1,48 @@
 // =============================================================================
-// UserSettingsForm — profile edit + security island using @repo/ui (client:load)
+// UserSettingsForm — profile edit + security island
+//
+// Migration: ProfileTab uses TanStack Form v1 with local profileFormSchema
+// (all-string fields so TanStack Form type inference works). Mapped to
+// UpdateProfileInput in onSubmit. Errors shown per field.
+// SecurityTab is unchanged (read-only except logout form).
 // =============================================================================
 
+import { useForm } from "@tanstack/react-form";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
-import type React from "react";
+import { z } from "zod";
 
-import { apiProxy } from "@/lib/api";
-
+import { queryClient } from "@/lib/query-client";
+import { useUpdateUser } from "@/hooks/mutations/useUpdateUser";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { Separator } from "@repo/ui/components/separator";
+
+// ── Form schema ───────────────────────────────────────────────────────────────
+// All fields are `string` to match TanStack Form's defaultValues type inference.
+// The mapping to UpdateProfileInput (with optional/nullable) happens in onSubmit.
+
+const profileFormSchema = z.object({
+  name: z.string().min(2, "Nama minimal 2 karakter").max(100, "Nama terlalu panjang"),
+  avatarUrl: z
+    .string()
+    .refine(
+      v => v === "" || /^https?:\/\/.+/.test(v),
+      "URL foto tidak valid (harus diawali https://)"
+    ),
+});
+
+const nameFieldSchema = z
+  .string()
+  .min(2, "Nama minimal 2 karakter")
+  .max(100, "Nama terlalu panjang");
+
+const avatarUrlFieldSchema = z
+  .string()
+  .refine(
+    v => v === "" || /^https?:\/\/.+/.test(v),
+    "URL foto tidak valid (harus diawali https://)"
+  );
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -31,13 +64,7 @@ type Tab = "profile" | "security";
 
 // ── Avatar ────────────────────────────────────────────────────────────────────
 
-function Avatar({
-  avatarUrl,
-  name,
-}: {
-  avatarUrl: string | null;
-  name: string;
-}) {
+function Avatar({ avatarUrl, name }: { avatarUrl: string | null; name: string }) {
   if (avatarUrl) {
     return (
       <img
@@ -77,129 +104,149 @@ function SuccessAlert({ message }: { message: string }) {
   );
 }
 
-function ErrorAlert({ message }: { message: string }) {
-  return (
-    <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-      <svg
-        className="h-4 w-4 shrink-0 text-red-500"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2.5}
-        viewBox="0 0 24 24"
-      >
-        <path
-          d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-      {message}
-    </div>
-  );
+function FieldError({ errors }: { errors: unknown[] }) {
+  if (errors.length === 0) return null;
+  return <p className="mt-1 text-xs text-red-600">{String(errors[0])}</p>;
 }
 
-// ── Profile tab ───────────────────────────────────────────────────────────────
+// ── Profile tab (TanStack Form) ───────────────────────────────────────────────
 
 function ProfileTab({ user }: { user: User }) {
-  const [name, setName]           = useState(user.name);
-  const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl ?? "");
-  const [loading, setLoading]     = useState(false);
-  const [success, setSuccess]     = useState<string | null>(null);
-  const [error, setError]         = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const { mutateAsync: updateUser, isPending, error: mutationError } = useUpdateUser();
 
-  const dirty =
-    name.trim() !== user.name ||
-    (avatarUrl.trim() || null) !== user.avatarUrl;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!dirty) return;
-
-    setLoading(true);
-    setSuccess(null);
-    setError(null);
-
-    try {
-      await apiProxy.patch(
-        "/users/me",
-        { name: name.trim() || undefined, avatarUrl: avatarUrl.trim() || null }
-      );
-      setSuccess("Profil berhasil diperbarui!");
-      setTimeout(() => window.location.reload(), 900);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Gagal memperbarui profil.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const form = useForm({
+    defaultValues: {
+      name: user.name,
+      avatarUrl: user.avatarUrl ?? "",
+    },
+    onSubmit: async ({ value }) => {
+      const parsed = profileFormSchema.safeParse(value);
+      if (!parsed.success) return;
+      setSuccessMsg(null);
+      await updateUser({
+        name: parsed.data.name.trim() || undefined,
+        avatarUrl: parsed.data.avatarUrl.trim() || null,
+      });
+      setSuccessMsg("Profil berhasil diperbarui!");
+    },
+  });
 
   return (
-    <form className="space-y-5" onSubmit={e => void handleSubmit(e)}>
-      {success && <SuccessAlert message={success} />}
-      {error   && <ErrorAlert message={error} />}
+    <form
+      className="space-y-5"
+      onSubmit={e => {
+        e.preventDefault();
+        void form.handleSubmit();
+      }}
+    >
+      {successMsg && <SuccessAlert message={successMsg} />}
+      {mutationError && (
+        <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {mutationError instanceof Error ? mutationError.message : "Gagal memperbarui profil."}
+        </div>
+      )}
 
       {/* Avatar preview */}
-      <div className="flex items-center gap-4">
-        <Avatar avatarUrl={avatarUrl || null} name={name || user.name} />
-        <div>
-          <p className="text-sm font-medium text-gray-900">Foto Profil</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Masukkan URL gambar (JPG, PNG, WebP)
-          </p>
-        </div>
-      </div>
+      <form.Subscribe selector={state => state.values.avatarUrl}>
+        {avatarUrl => (
+          <div className="flex items-center gap-4">
+            <Avatar avatarUrl={avatarUrl || null} name={user.name} />
+            <div>
+              <p className="text-sm font-medium text-gray-900">Foto Profil</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Masukkan URL gambar (JPG, PNG, WebP)
+              </p>
+            </div>
+          </div>
+        )}
+      </form.Subscribe>
 
-      {/* Avatar URL */}
-      <div>
-        <label className="mb-1.5 block text-sm font-medium text-gray-700">
-          URL Foto Profil
-        </label>
-        <input
-          className="focus:border-brand-500 focus:ring-brand-500/10 w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none focus:ring-2"
-          onChange={e => setAvatarUrl(e.target.value)}
-          placeholder="https://example.com/foto.jpg (opsional)"
-          type="url"
-          value={avatarUrl}
-        />
-      </div>
-
-      {/* Name */}
-      <div>
-        <label className="mb-1.5 block text-sm font-medium text-gray-700">
-          Nama Lengkap <span className="text-red-500">*</span>
-        </label>
-        <input
-          className="focus:border-brand-500 focus:ring-brand-500/10 w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none focus:ring-2"
-          minLength={2}
-          onChange={e => setName(e.target.value)}
-          placeholder="Nama kamu"
-          required
-          type="text"
-          value={name}
-        />
-      </div>
-
-      <Button
-        className="bg-brand-500 text-white hover:bg-brand-500/90 h-9 px-5 text-sm font-semibold"
-        disabled={loading || !dirty}
-        type="submit"
+      {/* Avatar URL field */}
+      <form.Field
+        name="avatarUrl"
+        validators={{
+          onChange: ({ value }) => {
+            const r = avatarUrlFieldSchema.safeParse(value);
+            return r.success ? undefined : r.error.issues[0]?.message;
+          },
+        }}
       >
-        {loading ? "Menyimpan…" : "Simpan Perubahan"}
-      </Button>
+        {field => (
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">
+              URL Foto Profil
+            </label>
+            <input
+              className="focus:border-brand-500 focus:ring-brand-500/10 w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none focus:ring-2"
+              onBlur={field.handleBlur}
+              onChange={e => field.handleChange(e.target.value)}
+              placeholder="https://example.com/foto.jpg (opsional)"
+              type="url"
+              value={field.state.value}
+            />
+            <FieldError
+              errors={field.state.meta.isTouched ? field.state.meta.errors : []}
+            />
+          </div>
+        )}
+      </form.Field>
+
+      {/* Name field */}
+      <form.Field
+        name="name"
+        validators={{
+          onChange: ({ value }) => {
+            const r = nameFieldSchema.safeParse(value);
+            return r.success ? undefined : r.error.issues[0]?.message;
+          },
+        }}
+      >
+        {field => (
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">
+              Nama Lengkap <span className="text-red-500">*</span>
+            </label>
+            <input
+              className="focus:border-brand-500 focus:ring-brand-500/10 w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none focus:ring-2"
+              onBlur={field.handleBlur}
+              onChange={e => field.handleChange(e.target.value)}
+              placeholder="Nama kamu"
+              type="text"
+              value={field.state.value}
+            />
+            <FieldError
+              errors={field.state.meta.isTouched ? field.state.meta.errors : []}
+            />
+          </div>
+        )}
+      </form.Field>
+
+      <form.Subscribe
+        selector={state => ({ canSubmit: state.canSubmit, isDirty: state.isDirty })}
+      >
+        {({ canSubmit, isDirty }) => (
+          <Button
+            className="bg-brand-500 text-white hover:bg-brand-500/90 h-9 px-5 text-sm font-semibold"
+            disabled={isPending || !canSubmit || !isDirty}
+            type="submit"
+          >
+            {isPending ? "Menyimpan…" : "Simpan Perubahan"}
+          </Button>
+        )}
+      </form.Subscribe>
     </form>
   );
 }
 
-// ── Security tab ──────────────────────────────────────────────────────────────
+// ── Security tab ─────────────────────────────────────────────────────────────
 
 function SecurityTab({ user }: { user: User }) {
   return (
     <div className="space-y-6">
       {/* Email */}
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-gray-700">
-          Email
-        </label>
+        <label className="mb-1.5 block text-sm font-medium text-gray-700">Email</label>
         <div className="flex items-center gap-3">
           <input
             className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-500"
@@ -233,9 +280,7 @@ function SecurityTab({ user }: { user: User }) {
 
       {/* Password */}
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-gray-700">
-          Password
-        </label>
+        <label className="mb-1.5 block text-sm font-medium text-gray-700">Password</label>
         <div className="flex items-center gap-3">
           <input
             className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-400"
@@ -246,7 +291,9 @@ function SecurityTab({ user }: { user: User }) {
           <Button
             className="shrink-0"
             onClick={() => {
-              window.location.href = `/auth/forgot-password?email=${encodeURIComponent(user.email)}`;
+              window.location.href = `/auth/forgot-password?email=${encodeURIComponent(
+                user.email
+              )}`;
             }}
             type="button"
             variant="outline"
@@ -283,11 +330,11 @@ function SecurityTab({ user }: { user: User }) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-export default function UserSettingsForm({ user }: Props) {
+function UserSettingsFormInner({ user }: Props) {
   const [active, setActive] = useState<Tab>("profile");
 
   const TABS: { id: Tab; label: string }[] = [
-    { id: "profile",  label: "Edit Profil" },
+    { id: "profile", label: "Edit Profil" },
     { id: "security", label: "Keamanan" },
   ];
 
@@ -311,8 +358,16 @@ export default function UserSettingsForm({ user }: Props) {
         ))}
       </div>
 
-      {active === "profile"  && <ProfileTab user={user} />}
+      {active === "profile" && <ProfileTab user={user} />}
       {active === "security" && <SecurityTab user={user} />}
     </div>
+  );
+}
+
+export default function UserSettingsForm(props: Props) {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <UserSettingsFormInner {...props} />
+    </QueryClientProvider>
   );
 }

@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web"]
+modules = ["web", "nodejs-22"]
 [agent]
 expertMode = true
 stack = "BEST_EFFORT_FALLBACK"
@@ -176,10 +176,6 @@ externalPort = 5173
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 9876
-externalPort = 5000
 
 [deployment]
 deploymentTarget = "autoscale"

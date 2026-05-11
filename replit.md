@@ -66,11 +66,14 @@ _Populate as you build_
 
 ## Gotchas
 
-- Astro v6 requires Node.js 22+ — the project uses the `nodejs-22` module
+- Astro v6 requires Node.js 22+ — upgraded to `nodejs-22` module (was `nodejs-20`)
 - `DATABASE_URL` must use `postgresql://` prefix (not `postgres://`) for env validation
 - Order service env had a syntax error (missing comma + `PRODUCT_SERVICE_URL`) — fixed in migration
 - MongoDB and Redis are not provisioned in Replit dev env — services handle this gracefully
 - BullMQ workers are disabled when Redis is unavailable
+- `@tanstack/zod-form-adapter` only exists for react-form v0.x — with react-form v1.x use `safeParse` directly
+- Astro island architecture: each `client:X` creates a separate React root — cannot wrap `<slot />` with QueryProvider in BaseLayout. Solution: each island wraps itself with `<QueryClientProvider client={queryClient}>` using the module-level singleton → shared cache across all islands
+- Zod v4: `.email()` and `.url()` are top-level methods (`z.email()`, not `z.string().email()`), and `ZodError.errors` is now `ZodError.issues`
 
 ## Pointers
 

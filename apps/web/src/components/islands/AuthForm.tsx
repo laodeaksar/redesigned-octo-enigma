@@ -1,9 +1,10 @@
 // =============================================================================
 // AuthForm — React island for login and register (client:load)
 // Uses: TanStack Form v1, shadcn Input/Label/Button, sonner toasts
-// Validation: dynamic validators — onBlur (first touch) + onChange (after
-//             touch) + onSubmit — errors surface only after user interaction.
-//             Zod safeParse from @repo/common/schemas (adapter not needed v1).
+// Validation: dynamic validators using revalidateLogic + zodValidator
+//   - onBlur  → first-touch validation
+//   - onChange → real-time validation (shown only after isTouched via revalidate)
+//   - onDynamic → cross-field re-validation (confirmPassword ↔ password)
 // =============================================================================
 
 import { useState } from "react";
@@ -19,6 +20,11 @@ import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
 
 import { queryClient } from "@/lib/query-client";
+import {
+  revalidateLogic,
+  zodFieldError,
+  zodValidator,
+} from "@/lib/form-validators";
 import { useLogin } from "@/hooks/mutations/useLogin";
 import { useRegister } from "@/hooks/mutations/useRegister";
 
@@ -27,16 +33,16 @@ interface Props {
   redirectTo?: string;
 }
 
-// ── Shared field error — only surfaces after user touches the field ────────────
+// ── Shared field error ────────────────────────────────────────────────────────
 
 function FieldError({
   errors,
-  touched,
+  show,
 }: {
   errors: (string | undefined)[];
-  touched: boolean;
+  show: boolean;
 }) {
-  if (!touched) return null;
+  if (!show) return null;
   const message = errors.find(Boolean);
   if (!message) return null;
   return <p className="mt-1 text-xs text-red-500">{message}</p>;
@@ -47,9 +53,13 @@ function FieldError({
 function LoginForm({ redirectTo }: { redirectTo: string }) {
   const [showPassword, setShowPassword] = useState(false);
   const loginMutation = useLogin();
+  const revalidate = revalidateLogic();
 
   const form = useForm<LoginInput>({
     defaultValues: { email: "", password: "" },
+    validators: {
+      onDynamic: zodValidator(loginSchema),
+    },
     onSubmit: async ({ value }) => {
       await new Promise<void>((resolve, reject) => {
         loginMutation.mutate(value, {
@@ -76,21 +86,17 @@ function LoginForm({ redirectTo }: { redirectTo: string }) {
         form.handleSubmit();
       }}
     >
-      {/* Email — validates onBlur first, then onChange once touched */}
+      {/* Email */}
       <form.Field
         name="email"
         validators={{
           onBlur: ({ value }) => {
-            const result = loginSchema.shape.email.safeParse(value);
-            return result.success
-              ? undefined
-              : (result.error.issues[0]?.message ?? "Email tidak valid");
+            const r = loginSchema.shape.email.safeParse(value);
+            return r.success ? undefined : (r.error.issues[0]?.message ?? "Email tidak valid");
           },
           onChange: ({ value }) => {
-            const result = loginSchema.shape.email.safeParse(value);
-            return result.success
-              ? undefined
-              : (result.error.issues[0]?.message ?? "Email tidak valid");
+            const r = loginSchema.shape.email.safeParse(value);
+            return r.success ? undefined : (r.error.issues[0]?.message ?? "Email tidak valid");
           },
         }}
       >
@@ -107,33 +113,29 @@ function LoginForm({ redirectTo }: { redirectTo: string }) {
               type="email"
               value={field.state.value}
               aria-invalid={
-                field.state.meta.isTouched &&
+                revalidate.shouldShow(field.state.meta.isTouched) &&
                 field.state.meta.errors.length > 0
               }
             />
             <FieldError
               errors={field.state.meta.errors as string[]}
-              touched={field.state.meta.isTouched}
+              show={revalidate.shouldShow(field.state.meta.isTouched)}
             />
           </div>
         )}
       </form.Field>
 
-      {/* Password — validates onBlur first, then onChange once touched */}
+      {/* Password */}
       <form.Field
         name="password"
         validators={{
           onBlur: ({ value }) => {
-            const result = loginSchema.shape.password.safeParse(value);
-            return result.success
-              ? undefined
-              : (result.error.issues[0]?.message ?? "Password diperlukan");
+            const r = loginSchema.shape.password.safeParse(value);
+            return r.success ? undefined : (r.error.issues[0]?.message ?? "Password diperlukan");
           },
           onChange: ({ value }) => {
-            const result = loginSchema.shape.password.safeParse(value);
-            return result.success
-              ? undefined
-              : (result.error.issues[0]?.message ?? "Password diperlukan");
+            const r = loginSchema.shape.password.safeParse(value);
+            return r.success ? undefined : (r.error.issues[0]?.message ?? "Password diperlukan");
           },
         }}
       >
@@ -143,6 +145,7 @@ function LoginForm({ redirectTo }: { redirectTo: string }) {
             <div className="relative mt-1.5">
               <Input
                 autoComplete="current-password"
+                className="pr-10"
                 id="login-password"
                 onBlur={field.handleBlur}
                 onChange={(e) => field.handleChange(e.target.value)}
@@ -150,39 +153,29 @@ function LoginForm({ redirectTo }: { redirectTo: string }) {
                 type={showPassword ? "text" : "password"}
                 value={field.state.value}
                 aria-invalid={
-                  field.state.meta.isTouched &&
+                  revalidate.shouldShow(field.state.meta.isTouched) &&
                   field.state.meta.errors.length > 0
                 }
-                className="pr-10"
               />
               <button
+                aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
                 className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 onClick={() => setShowPassword((s) => !s)}
                 type="button"
-                aria-label={
-                  showPassword ? "Sembunyikan password" : "Tampilkan password"
-                }
               >
-                {showPassword ? (
-                  <EyeOff className="size-4" />
-                ) : (
-                  <Eye className="size-4" />
-                )}
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
             </div>
             <FieldError
               errors={field.state.meta.errors as string[]}
-              touched={field.state.meta.isTouched}
+              show={revalidate.shouldShow(field.state.meta.isTouched)}
             />
           </div>
         )}
       </form.Field>
 
       <div className="flex justify-end">
-        <a
-          className="text-accent text-xs hover:underline"
-          href="/auth/forgot-password"
-        >
+        <a className="text-accent text-xs hover:underline" href="/auth/forgot-password">
           Lupa password?
         </a>
       </div>
@@ -201,10 +194,7 @@ function LoginForm({ redirectTo }: { redirectTo: string }) {
 
       <p className="text-center text-sm text-gray-500">
         Belum punya akun?{" "}
-        <a
-          className="text-accent font-medium hover:underline"
-          href="/auth/register"
-        >
+        <a className="text-accent font-medium hover:underline" href="/auth/register">
           Daftar
         </a>
       </p>
@@ -217,20 +207,18 @@ function LoginForm({ redirectTo }: { redirectTo: string }) {
 function RegisterForm({ redirectTo }: { redirectTo: string }) {
   const [showPassword, setShowPassword] = useState(false);
   const registerMutation = useRegister();
+  const revalidate = revalidateLogic();
 
   const form = useForm<RegisterInput>({
-    defaultValues: {
-      name: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
+    defaultValues: { name: "", email: "", password: "", confirmPassword: "" },
+    validators: {
+      onDynamic: zodValidator(registerSchema),
     },
     onSubmit: async ({ value }) => {
       const result = registerSchema.safeParse(value);
       if (!result.success) {
         toast.error("Data tidak valid", {
-          description:
-            result.error.issues[0]?.message ?? "Periksa kembali isian kamu.",
+          description: result.error.issues[0]?.message ?? "Periksa kembali isian kamu.",
         });
         return;
       }
@@ -264,16 +252,12 @@ function RegisterForm({ redirectTo }: { redirectTo: string }) {
         name="name"
         validators={{
           onBlur: ({ value }) => {
-            const result = registerSchema.shape.name.safeParse(value);
-            return result.success
-              ? undefined
-              : (result.error.issues[0]?.message ?? "Nama tidak valid");
+            const r = registerSchema.shape.name.safeParse(value);
+            return r.success ? undefined : (r.error.issues[0]?.message ?? "Nama tidak valid");
           },
           onChange: ({ value }) => {
-            const result = registerSchema.shape.name.safeParse(value);
-            return result.success
-              ? undefined
-              : (result.error.issues[0]?.message ?? "Nama tidak valid");
+            const r = registerSchema.shape.name.safeParse(value);
+            return r.success ? undefined : (r.error.issues[0]?.message ?? "Nama tidak valid");
           },
         }}
       >
@@ -290,13 +274,13 @@ function RegisterForm({ redirectTo }: { redirectTo: string }) {
               type="text"
               value={field.state.value}
               aria-invalid={
-                field.state.meta.isTouched &&
+                revalidate.shouldShow(field.state.meta.isTouched) &&
                 field.state.meta.errors.length > 0
               }
             />
             <FieldError
               errors={field.state.meta.errors as string[]}
-              touched={field.state.meta.isTouched}
+              show={revalidate.shouldShow(field.state.meta.isTouched)}
             />
           </div>
         )}
@@ -307,16 +291,12 @@ function RegisterForm({ redirectTo }: { redirectTo: string }) {
         name="email"
         validators={{
           onBlur: ({ value }) => {
-            const result = registerSchema.shape.email.safeParse(value);
-            return result.success
-              ? undefined
-              : (result.error.issues[0]?.message ?? "Email tidak valid");
+            const r = registerSchema.shape.email.safeParse(value);
+            return r.success ? undefined : (r.error.issues[0]?.message ?? "Email tidak valid");
           },
           onChange: ({ value }) => {
-            const result = registerSchema.shape.email.safeParse(value);
-            return result.success
-              ? undefined
-              : (result.error.issues[0]?.message ?? "Email tidak valid");
+            const r = registerSchema.shape.email.safeParse(value);
+            return r.success ? undefined : (r.error.issues[0]?.message ?? "Email tidak valid");
           },
         }}
       >
@@ -333,13 +313,13 @@ function RegisterForm({ redirectTo }: { redirectTo: string }) {
               type="email"
               value={field.state.value}
               aria-invalid={
-                field.state.meta.isTouched &&
+                revalidate.shouldShow(field.state.meta.isTouched) &&
                 field.state.meta.errors.length > 0
               }
             />
             <FieldError
               errors={field.state.meta.errors as string[]}
-              touched={field.state.meta.isTouched}
+              show={revalidate.shouldShow(field.state.meta.isTouched)}
             />
           </div>
         )}
@@ -350,16 +330,12 @@ function RegisterForm({ redirectTo }: { redirectTo: string }) {
         name="password"
         validators={{
           onBlur: ({ value }) => {
-            const result = registerSchema.shape.password.safeParse(value);
-            return result.success
-              ? undefined
-              : (result.error.issues[0]?.message ?? "Password tidak valid");
+            const r = registerSchema.shape.password.safeParse(value);
+            return r.success ? undefined : (r.error.issues[0]?.message ?? "Password tidak valid");
           },
           onChange: ({ value }) => {
-            const result = registerSchema.shape.password.safeParse(value);
-            return result.success
-              ? undefined
-              : (result.error.issues[0]?.message ?? "Password tidak valid");
+            const r = registerSchema.shape.password.safeParse(value);
+            return r.success ? undefined : (r.error.issues[0]?.message ?? "Password tidak valid");
           },
         }}
       >
@@ -369,6 +345,7 @@ function RegisterForm({ redirectTo }: { redirectTo: string }) {
             <div className="relative mt-1.5">
               <Input
                 autoComplete="new-password"
+                className="pr-10"
                 id="register-password"
                 onBlur={field.handleBlur}
                 onChange={(e) => field.handleChange(e.target.value)}
@@ -376,58 +353,43 @@ function RegisterForm({ redirectTo }: { redirectTo: string }) {
                 type={showPassword ? "text" : "password"}
                 value={field.state.value}
                 aria-invalid={
-                  field.state.meta.isTouched &&
+                  revalidate.shouldShow(field.state.meta.isTouched) &&
                   field.state.meta.errors.length > 0
                 }
-                className="pr-10"
               />
               <button
+                aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
                 className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 onClick={() => setShowPassword((s) => !s)}
                 type="button"
-                aria-label={
-                  showPassword ? "Sembunyikan password" : "Tampilkan password"
-                }
               >
-                {showPassword ? (
-                  <EyeOff className="size-4" />
-                ) : (
-                  <Eye className="size-4" />
-                )}
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
             </div>
             <FieldError
               errors={field.state.meta.errors as string[]}
-              touched={field.state.meta.isTouched}
+              show={revalidate.shouldShow(field.state.meta.isTouched)}
             />
           </div>
         )}
       </form.Field>
 
-      {/* Konfirmasi Password — dynamic: listens to password field changes */}
+      {/* Konfirmasi Password — onDynamic + onChangeListenTo for cross-field */}
       <form.Field
         name="confirmPassword"
         validators={{
           onChangeListenTo: ["password"],
-          onBlur: ({ value, fieldApi }) => {
-            const password = fieldApi.form.getFieldValue("password");
-            if (!value) return "Konfirmasi password diperlukan";
-            if (value !== password) return "Password tidak cocok";
-            return undefined;
-          },
-          onChange: ({ value, fieldApi }) => {
-            const password = fieldApi.form.getFieldValue("password");
-            if (!value) return "Konfirmasi password diperlukan";
-            if (value !== password) return "Password tidak cocok";
-            return undefined;
-          },
+          onDynamic: ({ fieldApi }) =>
+            zodFieldError(registerSchema, "confirmPassword", fieldApi.form.state.values),
+          onBlur: ({ fieldApi }) =>
+            zodFieldError(registerSchema, "confirmPassword", fieldApi.form.state.values),
+          onChange: ({ fieldApi }) =>
+            zodFieldError(registerSchema, "confirmPassword", fieldApi.form.state.values),
         }}
       >
         {(field) => (
           <div>
-            <Label htmlFor="register-confirm-password">
-              Konfirmasi Password
-            </Label>
+            <Label htmlFor="register-confirm-password">Konfirmasi Password</Label>
             <Input
               autoComplete="new-password"
               className="mt-1.5"
@@ -438,13 +400,13 @@ function RegisterForm({ redirectTo }: { redirectTo: string }) {
               type="password"
               value={field.state.value}
               aria-invalid={
-                field.state.meta.isTouched &&
+                revalidate.shouldShow(field.state.meta.isTouched) &&
                 field.state.meta.errors.length > 0
               }
             />
             <FieldError
               errors={field.state.meta.errors as string[]}
-              touched={field.state.meta.isTouched}
+              show={revalidate.shouldShow(field.state.meta.isTouched)}
             />
           </div>
         )}
@@ -457,19 +419,14 @@ function RegisterForm({ redirectTo }: { redirectTo: string }) {
             disabled={isSubmitting || registerMutation.isPending}
             type="submit"
           >
-            {isSubmitting || registerMutation.isPending
-              ? "Mendaftar…"
-              : "Daftar Sekarang"}
+            {isSubmitting || registerMutation.isPending ? "Mendaftar…" : "Daftar Sekarang"}
           </Button>
         )}
       </form.Subscribe>
 
       <p className="text-center text-sm text-gray-500">
         Sudah punya akun?{" "}
-        <a
-          className="text-accent font-medium hover:underline"
-          href="/auth/login"
-        >
+        <a className="text-accent font-medium hover:underline" href="/auth/login">
           Masuk
         </a>
       </p>
@@ -487,7 +444,7 @@ function AuthFormInner({ mode, redirectTo = "/" }: Props) {
   );
 }
 
-// ── Exported island (wraps with QueryClientProvider) ─────────────────────────
+// ── Exported island ───────────────────────────────────────────────────────────
 
 export default function AuthForm(props: Props) {
   return (

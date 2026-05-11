@@ -1,8 +1,7 @@
 // =============================================================================
 // ForgotPasswordForm — React island (client:load)
 // Uses: TanStack Form v1, shadcn Input/Label/Button, sonner toasts
-// Validation: dynamic validators — onBlur (first touch) + onChange (after
-//             touch). Errors surface only after user interaction.
+// Validation: revalidateLogic + zodValidator (form-level onDynamic)
 // =============================================================================
 
 import { useState } from "react";
@@ -18,18 +17,19 @@ import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
 
 import { queryClient } from "@/lib/query-client";
+import { revalidateLogic, zodValidator } from "@/lib/form-validators";
 import { useForgotPassword } from "@/hooks/mutations/useForgotPassword";
 
-// ── Shared field error — only surfaces after user touches the field ────────────
+// ── Shared field error ────────────────────────────────────────────────────────
 
 function FieldError({
   errors,
-  touched,
+  show,
 }: {
   errors: (string | undefined)[];
-  touched: boolean;
+  show: boolean;
 }) {
-  if (!touched) return null;
+  if (!show) return null;
   const message = errors.find(Boolean);
   if (!message) return null;
   return <p className="mt-1 text-xs text-red-500">{message}</p>;
@@ -41,9 +41,13 @@ function ForgotPasswordFormInner() {
   const [sent, setSent] = useState(false);
   const [sentEmail, setSentEmail] = useState("");
   const forgotMutation = useForgotPassword();
+  const revalidate = revalidateLogic();
 
   const form = useForm<ForgotPasswordInput>({
     defaultValues: { email: "" },
+    validators: {
+      onDynamic: zodValidator(forgotPasswordSchema),
+    },
     onSubmit: async ({ value }) => {
       await new Promise<void>((resolve, reject) => {
         forgotMutation.mutate(value, {
@@ -101,21 +105,17 @@ function ForgotPasswordFormInner() {
         form.handleSubmit();
       }}
     >
-      {/* Email — validates onBlur first, then onChange once touched */}
+      {/* Email — onBlur first, then onChange once touched */}
       <form.Field
         name="email"
         validators={{
           onBlur: ({ value }) => {
-            const result = forgotPasswordSchema.shape.email.safeParse(value);
-            return result.success
-              ? undefined
-              : (result.error.issues[0]?.message ?? "Email tidak valid");
+            const r = forgotPasswordSchema.shape.email.safeParse(value);
+            return r.success ? undefined : (r.error.issues[0]?.message ?? "Email tidak valid");
           },
           onChange: ({ value }) => {
-            const result = forgotPasswordSchema.shape.email.safeParse(value);
-            return result.success
-              ? undefined
-              : (result.error.issues[0]?.message ?? "Email tidak valid");
+            const r = forgotPasswordSchema.shape.email.safeParse(value);
+            return r.success ? undefined : (r.error.issues[0]?.message ?? "Email tidak valid");
           },
         }}
       >
@@ -132,13 +132,13 @@ function ForgotPasswordFormInner() {
               type="email"
               value={field.state.value}
               aria-invalid={
-                field.state.meta.isTouched &&
+                revalidate.shouldShow(field.state.meta.isTouched) &&
                 field.state.meta.errors.length > 0
               }
             />
             <FieldError
               errors={field.state.meta.errors as string[]}
-              touched={field.state.meta.isTouched}
+              show={revalidate.shouldShow(field.state.meta.isTouched)}
             />
           </div>
         )}
@@ -151,27 +151,20 @@ function ForgotPasswordFormInner() {
             disabled={isSubmitting || forgotMutation.isPending}
             type="submit"
           >
-            {isSubmitting || forgotMutation.isPending
-              ? "Mengirim…"
-              : "Kirim Link Reset"}
+            {isSubmitting || forgotMutation.isPending ? "Mengirim…" : "Kirim Link Reset"}
           </Button>
         )}
       </form.Subscribe>
 
       <p className="text-center text-sm text-gray-500">
         Ingat password kamu?{" "}
-        <a
-          className="text-accent font-medium hover:underline"
-          href="/auth/login"
-        >
+        <a className="text-accent font-medium hover:underline" href="/auth/login">
           Masuk
         </a>
       </p>
     </form>
   );
 }
-
-// ── Exported island ───────────────────────────────────────────────────────────
 
 export default function ForgotPasswordForm() {
   return (

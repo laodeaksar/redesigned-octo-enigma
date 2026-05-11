@@ -87,14 +87,18 @@ try {
             <p class="border-b border-gray-100 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
               Akun Saya
             </p>
-            {[
-              { href: "/profile",                   label: "Pengaturan",        active: true  },
-              { href: "/profile/addresses",         label: "Alamat Pengiriman", active: false },
-              { href: "/profile/change-password",   label: "Ubah Password",     active: false },
-              { href: "/profile/set-password",      label: "Buat Password",     active: false },
-              { href: "/orders",                    label: "Pesanan Saya",      active: false },
-              { href: "/wishlist",                  label: "Wishlist",          active: false },
-            ].map(item => (
+            {([
+              { href: "/profile",                 label: "Pengaturan",        active: true  },
+              { href: "/profile/addresses",       label: "Alamat Pengiriman", active: false },
+              // Show "Ubah Password" only for accounts that already have one,
+              // and "Buat Password" only for OAuth-only accounts without one.
+              ...(("hasPassword" in profile && profile.hasPassword)
+                ? [{ href: "/profile/change-password", label: "Ubah Password", active: false }]
+                : [{ href: "/profile/set-password",    label: "Buat Password", active: false }]
+              ),
+              { href: "/orders",                  label: "Pesanan Saya",      active: false },
+              { href: "/wishlist",                label: "Wishlist",          active: false },
+            ] as { href: string; label: string; active: boolean }[]).map(item => (
               <a
                 class:list={[
                   "flex items-center gap-2.5 border-b border-gray-50 px-4 py-2.5 text-sm transition-colors last:border-0",

@@ -20,6 +20,7 @@ export const userSchema = z.object({
   banned: z.boolean().nullable().optional(),
   email: z.email(),
   emailVerified: z.boolean(),
+  hasPassword: z.boolean().default(true),
   id: z.string(),
   name: z.string(),
   role: z.string(),

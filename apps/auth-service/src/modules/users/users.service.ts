@@ -30,7 +30,7 @@ export async function getProfile(db: DB, userId: string) {
 
   const { passwordHash, emailVerificationToken, passwordResetToken, ...safe } =
     user;
-  return safe;
+  return { ...safe, hasPassword: !!passwordHash };
 }
 
 export async function updateProfile(

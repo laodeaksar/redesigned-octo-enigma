@@ -88,6 +88,9 @@ export interface StorefrontUser {
   banned: boolean | null;
   email: string;
   emailVerified: boolean;
+  /** True when the account has a password hash (i.e. email+password auth works).
+   *  False for OAuth-only accounts that have never set a password. */
+  hasPassword: boolean;
   id: string;
   name: string;
   role: string;

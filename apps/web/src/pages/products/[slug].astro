@@ -3,6 +3,7 @@ import AddToCartButton from "@/components/islands/AddToCartButton";
 import CompareToggle from "@/components/islands/CompareToggle";
 import ProductReviews from "@/components/islands/ProductReviews";
 import RecentlyViewed from "@/components/islands/RecentlyViewed";
+import RelatedProducts from "@/components/islands/RelatedProducts";
 import TrackProductView from "@/components/islands/TrackProductView";
 import WishlistButton from "@/components/islands/WishlistButton";
 import BaseLayout from "@/components/layout/BaseLayout.astro";
@@ -209,6 +210,15 @@ const sortedImages = [...product.images].sort(
     lowestPrice={product.variants.length > 0 ? Math.min(...product.variants.map((v) => v.price)) : 0}
     highestPrice={product.variants.length > 0 ? Math.max(...product.variants.map((v) => v.price)) : 0}
   />
+
+  <!-- Related products (SSR initialData from BFF + background refetch) -->
+  <div class="border-t border-gray-100">
+    <RelatedProducts
+      client:visible
+      slug={slug!}
+      initialData={relatedProducts}
+    />
+  </div>
 
   <!-- Recently viewed (excludes current product) -->
   <div class="border-t border-gray-100 bg-gray-50/50">

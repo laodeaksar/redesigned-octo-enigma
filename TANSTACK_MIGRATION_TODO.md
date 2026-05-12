@@ -55,8 +55,8 @@ Update ✅ setiap task selesai. Commit per phase: `feat(web): phase N - <nama ph
   - `TrackProductView` → `client:idle` ✅
   - `OrderHistory` → `client:visible` ✅
   - `WishlistPreview` → `client:visible` ✅
-- [ ] **P1** Buat `apps/web/src/hooks/queries/useRelatedProducts.ts` + migrasi related products rendering di `products/[slug].astro`
-- [ ] **P1** Ganti komponen custom ke `@repo/ui` jika ada yang belum: `Button`, `Input`, `Skeleton`, `Toast`
+- [x] **P1** Buat `apps/web/src/hooks/queries/useRelatedProducts.ts` + migrasi related products di `products/[slug].astro` (`RelatedProducts` island dengan SSR initialData + ButtonGroup prev/next nav)
+- [x] **P1** Ganti komponen custom ke `@repo/ui` di `AddToCartButton.tsx`: `InputGroup` untuk qty stepper, `ButtonGroup` untuk attribute chips, `Button` untuk CTA
 
 ---
 
@@ -103,6 +103,11 @@ validators: {
 - `queryClient` dari `@/lib/query-client` adalah singleton → semua islands share cache
 - Jangan coba wrap `<slot />` di BaseLayout — tidak bisa dalam Astro architecture
 
+### ButtonGroup & InputGroup (@repo/ui)
+- `ButtonGroup` → fuses adjacent `Button` children (radius/border auto-removed between items). Ideal untuk: attribute variant chips (Ukuran, Warna), prev/next navigation controls.
+- `InputGroup` → wrapper dengan `InputGroupAddon` + `InputGroupInput` + `InputGroupButton`. Ideal untuk: quantity stepper, search with inline button, input with prefix/suffix icon.
+- Import: `import { ButtonGroup } from "@repo/ui/components/button-group"` dan `import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@repo/ui/components/input-group"`
+
 ---
 
 ## Laporan Progress
@@ -112,5 +117,5 @@ validators: {
 | Phase 1 | 0 | 0 | 0 |
 | Phase 2 | 0 | 3 | 4 |
 | Phase 3 | CartDrawer: 3, ProductGrid: 0 (baru), UserSettings: 5 | 3 | 4 |
-| Phase 4+ | — | — | — |
-| **Total** | **8** | **3** | **4** |
+| Phase 4 | AddToCartButton: 3, RelatedProducts: 0 (baru) | +1 (useRelatedProducts) | — |
+| **Total** | **11** | **4** | **4** |

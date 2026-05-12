@@ -1,11 +1,30 @@
 // =============================================================================
 // AddToCartButton — React island, client:load
+//
+// Migration: uses useAddToCart mutation (optimistic update) instead of the
+// synchronous addToCart() store action.
+//
+// UI improvements:
+//   - Quantity stepper → InputGroup + InputGroupButton (from @repo/ui)
+//   - Attribute variant chips → ButtonGroup (from @repo/ui)
 // =============================================================================
 
 import { useState } from "react";
-import { addToCart, setLoggedIn } from "@/stores/cart.store";
+import { QueryClientProvider } from "@tanstack/react-query";
 
+import { queryClient } from "@/lib/query-client";
+import { useAddToCart } from "@/hooks/mutations/useAddToCart";
 import { formatIDR } from "@/lib/utils";
+import { Button } from "@repo/ui/components/button";
+import { ButtonGroup } from "@repo/ui/components/button-group";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@repo/ui/components/input-group";
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface Variant {
   attributes: Record<string, string>;
@@ -24,31 +43,28 @@ interface Props {
   variants: Variant[];
 }
 
-export default function AddToCartButton({
+// ── Inner component ───────────────────────────────────────────────────────────
+
+function AddToCartButtonInner({
   productName,
   variants,
   primaryImage,
   isLoggedIn = false,
 }: Props) {
-  // Tell the store whether to also push to the server
-  setLoggedIn(isLoggedIn);
+  const { mutate: addToCart, isPending } = useAddToCart();
 
   const activeVariants = variants.filter(v => v.isActive);
-
   const attrKeys = Object.keys(activeVariants[0]?.attributes ?? {});
 
   const [selected, setSelected] = useState<Record<string, string>>(
     Object.fromEntries(
       attrKeys.map(k => [
         k,
-        Object.values(activeVariants[0]?.attributes ?? {})[
-          attrKeys.indexOf(k)
-        ] ?? "",
+        activeVariants[0]?.attributes[k] ?? "",
       ])
     )
   );
   const [qty, setQty] = useState(1);
-  const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
 
   const matchedVariant = activeVariants.find(v =>
@@ -56,7 +72,7 @@ export default function AddToCartButton({
   );
 
   const isOutOfStock = !matchedVariant || matchedVariant.stock === 0;
-  const maxQty = matchedVariant?.stock ?? 0;
+  const maxQty = matchedVariant?.stock ?? 1;
 
   const attrValues = (key: string): string[] => [
     ...new Set(
@@ -64,62 +80,78 @@ export default function AddToCartButton({
     ),
   ];
 
-  const handleAdd = async () => {
-    if (!matchedVariant || isOutOfStock) {
-      return;
-    }
-    setAdding(true);
+  const handleAdd = () => {
+    if (!matchedVariant || isOutOfStock) return;
 
-    addToCart({
-      variantId: matchedVariant.id,
-      productName,
-      variantName: matchedVariant.name,
-      sku: matchedVariant.id,
-      imageUrl: primaryImage,
-      price: matchedVariant.price,
-      quantity: qty,
-    });
-
-    setAdding(false);
-    setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
+    addToCart(
+      {
+        item: {
+          variantId: matchedVariant.id,
+          productName,
+          variantName: matchedVariant.name,
+          sku: matchedVariant.id,
+          imageUrl: primaryImage,
+          price: matchedVariant.price,
+          quantity: qty,
+        },
+        isLoggedIn,
+      },
+      {
+        onSuccess: () => {
+          setAdded(true);
+          setTimeout(() => setAdded(false), 2000);
+        },
+      }
+    );
   };
 
   return (
     <div className="space-y-4">
-      {/* Attribute selectors */}
-      {attrKeys.map(key => (
-        <div key={key}>
-          <p className="mb-2 text-sm font-medium text-gray-700 capitalize">
-            {key}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {attrValues(key).map(val => {
-              const isAvailable = activeVariants.some(
-                v => v.attributes[key] === val && v.stock > 0
-              );
-              return (
-                <button
-                  className={`rounded-md border px-3 py-1.5 text-sm font-medium transition-colors ${
-                    selected[key] === val
-                      ? "border-brand-500 bg-brand-500 text-white"
-                      : isAvailable
-                        ? "border-gray-200 text-gray-700 hover:border-gray-400"
-                        : "cursor-not-allowed border-gray-100 text-gray-300 line-through"
-                  }`}
-                  disabled={!isAvailable}
-                  key={val}
-                  onClick={() => setSelected(s => ({ ...s, [key]: val }))}
-                >
-                  {val}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ))}
+      {/* ── Attribute selectors (ButtonGroup per attribute key) ──────────── */}
+      {attrKeys.map(key => {
+        const values = attrValues(key);
+        return (
+          <div key={key}>
+            <p className="mb-2 text-sm font-medium text-gray-700 capitalize">
+              {key}
+              {selected[key] && (
+                <span className="ml-1.5 font-normal text-gray-500">
+                  : {selected[key]}
+                </span>
+              )}
+            </p>
 
-      {/* Price */}
+            {/* ButtonGroup fuses the buttons into a radio-chip strip */}
+            <ButtonGroup>
+              {values.map(val => {
+                const isAvailable = activeVariants.some(
+                  v => v.attributes[key] === val && v.stock > 0
+                );
+                const isActive = selected[key] === val;
+
+                return (
+                  <Button
+                    className={
+                      !isAvailable
+                        ? "cursor-not-allowed opacity-40 line-through"
+                        : ""
+                    }
+                    disabled={!isAvailable}
+                    key={val}
+                    onClick={() => setSelected(s => ({ ...s, [key]: val }))}
+                    size="sm"
+                    variant={isActive ? "default" : "outline"}
+                  >
+                    {val}
+                  </Button>
+                );
+              })}
+            </ButtonGroup>
+          </div>
+        );
+      })}
+
+      {/* ── Price ────────────────────────────────────────────────────────── */}
       {matchedVariant && (
         <div className="flex items-center gap-3">
           <span className="text-2xl font-bold text-gray-900">
@@ -133,57 +165,86 @@ export default function AddToCartButton({
         </div>
       )}
 
-      {/* Stock indicator */}
-      {matchedVariant &&
-        matchedVariant.stock > 0 &&
-        matchedVariant.stock <= 5 && (
-          <p className="text-sm font-medium text-yellow-600">
-            ⚡ Sisa {matchedVariant.stock} item
-          </p>
-        )}
+      {/* ── Low stock warning ─────────────────────────────────────────────── */}
+      {matchedVariant && matchedVariant.stock > 0 && matchedVariant.stock <= 5 && (
+        <p className="text-sm font-medium text-yellow-600">
+          ⚡ Sisa {matchedVariant.stock} item
+        </p>
+      )}
 
-      {/* Quantity */}
+      {/* ── Quantity stepper (InputGroup) ─────────────────────────────────── */}
       {!isOutOfStock && (
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-600">Jumlah:</span>
-          <div className="flex items-center rounded-md border border-gray-200">
-            <button
-              className="flex h-9 w-9 items-center justify-center text-gray-500 hover:bg-gray-50"
-              onClick={() => setQty(q => Math.max(1, q - 1))}
-            >
-              −
-            </button>
-            <span className="w-10 text-center text-sm font-medium">{qty}</span>
-            <button
-              className="flex h-9 w-9 items-center justify-center text-gray-500 hover:bg-gray-50"
-              onClick={() => setQty(q => Math.min(maxQty, q + 1))}
-            >
-              +
-            </button>
-          </div>
+          <InputGroup className="w-32">
+            <InputGroupAddon align="inline-start">
+              <InputGroupButton
+                aria-label="Kurangi jumlah"
+                onClick={() => setQty(q => Math.max(1, q - 1))}
+                size="icon-sm"
+              >
+                −
+              </InputGroupButton>
+            </InputGroupAddon>
+
+            <InputGroupInput
+              aria-label="Jumlah produk"
+              className="text-center"
+              max={maxQty}
+              min={1}
+              onChange={e => {
+                const v = Number(e.target.value);
+                if (!Number.isNaN(v)) setQty(Math.min(maxQty, Math.max(1, v)));
+              }}
+              type="number"
+              value={qty}
+            />
+
+            <InputGroupAddon align="inline-end">
+              <InputGroupButton
+                aria-label="Tambah jumlah"
+                onClick={() => setQty(q => Math.min(maxQty, q + 1))}
+                size="icon-sm"
+              >
+                +
+              </InputGroupButton>
+            </InputGroupAddon>
+          </InputGroup>
+
+          {maxQty <= 5 && (
+            <span className="text-xs text-gray-400">maks. {maxQty}</span>
+          )}
         </div>
       )}
 
-      {/* CTA */}
-      <button
-        className={`w-full rounded-lg py-3 text-sm font-semibold transition-all ${
-          isOutOfStock
-            ? "cursor-not-allowed bg-gray-100 text-gray-400"
-            : added
-              ? "bg-green-500 text-white"
-              : "bg-accent text-white hover:opacity-90 active:scale-[0.98]"
+      {/* ── Add to cart CTA ───────────────────────────────────────────────── */}
+      <Button
+        className={`w-full text-sm font-semibold ${
+          added ? "bg-green-500 hover:bg-green-500 text-white" : ""
         }`}
-        disabled={isOutOfStock || adding}
-        onClick={() => void handleAdd()}
+        disabled={isOutOfStock || isPending}
+        onClick={handleAdd}
+        size="lg"
+        variant={isOutOfStock ? "outline" : added ? "default" : "default"}
       >
         {isOutOfStock
           ? "Stok Habis"
-          : adding
+          : isPending
             ? "Menambahkan…"
             : added
-              ? "✓ Ditambahkan!"
+              ? "✓ Ditambahkan ke Keranjang!"
               : "Tambah ke Keranjang"}
-      </button>
+      </Button>
     </div>
+  );
+}
+
+// ── Export (with QueryClientProvider) ─────────────────────────────────────────
+
+export default function AddToCartButton(props: Props) {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AddToCartButtonInner {...props} />
+    </QueryClientProvider>
   );
 }

@@ -1,18 +1,14 @@
 // =============================================================================
-// OrderHistory — recent orders island using @repo/ui components (client:load)
+// OrderHistory — recent orders island (client:load)
 // Shows last 5 orders with status badge, totals, and links.
+// Uses @repo/ui components and the shared useOrders hook.
 // =============================================================================
 
-import { useQuery } from "@tanstack/react-query";
 import { QueryClientProvider } from "@tanstack/react-query";
 
 import { queryClient } from "@/lib/query-client";
-import { apiProxy, type Order } from "@/lib/api";
-import {
-  formatDateTime,
-  formatIDR,
-  ORDER_STATUS_LABELS,
-} from "@/lib/utils";
+import { useOrders } from "@/hooks/queries/useOrders";
+import { formatDateTime, formatIDR, ORDER_STATUS_LABELS } from "@/lib/utils";
 
 import { Badge } from "@repo/ui/components/badge";
 import {
@@ -73,18 +69,13 @@ function OrderSkeletons() {
 // ── Main component ────────────────────────────────────────────────────────────
 
 function OrderHistoryInner() {
-  const { data: orders = [], isPending, isError } = useQuery({
-    queryKey: ["orders", "me", { page: 1, limit: 5 }],
-    queryFn: () =>
-      apiProxy
-        .get<{
-          success: true;
-          data: Order[];
-          meta: { total: number; totalPages: number };
-        }>("/orders/me", { params: { page: 1, limit: 5 } })
-        .then(res => res.data),
-    staleTime: 30 * 1000,
-  });
+  const {
+    data,
+    isPending,
+    isError,
+  } = useOrders({ params: { page: 1, limit: 5 } });
+
+  const orders = data?.items ?? [];
 
   return (
     <Card>
@@ -150,7 +141,7 @@ function OrderHistoryInner() {
                 >
                   {/* Left — order info */}
                   <div className="min-w-0 flex-1">
-                    <p className="font-mono text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                    <p className="font-mono text-sm font-semibold text-foreground transition-colors group-hover:text-primary">
                       {order.orderNumber}
                     </p>
                     <p className="mt-0.5 truncate text-xs text-muted-foreground">
@@ -185,9 +176,7 @@ function OrderHistoryInner() {
                   </div>
                 </a>
 
-                {i < orders.length - 1 && (
-                  <Separator className="my-0" />
-                )}
+                {i < orders.length - 1 && <Separator className="my-0" />}
               </li>
             ))}
           </ul>

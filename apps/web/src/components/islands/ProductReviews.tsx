@@ -1,11 +1,13 @@
 // =============================================================================
 // ProductReviews — React island, client:load
 // Shows rating summary + infinite-scroll review list + write-review form.
+//
+// Review form uses @tanstack/react-form (v1.x) and @repo/ui components.
 // =============================================================================
 
 import { useEffect, useState } from "react";
-import type React from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { useForm } from "@tanstack/react-form";
 
 import { queryClient } from "@/lib/query-client";
 import { useProductSummary } from "@/hooks/queries/useProductSummary";
@@ -14,6 +16,16 @@ import { useOrders } from "@/hooks/queries/useOrders";
 import { useSubmitReview } from "@/hooks/mutations/useSubmitReview";
 import { notify } from "@/lib/toast";
 import { formatRelativeTime } from "@/lib/utils";
+
+import { Button } from "@repo/ui/components/button";
+import { Input } from "@repo/ui/components/input";
+import { Textarea } from "@repo/ui/components/textarea";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@repo/ui/components/field";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -178,15 +190,222 @@ function ReviewCard({ review }: { review: Review }) {
   );
 }
 
+// ── Review form (TanStack Form + @repo/ui) ────────────────────────────────────
+
+interface ReviewFormValues {
+  body: string;
+  orderId: string;
+  rating: number;
+  title: string;
+}
+
+function ReviewForm({
+  productId,
+  productName,
+  ordersLoading,
+  orders,
+  onSuccess,
+}: {
+  productId: string;
+  productName: string;
+  ordersLoading: boolean;
+  orders: { id: string; orderNumber: string; createdAt: string }[];
+  onSuccess: () => void;
+}) {
+  const submitMutation = useSubmitReview(productId);
+
+  const form = useForm({
+    defaultValues: {
+      rating: 0,
+      orderId: "",
+      title: "",
+      body: "",
+    },
+    onSubmit: ({ value }) => {
+      if (value.rating === 0) {
+        notify.error("Pilih rating bintang terlebih dahulu.");
+        return;
+      }
+      if (!value.orderId.trim()) {
+        notify.error("Pilih atau masukkan ID pesanan.");
+        return;
+      }
+      submitMutation.mutate(
+        {
+          orderId: value.orderId.trim(),
+          rating: value.rating,
+          title: value.title.trim() || null,
+          body: value.body.trim() || null,
+        },
+        {
+          onSuccess: () => {
+            form.reset();
+            onSuccess();
+          },
+        }
+      );
+    },
+  });
+
+  // Auto-select first order when orders load
+  useEffect(() => {
+    if (orders.length > 0 && !form.getFieldValue("orderId")) {
+      form.setFieldValue("orderId", orders[0].id);
+    }
+  }, [orders]);
+
+  return (
+    <form
+      className="mt-4 space-y-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm"
+      onSubmit={e => {
+        e.preventDefault();
+        e.stopPropagation();
+        void form.handleSubmit();
+      }}
+    >
+      <h3 className="text-sm font-semibold text-gray-900">Beri Ulasanmu</h3>
+
+      <FieldGroup>
+        {/* ── Rating ─────────────────────────────────────────────────── */}
+        <form.Field name="rating">
+          {field => (
+            <Field>
+              <FieldLabel>
+                Rating <span className="text-red-500">*</span>
+              </FieldLabel>
+              <StarPicker
+                onChange={field.handleChange}
+                value={field.state.value}
+              />
+            </Field>
+          )}
+        </form.Field>
+
+        {/* ── Pesanan ────────────────────────────────────────────────── */}
+        <form.Field name="orderId">
+          {field => (
+            <Field>
+              <FieldLabel>
+                Pesanan <span className="text-red-500">*</span>
+              </FieldLabel>
+              {ordersLoading ? (
+                <div className="flex h-9 items-center gap-2 rounded-lg border border-gray-200 px-3 text-xs text-gray-400">
+                  <div className="border-t-brand-500 h-3 w-3 animate-spin rounded-full border-2 border-gray-300" />
+                  Memuat pesanan…
+                </div>
+              ) : orders.length > 0 ? (
+                <select
+                  className="focus:border-brand-500 focus:ring-brand-500 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:ring-1 focus:outline-none"
+                  onChange={e => field.handleChange(e.target.value)}
+                  value={field.state.value}
+                >
+                  {orders.map(o => (
+                    <option key={o.id} value={o.id}>
+                      #{o.orderNumber} —{" "}
+                      {new Date(o.createdAt).toLocaleDateString("id-ID")}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <Input
+                  onBlur={field.handleBlur}
+                  onChange={e => field.handleChange(e.target.value)}
+                  placeholder="Masukkan ID pesanan"
+                  type="text"
+                  value={field.state.value}
+                />
+              )}
+              <p className="text-[10px] text-gray-400">
+                Ulasan hanya untuk produk yang sudah dibeli.
+              </p>
+            </Field>
+          )}
+        </form.Field>
+
+        {/* ── Judul (opsional) ───────────────────────────────────────── */}
+        <form.Field name="title">
+          {field => (
+            <Field>
+              <FieldLabel>
+                Judul{" "}
+                <span className="font-normal text-gray-400">(opsional)</span>
+              </FieldLabel>
+              <Input
+                maxLength={150}
+                onBlur={field.handleBlur}
+                onChange={e => field.handleChange(e.target.value)}
+                placeholder="Ringkas pendapatmu…"
+                type="text"
+                value={field.state.value}
+              />
+            </Field>
+          )}
+        </form.Field>
+
+        {/* ── Ulasan (opsional) ──────────────────────────────────────── */}
+        <form.Field name="body">
+          {field => (
+            <Field>
+              <FieldLabel>
+                Ulasan{" "}
+                <span className="font-normal text-gray-400">(opsional)</span>
+              </FieldLabel>
+              <Textarea
+                className="resize-none"
+                maxLength={2000}
+                onBlur={field.handleBlur}
+                onChange={e => field.handleChange(e.target.value)}
+                placeholder={`Bagikan pengalamanmu dengan ${productName}…`}
+                rows={4}
+                value={field.state.value}
+              />
+              <form.Subscribe selector={state => state.values.body}>
+                {body => (
+                  <p className="text-right text-[10px] text-gray-400">
+                    {body.length}/2000
+                  </p>
+                )}
+              </form.Subscribe>
+            </Field>
+          )}
+        </form.Field>
+      </FieldGroup>
+
+      {submitMutation.isError && (
+        <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
+          {submitMutation.error instanceof Error
+            ? submitMutation.error.message
+            : "Gagal mengirim ulasan."}
+        </div>
+      )}
+
+      {/* ── Submit button ─────────────────────────────────────────────── */}
+      <form.Subscribe
+        selector={state => ({
+          rating: state.values.rating,
+          isSubmitting: state.isSubmitting,
+        })}
+      >
+        {({ rating, isSubmitting }) => (
+          <Button
+            className="w-full"
+            disabled={rating === 0 || isSubmitting || submitMutation.isPending}
+            type="submit"
+          >
+            {isSubmitting || submitMutation.isPending
+              ? "Mengirim…"
+              : "Kirim Ulasan"}
+          </Button>
+        )}
+      </form.Subscribe>
+    </form>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 function ProductReviewsInner({ productId, productName, isLoggedIn }: Props) {
-  // Write form state
   const [showForm, setShowForm] = useState(false);
-  const [rating, setRating] = useState(0);
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
-  const [orderId, setOrderId] = useState("");
 
   // ── Queries ──────────────────────────────────────────────────────────────────
 
@@ -207,52 +426,8 @@ function ProductReviewsInner({ productId, productName, isLoggedIn }: Props) {
   });
 
   const orders = ordersData?.items ?? [];
-
-  // ── Mutation ─────────────────────────────────────────────────────────────────
-
-  const submitMutation = useSubmitReview(productId);
-
-  // Auto-select first order when list loads
-  useEffect(() => {
-    if (orders.length > 0 && !orderId) {
-      setOrderId(orders[0].id);
-    }
-  }, [orders, orderId]);
-
   const loading = summaryLoading || reviewsLoading;
-  // Flatten all infinite-query pages into a single list
   const reviews = reviewPages?.pages.flatMap(p => p.data) ?? [];
-
-  // ── Submit ───────────────────────────────────────────────────────────────────
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (rating === 0) {
-      notify.error("Pilih rating bintang terlebih dahulu.");
-      return;
-    }
-    if (!orderId.trim()) {
-      notify.error("Pilih atau masukkan ID pesanan.");
-      return;
-    }
-    submitMutation.mutate(
-      {
-        orderId: orderId.trim(),
-        rating,
-        title: title.trim() || null,
-        body: body.trim() || null,
-      },
-      {
-        onSuccess: () => {
-          setShowForm(false);
-          setRating(0);
-          setTitle("");
-          setBody("");
-          setOrderId("");
-        },
-      }
-    );
-  };
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -307,25 +482,16 @@ function ProductReviewsInner({ productId, productName, isLoggedIn }: Props) {
                 </div>
               ) : null}
 
-              {/* Write review button */}
+              {/* Write review toggle */}
               <div className="mt-4">
                 {isLoggedIn ? (
-                  submitMutation.isSuccess ? (
-                    <div className="rounded-xl bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
-                      ✓ Ulasanmu berhasil dikirim. Terima kasih!
-                    </div>
-                  ) : (
-                    <button
-                      className={`w-full rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors ${
-                        showForm
-                          ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                          : "bg-brand-500 hover:bg-brand-600 text-white"
-                      }`}
-                      onClick={() => setShowForm(v => !v)}
-                    >
-                      {showForm ? "Batal" : "Tulis Ulasan"}
-                    </button>
-                  )
+                  <Button
+                    className="w-full"
+                    onClick={() => setShowForm(v => !v)}
+                    variant={showForm ? "outline" : "default"}
+                  >
+                    {showForm ? "Batal" : "Tulis Ulasan"}
+                  </Button>
                 ) : (
                   <a
                     className="block w-full rounded-xl border border-gray-200 px-4 py-2.5 text-center text-sm font-medium text-gray-600 hover:bg-gray-50"
@@ -336,110 +502,16 @@ function ProductReviewsInner({ productId, productName, isLoggedIn }: Props) {
                 )}
               </div>
 
-              {/* Write-review form */}
+              {/* Review form */}
               {showForm && isLoggedIn && (
-                <form
-                  className="mt-4 space-y-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm"
-                  onSubmit={handleSubmit}
-                >
-                  <h3 className="text-sm font-semibold text-gray-900">
-                    Beri Ulasanmu
-                  </h3>
-
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-gray-700">
-                      Rating <span className="text-red-500">*</span>
-                    </label>
-                    <StarPicker onChange={setRating} value={rating} />
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-gray-700">
-                      Pesanan <span className="text-red-500">*</span>
-                    </label>
-                    {ordersLoading ? (
-                      <div className="flex h-9 items-center gap-2 rounded-lg border border-gray-200 px-3 text-xs text-gray-400">
-                        <div className="border-t-brand-500 h-3 w-3 animate-spin rounded-full border-2 border-gray-300" />
-                        Memuat pesanan…
-                      </div>
-                    ) : orders.length > 0 ? (
-                      <select
-                        className="focus:border-brand-500 focus:ring-brand-500 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:ring-1 focus:outline-none"
-                        onChange={e => setOrderId(e.target.value)}
-                        value={orderId}
-                      >
-                        {orders.map(o => (
-                          <option key={o.id} value={o.id}>
-                            #{o.orderNumber} —{" "}
-                            {new Date(o.createdAt).toLocaleDateString("id-ID")}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        className="focus:border-brand-500 focus:ring-brand-500 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm placeholder-gray-300 focus:ring-1 focus:outline-none"
-                        onChange={e => setOrderId(e.target.value)}
-                        placeholder="Masukkan ID pesanan"
-                        type="text"
-                        value={orderId}
-                      />
-                    )}
-                    <p className="mt-1 text-[10px] text-gray-400">
-                      Ulasan hanya untuk produk yang sudah dibeli.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-gray-700">
-                      Judul <span className="text-gray-400">(opsional)</span>
-                    </label>
-                    <input
-                      className="focus:border-brand-500 focus:ring-brand-500 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm placeholder-gray-300 focus:ring-1 focus:outline-none"
-                      maxLength={150}
-                      onChange={e => setTitle(e.target.value)}
-                      placeholder="Ringkas pendapatmu…"
-                      type="text"
-                      value={title}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-gray-700">
-                      Ulasan <span className="text-gray-400">(opsional)</span>
-                    </label>
-                    <textarea
-                      className="focus:border-brand-500 focus:ring-brand-500 w-full resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm placeholder-gray-300 focus:ring-1 focus:outline-none"
-                      maxLength={2000}
-                      onChange={e => setBody(e.target.value)}
-                      placeholder={`Bagikan pengalamanmu dengan ${productName}…`}
-                      rows={4}
-                      value={body}
-                    />
-                    <p className="mt-0.5 text-right text-[10px] text-gray-400">
-                      {body.length}/2000
-                    </p>
-                  </div>
-
-                  {submitMutation.isError && (
-                    <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
-                      {submitMutation.error instanceof Error
-                        ? submitMutation.error.message
-                        : "Gagal mengirim ulasan."}
-                    </div>
-                  )}
-
-                  <button
-                    className={`w-full rounded-lg py-2.5 text-sm font-semibold transition-all ${
-                      rating === 0 || submitMutation.isPending
-                        ? "cursor-not-allowed bg-gray-100 text-gray-400"
-                        : "bg-accent text-white hover:opacity-90 active:scale-[0.98]"
-                    }`}
-                    disabled={submitMutation.isPending || rating === 0}
-                    type="submit"
-                  >
-                    {submitMutation.isPending ? "Mengirim…" : "Kirim Ulasan"}
-                  </button>
-                </form>
+                <ReviewForm
+                  key={showForm ? "open" : "closed"}
+                  onSuccess={() => setShowForm(false)}
+                  orders={orders}
+                  ordersLoading={ordersLoading}
+                  productId={productId}
+                  productName={productName}
+                />
               )}
             </div>
 
@@ -459,10 +531,11 @@ function ProductReviewsInner({ productId, productName, isLoggedIn }: Props) {
               )}
 
               {hasNextPage && (
-                <button
-                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50"
+                <Button
+                  className="mt-6 w-full"
                   disabled={isFetchingNextPage}
                   onClick={() => void fetchNextPage()}
+                  variant="outline"
                 >
                   {isFetchingNextPage ? (
                     <>
@@ -472,7 +545,7 @@ function ProductReviewsInner({ productId, productName, isLoggedIn }: Props) {
                   ) : (
                     "Muat Lebih Banyak Ulasan"
                   )}
-                </button>
+                </Button>
               )}
             </div>
           </div>

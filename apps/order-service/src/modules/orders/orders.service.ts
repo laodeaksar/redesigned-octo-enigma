@@ -17,6 +17,7 @@ import type {
   CreateOrderInput,
   ListOrdersQuery,
   MyOrdersQuery,
+  RequestRefundInput,
   UpdateOrderStatusInput,
 } from "@repo/common/schemas";
 // ── Local type alias needed for updateOrderStatus ─────────────────────────────
@@ -286,6 +287,49 @@ export async function cancelOrder(
 
   // Publish events
   await events.publishOrderCancelled(orderId, updated, userEmail);
+
+  return updated;
+}
+
+// ── Customer: request refund (delivered orders only) ─────────────────────────
+
+export async function requestRefund(
+  orderId: string,
+  requesterId: string,
+  requesterRole: string,
+  input: RequestRefundInput
+) {
+  const order = await repo.findOrderById(orderId);
+  if (!order) {
+    throw new NotFoundError("Order");
+  }
+
+  if (requesterRole === "customer" && order.userId !== requesterId) {
+    throw new ForbiddenError();
+  }
+
+  if (order.status !== "delivered") {
+    throw new BadRequestError(
+      `Cannot request a refund for an order with status '${order.status}'. Only delivered orders are eligible.`
+    );
+  }
+
+  const noteText = [input.reason, input.note].filter(Boolean).join(": ");
+
+  const updated = await repo.updateOrderStatus(
+    orderId,
+    "refund_requested",
+    {
+      status: "refund_requested",
+      timestamp: new Date(),
+      note: noteText || null,
+      actorId: requesterId,
+    }
+  );
+
+  if (!updated) {
+    throw new NotFoundError("Order");
+  }
 
   return updated;
 }

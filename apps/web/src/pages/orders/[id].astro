@@ -3,6 +3,7 @@ import BaseLayout from "@/components/layout/BaseLayout.astro";
 import Card from "@/components/shared/Card.astro";
 import ReorderButton from "@/components/islands/ReorderButton";
 import OrderCancelButton from "@/components/islands/OrderCancelButton";
+import OrderRefundButton from "@/components/islands/OrderRefundButton";
 import OrderStatusTracker from "@/components/islands/OrderStatusTracker";
 import OrderDetailIsland from "@/components/islands/OrderDetailIsland";
 import PushNotificationManager from "@/components/islands/PushNotificationManager";
@@ -136,6 +137,14 @@ const PAYMENT_STATUS_COLORS: Record<string, string> = {
         )}
         {order.status === "pending_payment" && (
           <OrderCancelButton
+            client:load
+            orderId={order.id}
+            orderNumber={order.orderNumber}
+            orderStatus={order.status}
+          />
+        )}
+        {order.status === "delivered" && (
+          <OrderRefundButton
             client:load
             orderId={order.id}
             orderNumber={order.orderNumber}

@@ -122,6 +122,14 @@ app.post("/orders/:id/cancel", requireAuth, defaultRateLimit, async c =>
   })
 );
 
+// ── Customer: request refund (delivered orders only) ─────────────────────────
+app.post("/orders/:id/refund", requireAuth, defaultRateLimit, async c =>
+  proxyRequest(c, {
+    target: buildTargetUrl(orderBase, c),
+    user: c.var.user,
+  })
+);
+
 // ── Admin: list all orders ────────────────────────────────────────────────────
 app.get(
   "/orders",

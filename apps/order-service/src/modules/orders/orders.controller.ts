@@ -11,6 +11,7 @@ import {
   listOrdersQuerySchema,
   myOrdersQuerySchema,
   paginated,
+  requestRefundSchema,
   success,
   updateOrderStatusSchema,
 } from "@repo/common/schemas";
@@ -67,6 +68,19 @@ export async function handleCancel(
       userEmail,
       input
     )
+  );
+}
+
+export async function handleRequestRefund(
+  orderId: string,
+  requesterId: string,
+  requesterRole: string,
+  body: unknown
+) {
+  const input = safeParse(requestRefundSchema, body);
+  return success(
+    await service.requestRefund(orderId, requesterId, requesterRole, input),
+    "Refund request submitted"
   );
 }
 

@@ -336,6 +336,34 @@ export const ordersRoutes = new Elysia({ prefix: "/orders" })
     }
   )
 
+  // ── Customer: request refund (delivered orders only) ─────────────────────
+  .post(
+    "/:id/refund",
+    ({ params, user, body }) =>
+      controller.handleRequestRefund(params.id, user.id, user.role, body),
+    {
+      params: ID_PARAM,
+      body: t.Object({
+        reason: t.Union([
+          t.Literal("customer_request"),
+          t.Literal("defective_product"),
+          t.Literal("wrong_item"),
+          t.Literal("item_not_received"),
+          t.Literal("order_cancelled"),
+          t.Literal("admin_action"),
+        ]),
+        note: t.Optional(t.String({ maxLength: 1000 })),
+        imageUrls: t.Optional(
+          t.Array(t.String(), { maxItems: 5 })
+        ),
+      }),
+      detail: {
+        tags: ["Orders"],
+        summary: "Request a refund for a delivered order",
+      },
+    }
+  )
+
   // ── Admin routes ────────────────────────────────────────────────────────────
   .use(requireRole("admin", "super_admin"))
 

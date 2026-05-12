@@ -2,6 +2,7 @@
 import BaseLayout from "@/components/layout/BaseLayout.astro";
 import Card from "@/components/shared/Card.astro";
 import ReorderButton from "@/components/islands/ReorderButton";
+import OrderCancelButton from "@/components/islands/OrderCancelButton";
 import OrderStatusTracker from "@/components/islands/OrderStatusTracker";
 import OrderDetailIsland from "@/components/islands/OrderDetailIsland";
 import PushNotificationManager from "@/components/islands/PushNotificationManager";
@@ -132,6 +133,14 @@ const PAYMENT_STATUS_COLORS: Record<string, string> = {
             </svg>
             Lacak Pesanan
           </a>
+        )}
+        {order.status === "pending_payment" && (
+          <OrderCancelButton
+            client:load
+            orderId={order.id}
+            orderNumber={order.orderNumber}
+            orderStatus={order.status}
+          />
         )}
         <ReorderButton client:load items={order.items} />
       </div>
